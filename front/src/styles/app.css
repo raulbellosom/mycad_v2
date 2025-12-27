@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/* Tailwind v4.1 — Manual dark mode variant */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-heading: "Outfit", sans-serif;
+
+  --color-brand: var(--brand);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-card: var(--card);
+  --color-card-fg: var(--card-fg);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-fg: var(--muted-fg);
+
+  --color-sidebar: var(--sidebar-bg);
+  --color-sidebar-fg: var(--sidebar-fg);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-fg: var(--sidebar-active-fg);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.4s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+/* Brand tokens (Corporative Orange) & Premium Light Mode */
+:root {
+  /* Brand Scale */
+  --brand-50: #fff7ed;
+  --brand-100: #ffedd5;
+  --brand-200: #fed7aa;
+  --brand: #f97316; /* orange-500 default */
+  --brand-500: #f97316;
+  --brand-600: #ea580c;
+  --brand-700: #c2410c;
+
+  /* Light Theme - Premium Zinc/Slate feel */
+  --bg: #f8fafc; /* slate-50 - cleaner than neutral */
+  --fg: #0f172a; /* slate-900 */
+
+  --card: #ffffff;
+  --card-fg: #0f172a;
+
+  --border: #e2e8f0; /* slate-200 */
+
+  --muted: #f1f5f9; /* slate-100 */
+  --muted-fg: #64748b; /* slate-500 */
+
+  --destructive: #ef4444;
+  --destructive-fg: #fef2f2;
+
+  /* Sidebar */
+  --sidebar-bg: #ffffff;
+  --sidebar-fg: #475569; /* slate-600 */
+  --sidebar-active: #fff7ed; /* brand-50 */
+  --sidebar-active-fg: #ea580c; /* brand-600 */
+  --sidebar-border: #e2e8f0;
+}
+
+.dark {
+  /* Dark Theme - Deep Zinc/Black */
+  --bg: #09090b; /* zinc-950 */
+  --fg: #fafafa; /* zinc-50 */
+
+  --card: #18181b; /* zinc-900 */
+  --card-fg: #fafafa;
+
+  --border: #27272a; /* zinc-800 */
+
+  --muted: #27272a; /* zinc-800 */
+  --muted-fg: #a1a1aa; /* zinc-400 */
+
+  --sidebar-bg: #09090b;
+  --sidebar-fg: #a1a1aa;
+  --sidebar-active: #27272a;
+  --sidebar-active-fg: #f97316; /* brand */
+  --sidebar-border: #27272a;
+}
+
+/* Reset & Base */
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden; /* Prevent horizontal scroll globally */
+}
+
+/* Typography Enhancements */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
+/* Animations Utility Classes */
+.animate-enter {
+  animation: fade-in 0.4s ease-out forwards, slide-up 0.4s ease-out forwards;
+}
+
+/* Scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-200) transparent;
+}
+.dark * {
+  scrollbar-color: var(--brand-700) transparent;
+}
