@@ -12,6 +12,7 @@ import {
   Tag,
   Edit,
   Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import { PageLayout } from "../../../shared/ui/PageLayout";
@@ -20,9 +21,15 @@ import { Card } from "../../../shared/ui/Card";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { ConfirmModal } from "../../../shared/ui/ConfirmModal";
+import { ImageViewerModal } from "../../../shared/ui/ImageViewerModal";
 import { cn } from "../../../shared/utils/cn";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
-import { listVehicles, deleteVehicle } from "../services/vehicles.service";
+import {
+  listVehicles,
+  deleteVehicle,
+  listVehicleFiles,
+  getFilePreview,
+} from "../services/vehicles.service";
 import {
   listVehicleTypes,
   listVehicleBrands,
@@ -63,6 +70,11 @@ export function VehiclesPage() {
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("grid"); // grid | list
   const [vehicleToDelete, setVehicleToDelete] = useState(null);
+  const [imageViewerData, setImageViewerData] = useState({
+    isOpen: false,
+    images: [],
+    currentImageId: null,
+  });
   const nav = useNavigate();
   const queryClient = useQueryClient();
   const { can } = usePermissions();
@@ -368,6 +380,13 @@ export function VehiclesPage() {
                 canDelete={canDelete}
                 onEdit={() => nav(`/vehicles/${vehicle.$id}/edit`)}
                 onDelete={() => setVehicleToDelete(vehicle)}
+                onOpenImages={(images, currentId) =>
+                  setImageViewerData({
+                    isOpen: true,
+                    images,
+                    currentImageId: currentId,
+                  })
+                }
               />
             ))}
           </div>
@@ -412,6 +431,13 @@ export function VehiclesPage() {
                       canDelete={canDelete}
                       onEdit={() => nav(`/vehicles/${vehicle.$id}/edit`)}
                       onDelete={() => setVehicleToDelete(vehicle)}
+                      onOpenImages={(images, currentId) =>
+                        setImageViewerData({
+                          isOpen: true,
+                          images,
+                          currentImageId: currentId,
+                        })
+                      }
                     />
                   ))}
                 </tbody>
@@ -453,6 +479,20 @@ export function VehiclesPage() {
         variant="danger"
         loading={deleteMutation.isPending}
       />
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={imageViewerData.isOpen}
+        onClose={() =>
+          setImageViewerData({
+            isOpen: false,
+            images: [],
+            currentImageId: null,
+          })
+        }
+        images={imageViewerData.images}
+        currentImageId={imageViewerData.currentImageId}
+      />
     </PageLayout>
   );
 }
@@ -467,6 +507,7 @@ function VehicleCard({
   canDelete,
   onEdit,
   onDelete,
+  onOpenImages,
 }) {
   const model = modelMap[vehicle.modelId];
   const brand = brandMap[vehicle.brandId];
@@ -476,6 +517,22 @@ function VehicleCard({
   const displayEconomicNumber = economicGroup
     ? `${economicGroup}-${vehicle.economicNumber}`
     : vehicle.economicNumber;
+
+  // Fetch vehicle images
+  const { data: files = [] } = useQuery({
+    queryKey: ["vehicleFiles", vehicle.$id],
+    queryFn: () => listVehicleFiles(vehicle.$id),
+    enabled: !!vehicle.$id,
+    staleTime: 5 * 60 * 1000, // 5 min cache
+  });
+
+  const imageFiles = useMemo(() => files.filter((f) => f.isImage), [files]);
+  const hasImages = imageFiles.length > 0;
+  // Use storageFileId for preview (fallback to fileId for old data)
+  const getStorageId = (file) => file.storageFileId || file.fileId;
+  const thumbnailUrl = hasImages
+    ? getFilePreview(getStorageId(imageFiles[0]))?.href
+    : null;
 
   const handleEdit = (e) => {
     e.preventDefault();
@@ -489,95 +546,131 @@ function VehicleCard({
     onDelete();
   };
 
+  const handleImageClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (hasImages) {
+      const imageIds = imageFiles.map((f) => getStorageId(f));
+      onOpenImages(imageIds, imageIds[0]);
+    }
+  };
+
   return (
     <Link to={`/vehicles/${vehicle.$id}`}>
-      <Card className="group h-full p-4 transition-all hover:border-(--brand)/40 hover:shadow-lg relative">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-(--brand)/10 text-(--brand)">
-            <Car size={24} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-base font-bold text-(--fg) group-hover:text-(--brand) transition-colors">
+      <Card className="group h-full overflow-hidden transition-all hover:border-(--brand)/40 hover:shadow-lg">
+        {/* Image / Thumbnail Area */}
+        <div
+          className={cn(
+            "relative h-36 w-full overflow-hidden bg-(--muted)/30",
+            hasImages && "cursor-zoom-in"
+          )}
+          onClick={hasImages ? handleImageClick : undefined}
+        >
+          {hasImages ? (
+            <>
+              <img
+                src={thumbnailUrl}
+                alt={displayEconomicNumber}
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              {/* Image count badge */}
+              {imageFiles.length > 1 && (
+                <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-medium text-white">
+                  <ImageIcon size={12} />
+                  {imageFiles.length}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Car size={48} className="text-(--muted-fg)/30" />
+            </div>
+          )}
+
+          {/* Status Badge - overlayed on image */}
+          <span
+            className={cn(
+              "absolute top-2 left-2 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm",
+              STATUS_COLORS[vehicle.status] || STATUS_COLORS.INACTIVE
+            )}
+          >
+            {STATUS_LABELS[vehicle.status] || vehicle.status}
+          </span>
+        </div>
+
+        {/* Content */}
+        <div className="p-4">
+          {/* Economic Number & Plate */}
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-lg font-bold text-(--fg) group-hover:text-(--brand) transition-colors">
                 {displayEconomicNumber || "Sin N°"}
               </p>
-              <span
-                className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                  STATUS_COLORS[vehicle.status] || STATUS_COLORS.INACTIVE
-                )}
-              >
-                {STATUS_LABELS[vehicle.status] || vehicle.status}
-              </span>
+              <p className="text-sm text-(--muted-fg)">
+                {vehicle.plate || "Sin placa"}
+              </p>
             </div>
-            <p className="text-xs text-(--muted-fg)">
-              {vehicle.plate || "Sin placa"}
-            </p>
           </div>
-        </div>
 
-        {/* Model & Brand Info */}
-        <div className="mt-3 space-y-1">
-          <p className="text-sm font-semibold text-(--fg) leading-tight truncate">
-            {brand?.name || ""} {model?.name || ""}
-            {model?.year ? ` (${model.year})` : ""}
-          </p>
-          {type && (
-            <p className="text-xs text-(--muted-fg) flex items-center gap-1.5">
-              <Tag size={12} className="shrink-0" />
-              <span className="truncate">{type.name}</span>
+          {/* Model & Brand */}
+          <div className="mt-2">
+            <p className="text-sm font-medium text-(--fg) truncate">
+              {brand?.name || ""} {model?.name || ""}
+              {model?.year ? ` (${model.year})` : ""}
             </p>
-          )}
-        </div>
+            {type && (
+              <p className="text-xs text-(--muted-fg) flex items-center gap-1 mt-0.5">
+                <Tag size={11} className="shrink-0" />
+                <span className="truncate">{type.name}</span>
+              </p>
+            )}
+          </div>
 
-        {/* Info Row */}
-        <div className="mt-3 flex items-center gap-3 text-xs text-(--muted-fg)">
-          {vehicle.mileage > 0 && (
-            <span className="flex items-center gap-1">
-              <Gauge size={13} className="shrink-0" />
-              <span className="truncate">
+          {/* Info Row */}
+          <div className="mt-3 flex items-center gap-4 text-xs text-(--muted-fg)">
+            {vehicle.mileage > 0 && (
+              <span className="flex items-center gap-1">
+                <Gauge size={12} />
                 {vehicle.mileage.toLocaleString()} {vehicle.mileageUnit || "KM"}
               </span>
-            </span>
-          )}
-          {vehicle.color && (
-            <span className="flex items-center gap-1.5">
-              <div
-                className="h-3 w-3 shrink-0 rounded-full border border-(--border)"
-                style={{ backgroundColor: vehicle.color.toLowerCase() }}
-              />
-              <span className="truncate">{vehicle.color}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Footer - Acciones */}
-        <div className="mt-3 flex items-center justify-between border-t border-(--border) pt-3">
-          <div className="flex items-center gap-1">
-            {canEdit && (
-              <button
-                onClick={handleEdit}
-                className="p-1.5 rounded-lg hover:bg-(--muted) transition-colors text-(--muted-fg) hover:text-(--brand)"
-                title="Editar"
-              >
-                <Edit size={14} />
-              </button>
             )}
-            {canDelete && (
-              <button
-                onClick={handleDelete}
-                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-(--muted-fg) hover:text-red-600"
-                title="Eliminar"
-              >
-                <Trash2 size={14} />
-              </button>
+            {vehicle.color && (
+              <span className="flex items-center gap-1.5">
+                <div
+                  className="h-3 w-3 rounded-full border border-(--border)"
+                  style={{ backgroundColor: vehicle.color.toLowerCase() }}
+                />
+                {vehicle.color}
+              </span>
             )}
           </div>
 
-          <span className="flex items-center gap-0.5 text-xs font-semibold text-(--brand) group-hover:underline shrink-0">
-            Ver <ChevronRight size={14} />
-          </span>
+          {/* Actions */}
+          <div className="mt-3 flex items-center justify-between border-t border-(--border) pt-3">
+            <div className="flex items-center gap-1">
+              {canEdit && (
+                <button
+                  onClick={handleEdit}
+                  className="p-1.5 rounded-lg hover:bg-(--muted) transition-colors text-(--muted-fg) hover:text-(--brand)"
+                  title="Editar"
+                >
+                  <Edit size={15} />
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-(--muted-fg) hover:text-red-600"
+                  title="Eliminar"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+            <span className="flex items-center gap-0.5 text-xs font-semibold text-(--brand) group-hover:underline">
+              Ver detalles <ChevronRight size={14} />
+            </span>
+          </div>
         </div>
       </Card>
     </Link>
@@ -594,6 +687,7 @@ function VehicleRow({
   canDelete,
   onEdit,
   onDelete,
+  onOpenImages,
 }) {
   const model = modelMap[vehicle.modelId];
   const brand = brandMap[vehicle.brandId];
@@ -604,12 +698,51 @@ function VehicleRow({
     ? `${economicGroup}-${vehicle.economicNumber}`
     : vehicle.economicNumber;
 
+  // Fetch vehicle images
+  const { data: files = [] } = useQuery({
+    queryKey: ["vehicleFiles", vehicle.$id],
+    queryFn: () => listVehicleFiles(vehicle.$id),
+    enabled: !!vehicle.$id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const imageFiles = useMemo(() => files.filter((f) => f.isImage), [files]);
+  const hasImages = imageFiles.length > 0;
+  // Use storageFileId for preview (fallback to fileId for old data)
+  const getStorageId = (file) => file.storageFileId || file.fileId;
+  const thumbnailUrl = hasImages
+    ? getFilePreview(getStorageId(imageFiles[0]))?.href
+    : null;
+
+  const handleImageClick = (e) => {
+    e.stopPropagation();
+    if (hasImages) {
+      const imageIds = imageFiles.map((f) => getStorageId(f));
+      onOpenImages(imageIds, imageIds[0]);
+    }
+  };
+
   return (
     <tr className="hover:bg-(--muted)/30 transition-colors">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-(--brand)/10 text-(--brand)">
-            <Car size={18} />
+          {/* Thumbnail */}
+          <div
+            onClick={hasImages ? handleImageClick : undefined}
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden",
+              hasImages ? "cursor-zoom-in" : "bg-(--brand)/10 text-(--brand)"
+            )}
+          >
+            {hasImages ? (
+              <img
+                src={thumbnailUrl}
+                alt={displayEconomicNumber}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <Car size={18} />
+            )}
           </div>
           <div>
             <p className="font-medium text-(--fg)">

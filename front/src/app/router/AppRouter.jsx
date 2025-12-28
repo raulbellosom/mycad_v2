@@ -84,6 +84,17 @@ export function AppRouter() {
             </RequirePermission>
           }
         />
+        <Route
+          path="vehicles/:id/edit"
+          element={
+            <RequirePermission
+              permission={SYSTEM_PERMISSIONS.VEHICLES_EDIT}
+              fallbackPath="/vehicles"
+            >
+              <VehicleFormPage />
+            </RequirePermission>
+          }
+        />
 
         {/* Catalogs - protegido por permisos */}
         <Route

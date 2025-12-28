@@ -94,6 +94,9 @@ export function VehicleFormPage() {
   const [stagedFiles, setStagedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Track original data for change detection in edit mode
+  const [originalFormData, setOriginalFormData] = useState(null);
+
   // Modal state
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [modelSearchTerm, setModelSearchTerm] = useState("");
@@ -133,7 +136,7 @@ export function VehicleFormPage() {
 
   useEffect(() => {
     if (vehicle) {
-      setFormData({
+      const initialData = {
         plate: vehicle.plate || "",
         economicNumber: vehicle.economicNumber || "",
         brandId: vehicle.brandId || "",
@@ -152,9 +155,26 @@ export function VehicleFormPage() {
         bookValueCurrency: vehicle.bookValueCurrency || "MXN",
         marketValue: vehicle.marketValue ?? "",
         marketValueCurrency: vehicle.marketValueCurrency || "MXN",
-      });
+      };
+      setFormData(initialData);
+      setOriginalFormData(initialData);
     }
   }, [vehicle]);
+
+  // Detect if form has changes (for edit mode)
+  const hasChanges = useMemo(() => {
+    if (!isEdit) return true; // Always allow submit in create mode
+    if (!originalFormData) return false;
+
+    // Check if form data changed
+    const formChanged =
+      JSON.stringify(formData) !== JSON.stringify(originalFormData);
+
+    // Check if there are new staged files
+    const hasNewFiles = stagedFiles.length > 0;
+
+    return formChanged || hasNewFiles;
+  }, [isEdit, formData, originalFormData, stagedFiles]);
 
   // Prevent accidental navigation with staged files
   useEffect(() => {
@@ -191,7 +211,8 @@ export function VehicleFormPage() {
             file.fileId,
             file.name,
             file.type,
-            file.size
+            file.size,
+            profile?.$id // ownerProfileId
           );
         }
       }
@@ -207,7 +228,18 @@ export function VehicleFormPage() {
       nav("/vehicles");
     },
     onError: (err) => {
-      toast.error(err.message || "Error al guardar");
+      // Handle specific Appwrite errors
+      if (err?.code === 401 || err?.type === "user_unauthorized") {
+        toast.error(
+          "No tienes permisos para realizar esta acción. Contacta al administrador."
+        );
+      } else if (err?.code === 403) {
+        toast.error("Acceso denegado. Verifica tus permisos.");
+      } else if (err?.message?.includes("document_invalid_structure")) {
+        toast.error("Error en la estructura de datos. Contacta soporte.");
+      } else {
+        toast.error(err.message || "Error al guardar el vehículo");
+      }
     },
   });
 
@@ -272,7 +304,8 @@ export function VehicleFormPage() {
   };
 
   const deleteExistingFileMutation = useMutation({
-    mutationFn: ({ docId, fileId }) => deleteVehicleFile(docId, fileId),
+    mutationFn: ({ vehicleFileDocId, fileDocId, storageFileId }) =>
+      deleteVehicleFile(vehicleFileDocId, fileDocId, storageFileId),
     onSuccess: () => {
       queryClient.invalidateQueries(["vehicleFiles", id]);
       toast.success("Archivo eliminado");
@@ -333,7 +366,7 @@ export function VehicleFormPage() {
         </Button>
       }
     >
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-6xl">
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left Col: Main Form */}
           <div className="lg:col-span-2 space-y-6">
@@ -571,14 +604,23 @@ export function VehicleFormPage() {
                   existingFiles={existingFiles}
                   stagedFiles={stagedFiles}
                   onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
-                  onRemoveStaged={async (id) => {
+                  onRemoveStaged={async (storageId) => {
                     setStagedFiles((prev) =>
-                      prev.filter((f) => f.fileId !== id)
+                      prev.filter((f) => f.fileId !== storageId)
                     );
-                    await deleteVehicleFile(null, id);
+                    // For staged files, only delete from storage (no DB records yet)
+                    await deleteVehicleFile(null, null, storageId);
                   }}
-                  onRemoveExisting={(docId, fileId) =>
-                    deleteExistingFileMutation.mutate({ docId, fileId })
+                  onRemoveExisting={(
+                    vehicleFileDocId,
+                    fileDocId,
+                    storageFileId
+                  ) =>
+                    deleteExistingFileMutation.mutate({
+                      vehicleFileDocId,
+                      fileDocId,
+                      storageFileId,
+                    })
                   }
                   isUploading={isUploading}
                   setIsUploading={setIsUploading}
@@ -600,14 +642,23 @@ export function VehicleFormPage() {
                   existingFiles={existingFiles}
                   stagedFiles={stagedFiles}
                   onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
-                  onRemoveStaged={async (id) => {
+                  onRemoveStaged={async (storageId) => {
                     setStagedFiles((prev) =>
-                      prev.filter((f) => f.fileId !== id)
+                      prev.filter((f) => f.fileId !== storageId)
                     );
-                    await deleteVehicleFile(null, id);
+                    // For staged files, only delete from storage (no DB records yet)
+                    await deleteVehicleFile(null, null, storageId);
                   }}
-                  onRemoveExisting={(docId, fileId) =>
-                    deleteExistingFileMutation.mutate({ docId, fileId })
+                  onRemoveExisting={(
+                    vehicleFileDocId,
+                    fileDocId,
+                    storageFileId
+                  ) =>
+                    deleteExistingFileMutation.mutate({
+                      vehicleFileDocId,
+                      fileDocId,
+                      storageFileId,
+                    })
                   }
                   isUploading={isUploading}
                   setIsUploading={setIsUploading}
@@ -623,7 +674,7 @@ export function VehicleFormPage() {
                     type="submit"
                     form="vehicle-form"
                     loading={mutation.isPending}
-                    disabled={mutation.isPending || isUploading}
+                    disabled={mutation.isPending || isUploading || !hasChanges}
                     className="w-full justify-center py-6 text-lg"
                   >
                     {mutation.isPending ? (
