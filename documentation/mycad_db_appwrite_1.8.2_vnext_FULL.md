@@ -768,31 +768,6 @@
 - `rental`: Two-way ↔ `rentals.files` (Many-to-one) On delete Cascade
 - `file`: Two-way ↔ `files.rentalLinks` (Many-to-one) On delete Restrict
 
----
-
-## 3) Orden recomendado de creación (Console)
-
-1. `users_profile`
-2. `groups` → relationship `ownerProfile`
-3. `group_members` → relationships `group` y `profile`
-
-4. `permissions`
-5. `roles`
-6. `role_permissions`
-7. `user_roles`
-
-8. catálogos: `vehicle_types`, `vehicle_brands`, `vehicle_models`, `conditions`
-
-9. `vehicles` (+ relationships a profile/group/catálogos)
-10. `vehicle_conditions` (si lo usarás)
-11. `files`, `images`
-
-12. `service_histories` → `replaced_parts` → `service_files`
-13. `repair_reports` → `repaired_parts` → `repair_files`
-14. `clients` → `rentals` → `rental_files`
-
----
-
 # Z) drivers
 
 ## Z.1 Attributes
@@ -921,3 +896,34 @@
 - `vehicle`: Two-way ↔ `vehicles.driverAssignments` (Many-to-one) On delete Cascade
 - `driver`: Two-way ↔ `drivers.vehicleAssignments` (Many-to-one) On delete Cascade
 - `createdBy`: Two-way ↔ `users_profile.vehicleDriverAssignmentsCreated` (Many-to-one) On delete Cascade
+
+---
+
+## 3) Orden recomendado de creación (Console)
+
+1. `users_profile`
+2. `groups` → relationship `ownerProfile`
+3. `group_members` → relationships `group` y `profile`
+
+4. `permissions`
+5. `roles`
+6. `role_permissions`
+7. `user_roles`
+
+8. catálogos: `vehicle_types`, `vehicle_brands`, `vehicle_models`, `conditions`
+
+9. `vehicles` (+ relationships a profile/group/catálogos)
+10. `vehicle_conditions` (si lo usarás)
+11. `files`, `images`
+
+12. `service_histories` → `replaced_parts` → `service_files`
+13. `repair_reports` → `repaired_parts` → `repair_files`
+14. `clients` → `rentals` → `rental_files`
+15. `vehicles` → `rentals` → `rental_files`
+
+16. `drivers`
+17. `driver_licenses` → `driver_files`
+18. `driver_files` → `driver_licenses`
+19. `vehicle_driver_assignments`
+
+---
