@@ -814,7 +814,7 @@
 | groupId       | String(64)   |       ✅ |         |                                               |
 | driverId      | String(64)   |       ✅ |         | `drivers.$id` (indexable)                     |
 | licenseNumber | String(40)   |       ✅ |         |                                               |
-| licenseType   | Enum         |       ❌ |         | A/B/C… (o el catálogo que uses)               |
+| licenseType   | Enum         |       ❌ |         | A-A1-A2-B-C-D-E/E1                            |
 | country       | String(2)    |       ❌ |         | MX/US…                                        |
 | state         | String(3-10) |       ❌ |         | JAL/NAY…                                      |
 | issuedAt      | Datetime     |       ❌ |         |                                               |
