@@ -1,37 +1,35 @@
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { motion } from "framer-motion";
 import { FolderOpen } from "lucide-react";
 
 export function EmptyState({
   title,
   description,
   icon: Icon,
-  className,
+  className = "",
   children,
 }) {
   const I = Icon || FolderOpen;
 
   return (
-    <div
-      className={twMerge(
-        clsx(
-          "flex flex-col items-center justify-center rounded-2xl border border-dashed border-(--border) bg-zinc-50/50 p-12 text-center dark:bg-zinc-900/50",
-          className
-        )
-      )}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-(--border) bg-(--muted)/30 p-12 text-center ${className}`}
     >
-      <div className="mb-4 rounded-full bg-zinc-100 p-4 dark:bg-zinc-800">
-        <I size={32} className="text-zinc-400" />
-      </div>
-      <h3 className="text-lg font-medium text-zinc-900 dark:text-white">
-        {title}
-      </h3>
+      <motion.div
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+        className="mb-6 rounded-full bg-(--muted) p-6 shadow-sm"
+      >
+        <I size={40} className="text-(--muted-fg)" />
+      </motion.div>
+      <h3 className="text-xl font-semibold text-(--fg)">{title}</h3>
       {description && (
-        <p className="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
-          {description}
-        </p>
+        <p className="mt-2 max-w-md text-sm text-(--muted-fg)">{description}</p>
       )}
       {children && <div className="mt-6">{children}</div>}
-    </div>
+    </motion.div>
   );
 }

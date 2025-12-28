@@ -9,6 +9,7 @@ import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { listVehicles } from "../services/vehicles.service";
 import { useState } from "react";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
+import { EmptyState } from "../../../shared/ui/EmptyState";
 
 export function VehiclesPage() {
   const { activeGroupId } = useActiveGroup();
@@ -33,10 +34,12 @@ export function VehiclesPage() {
 
   if (!activeGroupId) {
     return (
-      <div className="grid h-[50dvh] place-items-center">
-        <div className="text-center text-neutral-500">
-          Selecciona un grupo para ver sus vehículos.
-        </div>
+      <div className="grid h-[60dvh] place-items-center px-4">
+        <EmptyState
+          icon={Car}
+          title="Selecciona un grupo"
+          description="Para ver y gestionar vehículos, primero debes seleccionar un grupo en el menú superior."
+        />
       </div>
     );
   }
@@ -72,17 +75,22 @@ export function VehiclesPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-4 rounded-full bg-neutral-100 p-4 dark:bg-neutral-800">
-            <Car size={32} className="text-neutral-400" />
-          </div>
-          <h3 className="text-lg font-medium text-neutral-900 dark:text-white">
-            No hay vehículos
-          </h3>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            No se encontraron vehículos en este grupo.
-          </p>
-        </Card>
+        <EmptyState
+          icon={Car}
+          title="No hay vehículos"
+          description={
+            search
+              ? `No se encontraron vehículos que coincidan con "${search}".`
+              : "Aún no tienes vehículos registrados en este grupo. ¡Agrega tu primer vehículo para comenzar!"
+          }
+        >
+          <Button asChild>
+            <Link to="/vehicles/new">
+              <Plus size={18} className="mr-2" />
+              Agregar Vehículo
+            </Link>
+          </Button>
+        </EmptyState>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((vehicle) => (

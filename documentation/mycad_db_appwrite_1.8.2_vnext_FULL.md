@@ -393,7 +393,6 @@
 | typeId          | String(64)                 |       ✅ |         | catálogo                                           |
 | brandId         | String(64)                 |       ❌ |         | catálogo                                           |
 | modelId         | String(64)                 |       ❌ |         | catálogo                                           |
-| year            | Integer(min=1900,max=2100) |       ❌ |         |                                                    |
 | color           | String(40)                 |       ❌ |         |                                                    |
 | plate           | String(15)                 |       ❌ |         |                                                    |
 | vin             | String(20)                 |       ❌ |         |                                                    |

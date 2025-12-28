@@ -1,58 +1,69 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+
 import { SectionHeader } from "../../../shared/ui/SectionHeader";
-import { Card } from "../../../shared/ui/Card";
-import { Tabs } from "../../../shared/ui/Tabs";
 import { EmptyState } from "../../../shared/ui/EmptyState";
-import { listCatalog } from "../services/catalogs.service";
-import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
+import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+import { TypesTab } from "../components/TypesTab";
+import { BrandsTab } from "../components/BrandsTab";
+import { ModelsTab } from "../components/ModelsTab";
+import { ConditionsTab } from "../components/ConditionsTab";
 
 const TABS = [
+  { id: "types", label: "Tipos de Vehículo" },
   { id: "brands", label: "Marcas" },
   { id: "models", label: "Modelos" },
-  { id: "types", label: "Tipos de Vehículo" },
+  { id: "conditions", label: "Condiciones" },
 ];
-
+// Main Page Component
 export function CatalogsPage() {
-  const [activeTab, setActiveTab] = useState("brands");
+  const [activeTab, setActiveTab] = useState("types");
+  const { activeGroupId } = useActiveGroup();
 
-  const { data: items, isLoading } = useQuery({
-    queryKey: ["catalogs", activeTab],
-    queryFn: () => listCatalog(activeTab),
-  });
+  if (!activeGroupId) {
+    return (
+      <div className="p-8">
+        <SectionHeader
+          title="Catálogos"
+          subtitle="Gestiona los catálogos de tu grupo."
+        />
+        <EmptyState
+          icon="folder"
+          title="Selecciona un grupo"
+          description="Para gestionar catálogos, primero selecciona un grupo activo."
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="p-8">
       <SectionHeader
         title="Catálogos"
-        subtitle="Gestión global de metadatos de vehículos."
+        subtitle="Gestiona los catálogos de tu grupo."
       />
 
-      <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+      {/* Tab navigation */}
+      <div className="mb-6 flex gap-2 border-b border-(--border)">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-b-2 border-brand-600 text-brand-600"
+                : "text-(--muted-fg) hover:text-(--fg)"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      <Card>
-        {isLoading ? (
-          <div className="p-12 text-center text-sm text-neutral-500">
-            Cargando...
-          </div>
-        ) : !items || items.length === 0 ? (
-          <EmptyState title="Catálogo vacío" />
-        ) : (
-          <div className="divide-y divide-(--border)">
-            {items.map((item) => (
-              <div
-                key={item.$id}
-                className="flex items-center justify-between p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
-              >
-                <span className="font-medium">{item.name}</span>
-                <span className="text-xs text-neutral-400">
-                  $id: {item.$id}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+      {/* Tab content */}
+      {activeTab === "types" && <TypesTab groupId={activeGroupId} />}
+      {activeTab === "brands" && <BrandsTab groupId={activeGroupId} />}
+      {activeTab === "models" && <ModelsTab groupId={activeGroupId} />}
+      {activeTab === "conditions" && <ConditionsTab groupId={activeGroupId} />}
     </div>
   );
 }
