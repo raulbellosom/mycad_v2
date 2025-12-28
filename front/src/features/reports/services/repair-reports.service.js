@@ -83,6 +83,9 @@ export async function createRepairReport(data) {
       reportNumber,
       status: reportData.status || "OPEN",
       enabled: true,
+      // Relaciones two-way
+      vehicle: reportData.vehicleId, // relación → vehicles
+      createdByProfile: reportData.createdByProfileId, // relación → users_profile
     }
   );
 
@@ -99,6 +102,8 @@ export async function createRepairReport(data) {
             groupId: reportData.groupId,
             repairReportId: doc.$id,
             enabled: true,
+            // Relaciones two-way
+            repairReport: doc.$id, // relación → repair_reports
           }
         )
       )
@@ -206,6 +211,8 @@ export async function addRepairReportPart(repairReportId, groupId, partData) {
       groupId,
       repairReportId,
       enabled: true,
+      // Relaciones two-way
+      repairReport: repairReportId, // relación → repair_reports
     }
   );
   return doc;
@@ -273,6 +280,8 @@ export async function uploadRepairReportFile(repairReportId, groupId, file) {
       repairReportId,
       fileId: storageFile.$id,
       enabled: true,
+      // Relaciones two-way
+      repairReport: repairReportId, // relación → repair_reports
     }
   );
 

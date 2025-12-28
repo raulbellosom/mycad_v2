@@ -238,6 +238,8 @@ export async function registerDriverFile(
     kind,
     label,
     enabled: true,
+    // Relaciones two-way
+    driver: driverId, // relación → drivers
   });
 }
 

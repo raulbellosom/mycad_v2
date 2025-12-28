@@ -603,7 +603,7 @@
 | vehicleId | String(64) |       ✅ |         |                                               |
 | fileId    | String(64) |       ✅ |         | `files.$id` o `images.$id` (elige 1 estándar) |
 | kind      | Enum       |       ✅ |         | IMAGE / DOCUMENT                              |
-| label     | String(80) |       ❌ |         |                                               |
+| name      | String(80) |       ❌ |         |                                               |
 | enabled   | Boolean    |       ❌ | true    |                                               |
 
 ## P.2 Indexes

@@ -24,7 +24,13 @@ export async function createVehicleType(groupId, name, economicGroup) {
     env.databaseId,
     env.collectionVehicleTypesId,
     ID.unique(),
-    { groupId, name, economicGroup, enabled: true }
+    {
+      groupId,
+      name,
+      economicGroup,
+      enabled: true,
+      group: groupId, // relación → groups
+    }
   );
   return doc;
 }
@@ -70,7 +76,12 @@ export async function createVehicleBrand(groupId, name) {
     env.databaseId,
     env.collectionVehicleBrandsId,
     ID.unique(),
-    { groupId, name, enabled: true }
+    {
+      groupId,
+      name,
+      enabled: true,
+      group: groupId, // relación → groups
+    }
   );
   return doc;
 }
@@ -120,7 +131,13 @@ export async function createVehicleModel(data) {
     env.databaseId,
     env.collectionVehicleModelsId,
     ID.unique(),
-    { ...data, enabled: true }
+    {
+      ...data,
+      enabled: true,
+      group: data.groupId, // relación → groups
+      brand: data.brandId || null, // relación → vehicle_brands
+      type: data.typeId || null, // relación → vehicle_types
+    }
   );
   return doc;
 }
@@ -166,7 +183,13 @@ export async function createCondition(groupId, name, description = "") {
     env.databaseId,
     env.collectionConditionsId,
     ID.unique(),
-    { groupId, name, description, enabled: true }
+    {
+      groupId,
+      name,
+      description,
+      enabled: true,
+      group: groupId, // relación → groups
+    }
   );
   return doc;
 }

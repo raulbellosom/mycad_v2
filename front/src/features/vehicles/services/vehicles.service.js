@@ -30,6 +30,12 @@ export async function createVehicle(data) {
       ...data,
       enabled: true,
       status: "ACTIVE",
+      // Relaciones two-way
+      group: data.groupId, // relación → groups
+      ownerProfile: data.ownerProfileId, // relación → users_profile
+      type: data.typeId || null, // relación → vehicle_types
+      brand: data.brandId || null, // relación → vehicle_brands
+      model: data.modelId || null, // relación → vehicle_models
     }
   );
   return doc;
@@ -95,6 +101,9 @@ export async function registerFileInDb(
       size: fileSize,
       isImage,
       enabled: true,
+      kind: isImage ? "IMAGE" : "DOCUMENT",
+      // Relaciones two-way
+      vehicle: vehicleId, // relación → vehicles
     }
   );
   return doc;

@@ -108,6 +108,8 @@ export async function createRole(
       description,
       isSystem,
       enabled: true,
+      // Relaciones two-way
+      group: groupId, // relación → groups
     }
   );
 }
@@ -194,6 +196,9 @@ export async function assignPermissionToRole(groupId, roleId, permissionId) {
       roleId,
       permissionId,
       enabled: true,
+      // Relaciones two-way
+      role: roleId, // relación → roles
+      permission: permissionId, // relación → permissions
     }
   );
 }
@@ -313,6 +318,10 @@ export async function assignRoleToUser(groupId, profileId, roleId) {
       roleId,
       enabled: true,
       assignedAt: new Date().toISOString(),
+      // Relaciones two-way
+      group: groupId, // relación → groups
+      profile: profileId, // relación → users_profile
+      role: roleId, // relación → roles
     }
   );
 }

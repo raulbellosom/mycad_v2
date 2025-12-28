@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -10,6 +10,7 @@ import {
   FileText,
   Image as ImageIcon,
   DollarSign,
+  Info,
 } from "lucide-react";
 
 import { SectionHeader } from "../../../shared/ui/SectionHeader";
@@ -18,6 +19,9 @@ import { Card } from "../../../shared/ui/Card";
 import { Input } from "../../../shared/ui/Input";
 import { Button } from "../../../shared/ui/Button";
 import { Select } from "../../../shared/ui/Select";
+import { DatePicker } from "../../../shared/ui/DatePicker";
+import { ModelCombobox } from "../../../shared/ui/ModelCombobox";
+import { CurrencyInput } from "../../../shared/ui/CurrencyInput";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {
@@ -35,7 +39,6 @@ import {
 } from "../../catalogs/services/catalogs.service";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { EmptyState } from "../../../shared/ui/EmptyState";
-import { Combobox } from "../../../shared/ui/Combobox";
 import { CreateModelModal } from "../components/CreateModelModal";
 import { VehicleMediaManager } from "../components/VehicleMediaManager";
 
@@ -293,16 +296,32 @@ export function VehicleFormPage() {
     vehicleBrands.map((b) => [b.$id, b.name])
   );
   const typeMap = Object.fromEntries(vehicleTypes.map((t) => [t.$id, t.name]));
+  const typeEconomicGroupMap = Object.fromEntries(
+    vehicleTypes.map((t) => [t.$id, t.economicGroup || ""])
+  );
+
+  // Get economic group for current selection
+  const currentEconomicGroup = formData.typeId
+    ? typeEconomicGroupMap[formData.typeId] || ""
+    : "";
+
+  // Build composite economic number display (e.g., "02-8291")
+  const compositeEconomicNumber = currentEconomicGroup
+    ? `${currentEconomicGroup}-${formData.economicNumber || "____"}`
+    : formData.economicNumber || "";
 
   const modelOptions = vehicleModels.map((m) => ({
     value: m.$id,
     label: m.year ? `${m.name} (${m.year})` : m.name,
+    brandId: m.brandId,
+    typeId: m.typeId,
     brandName: brandMap[m.brandId] || "",
     typeName: typeMap[m.typeId] || "",
+    economicGroup: typeEconomicGroupMap[m.typeId] || "",
     year: m.year || "",
     searchText: `${m.name} ${brandMap[m.brandId] || ""} ${
       typeMap[m.typeId] || ""
-    } ${m.year || ""}`,
+    } ${m.year || ""} ${typeEconomicGroupMap[m.typeId] || ""}`,
   }));
 
   return (
@@ -319,28 +338,98 @@ export function VehicleFormPage() {
           {/* Left Col: Main Form */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="p-6">
+              <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
+                <Info size={20} className="text-(--brand)" />
+                Información del Vehículo
+              </h3>
               <form
                 onSubmit={handleSubmit}
                 id="vehicle-form"
                 className="space-y-6"
               >
+                {/* Model selector - FIRST and most important */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-(--fg)">
+                    Modelo del Vehículo *
+                  </label>
+                  <ModelCombobox
+                    value={formData.modelId}
+                    onChange={handleModelSelect}
+                    options={modelOptions}
+                    placeholder="Buscar modelo, marca, tipo, grupo económico..."
+                    emptyText="No se encontraron modelos"
+                    onCreateNew={(search) => {
+                      setModelSearchTerm(search);
+                      setIsModelModalOpen(true);
+                    }}
+                    createLabel="Crear modelo"
+                    types={vehicleTypes}
+                    brands={vehicleBrands}
+                  />
+                </div>
+
+                {/* Auto-filled info from model */}
+                {formData.modelId && (
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <Input
+                      label="Marca"
+                      value={brandMap[formData.brandId] || ""}
+                      disabled
+                      className="bg-(--muted)/50"
+                    />
+                    <Input
+                      label="Tipo"
+                      value={typeMap[formData.typeId] || ""}
+                      disabled
+                      className="bg-(--muted)/50"
+                    />
+                    <Input
+                      label="Grupo Económico"
+                      value={currentEconomicGroup || "Sin grupo"}
+                      disabled
+                      className="bg-(--muted)/50"
+                    />
+                  </div>
+                )}
+
+                {/* Economic Number with prefix */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-(--fg)">
+                      N° Económico *
+                    </label>
+                    <div className="flex items-center gap-1">
+                      {currentEconomicGroup && (
+                        <div className="flex h-10 items-center rounded-l-lg border border-r-0 border-(--border) bg-(--muted)/50 px-3 text-sm font-semibold text-(--brand)">
+                          {currentEconomicGroup}-
+                        </div>
+                      )}
+                      <Input
+                        value={formData.economicNumber}
+                        onChange={(e) =>
+                          handleChange(
+                            "economicNumber",
+                            e.target.value.toUpperCase().slice(0, 8)
+                          )
+                        }
+                        placeholder="8291"
+                        className={currentEconomicGroup ? "rounded-l-none" : ""}
+                      />
+                    </div>
+                    {compositeEconomicNumber && (
+                      <p className="mt-1 text-xs text-(--muted-fg)">
+                        Código completo:{" "}
+                        <span className="font-semibold text-(--fg)">
+                          {compositeEconomicNumber}
+                        </span>
+                      </p>
+                    )}
+                  </div>
                   <Input
                     label="Placa / Matrícula"
                     value={formData.plate}
                     onChange={(e) => handleChange("plate", e.target.value)}
                     placeholder="ABC-123"
-                  />
-                  <Input
-                    label="N° Económico *"
-                    value={formData.economicNumber}
-                    onChange={(e) =>
-                      handleChange(
-                        "economicNumber",
-                        e.target.value.toUpperCase().slice(0, 8)
-                      )
-                    }
-                    placeholder="E-1234"
                   />
                   <Input
                     label="N° Serie"
@@ -353,83 +442,49 @@ export function VehicleFormPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-(--fg)">
-                      Modelo del Vehículo *
-                    </label>
-                    <Combobox
-                      value={formData.modelId}
-                      onChange={handleModelSelect}
-                      options={modelOptions}
-                      placeholder="Buscar modelo, marca, tipo..."
-                      emptyText="No se encontraron modelos"
-                      onCreateNew={(search) => {
-                        setModelSearchTerm(search);
-                        setIsModelModalOpen(true);
-                      }}
-                      createLabel="Crear modelo"
-                      searchKeys={["label", "brandName", "typeName", "year"]}
-                    />
-                  </div>
-
-                  <Input
+                  <DatePicker
                     label="Fecha de Adquisición"
-                    type="date"
                     value={formData.acquisitionDate}
-                    onChange={(e) =>
-                      handleChange("acquisitionDate", e.target.value)
-                    }
+                    onChange={(value) => handleChange("acquisitionDate", value)}
+                    placeholder="Seleccionar fecha"
                   />
-                </div>
-
-                {formData.modelId && (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Input
-                      label="Marca (auto-completado)"
-                      value={brandMap[formData.brandId] || ""}
-                      disabled
-                      className="bg-(--muted)/50"
-                    />
-                    <Input
-                      label="Tipo (auto-completado)"
-                      value={typeMap[formData.typeId] || ""}
-                      disabled
-                      className="bg-(--muted)/50"
-                    />
-                  </div>
-                )}
-
-                <div className="grid gap-4 sm:grid-cols-2">
                   <Input
                     label="Color"
                     value={formData.color}
                     onChange={(e) => handleChange("color", e.target.value)}
                     placeholder="Blanco, Negro, Azul..."
                   />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
                   <Select
                     label="Estado"
                     value={formData.status}
                     onChange={(v) => handleChange("status", v)}
                     options={VEHICLE_STATUS_OPTIONS}
                   />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Kilometraje actual"
-                    type="number"
-                    min="0"
-                    value={formData.mileage}
-                    onChange={(e) =>
-                      handleChange("mileage", parseInt(e.target.value) || 0)
-                    }
-                  />
-                  <Select
-                    label="Unidad de medida"
-                    value={formData.mileageUnit}
-                    onChange={(v) => handleChange("mileageUnit", v)}
-                    options={MILEAGE_UNIT_OPTIONS}
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      label="Kilometraje actual"
+                      type="number"
+                      min="0"
+                      value={formData.mileage || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleChange(
+                          "mileage",
+                          val === "" ? 0 : Math.max(0, parseInt(val) || 0)
+                        );
+                      }}
+                      placeholder="0"
+                    />
+                    <Select
+                      label="Unidad"
+                      value={formData.mileageUnit}
+                      onChange={(v) => handleChange("mileageUnit", v)}
+                      options={MILEAGE_UNIT_OPTIONS}
+                    />
+                  </div>
                 </div>
               </form>
             </Card>
@@ -444,20 +499,11 @@ export function VehicleFormPage() {
                 {/* Acquisition Cost */}
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="sm:col-span-2">
-                    <Input
+                    <CurrencyInput
                       label="Costo de Adquisición"
-                      type="number"
-                      min="0"
-                      max="100000000"
-                      step="0.01"
                       value={formData.acquisitionCost}
-                      onChange={(e) =>
-                        handleChange(
-                          "acquisitionCost",
-                          e.target.value ? parseFloat(e.target.value) : ""
-                        )
-                      }
-                      placeholder="0.00"
+                      onChange={(val) => handleChange("acquisitionCost", val)}
+                      currency={formData.acquisitionCostCurrency}
                       form="vehicle-form"
                     />
                   </div>
@@ -472,20 +518,11 @@ export function VehicleFormPage() {
                 {/* Book Value */}
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="sm:col-span-2">
-                    <Input
+                    <CurrencyInput
                       label="Valor en Libros"
-                      type="number"
-                      min="0"
-                      max="100000000"
-                      step="0.01"
                       value={formData.bookValue}
-                      onChange={(e) =>
-                        handleChange(
-                          "bookValue",
-                          e.target.value ? parseFloat(e.target.value) : ""
-                        )
-                      }
-                      placeholder="0.00"
+                      onChange={(val) => handleChange("bookValue", val)}
+                      currency={formData.bookValueCurrency}
                       form="vehicle-form"
                     />
                   </div>
@@ -500,20 +537,11 @@ export function VehicleFormPage() {
                 {/* Market Value */}
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="sm:col-span-2">
-                    <Input
+                    <CurrencyInput
                       label="Valor de Mercado"
-                      type="number"
-                      min="0"
-                      max="100000000"
-                      step="0.01"
                       value={formData.marketValue}
-                      onChange={(e) =>
-                        handleChange(
-                          "marketValue",
-                          e.target.value ? parseFloat(e.target.value) : ""
-                        )
-                      }
-                      placeholder="0.00"
+                      onChange={(val) => handleChange("marketValue", val)}
+                      currency={formData.marketValueCurrency}
                       form="vehicle-form"
                     />
                   </div>
@@ -595,37 +623,143 @@ export function VehicleFormPage() {
                     type="submit"
                     form="vehicle-form"
                     loading={mutation.isPending}
+                    disabled={mutation.isPending || isUploading}
                     className="w-full justify-center py-6 text-lg"
                   >
-                    <Save size={20} className="mr-2" />
-                    {isEdit ? "Guardar Cambios" : "Crear Vehículo"}
+                    {mutation.isPending ? (
+                      <>Guardando...</>
+                    ) : (
+                      <>
+                        <Save size={20} className="mr-2" />
+                        {isEdit ? "Guardar Cambios" : "Crear Vehículo"}
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
                     onClick={handleCancel}
+                    disabled={mutation.isPending}
                     className="w-full justify-center"
                   >
                     Cancelar
                   </Button>
                 </div>
 
+                {/* Loading indicator */}
+                {mutation.isPending && (
+                  <div className="rounded-lg bg-(--brand)/10 border border-(--brand)/30 p-3 text-center">
+                    <p className="text-sm text-(--brand) font-medium">
+                      {stagedFiles.length > 0
+                        ? "Guardando vehículo y registrando archivos..."
+                        : "Guardando vehículo..."}
+                    </p>
+                  </div>
+                )}
+
                 <div className="rounded-lg bg-(--muted)/30 p-4 border border-(--border)">
-                  <h4 className="text-sm font-medium text-(--fg) mb-2">
-                    Resumen
+                  <h4 className="text-sm font-medium text-(--fg) mb-3 pb-2 border-b border-(--border)">
+                    Resumen del Vehículo
                   </h4>
-                  <div className="space-y-2 text-xs text-(--muted-fg)">
-                    <p className="flex justify-between">
-                      <span>Económico:</span>
-                      <span className="font-semibold text-(--fg)">
-                        {formData.economicNumber || "—"}
+                  <div className="space-y-2.5 text-xs">
+                    {/* Economic Number - Most Important */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-(--muted-fg)">N° Económico:</span>
+                      <span className="font-bold text-(--fg) text-sm">
+                        {compositeEconomicNumber || "—"}
                       </span>
-                    </p>
-                    <p className="flex justify-between">
-                      <span>Archivos:</span>
+                    </div>
+
+                    {/* Plate */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-(--muted-fg)">Placa:</span>
                       <span className="font-semibold text-(--fg)">
-                        {existingFiles.length + stagedFiles.length}
+                        {formData.plate || "—"}
                       </span>
-                    </p>
+                    </div>
+
+                    {/* Model */}
+                    {formData.modelId && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-(--muted-fg)">Modelo:</span>
+                        <span className="font-semibold text-(--fg) text-right max-w-[140px] truncate">
+                          {modelOptions.find(
+                            (m) => m.value === formData.modelId
+                          )?.label || "—"}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Brand */}
+                    {formData.brandId && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-(--muted-fg)">Marca:</span>
+                        <span className="font-semibold text-(--fg)">
+                          {brandMap[formData.brandId] || "—"}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Type */}
+                    {formData.typeId && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-(--muted-fg)">Tipo:</span>
+                        <span className="font-semibold text-(--fg)">
+                          {typeMap[formData.typeId] || "—"}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Economic Group */}
+                    {currentEconomicGroup && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-(--muted-fg)">Grupo Econ.:</span>
+                        <span className="inline-flex items-center rounded bg-(--brand)/10 px-1.5 py-0.5 text-xs font-semibold text-(--brand)">
+                          {currentEconomicGroup}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Status */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-(--muted-fg)">Estado:</span>
+                      <span className="font-semibold text-(--fg)">
+                        {VEHICLE_STATUS_OPTIONS.find(
+                          (s) => s.value === formData.status
+                        )?.label || "—"}
+                      </span>
+                    </div>
+
+                    {/* Mileage */}
+                    {formData.mileage > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-(--muted-fg)">Kilometraje:</span>
+                        <span className="font-semibold text-(--fg)">
+                          {formData.mileage.toLocaleString()}{" "}
+                          {formData.mileageUnit}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Separator */}
+                    <div className="border-t border-(--border) pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-(--muted-fg)">Archivos:</span>
+                        <span className="font-semibold text-(--fg)">
+                          {existingFiles.length + stagedFiles.length}
+                        </span>
+                      </div>
+
+                      {/* Acquisition Cost if present */}
+                      {formData.acquisitionCost && (
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="text-(--muted-fg)">Costo Adq.:</span>
+                          <span className="font-semibold text-(--fg)">
+                            ${Number(formData.acquisitionCost).toLocaleString()}{" "}
+                            {formData.acquisitionCostCurrency}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

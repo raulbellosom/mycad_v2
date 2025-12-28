@@ -74,6 +74,9 @@ export async function createServiceReport(data) {
       ...reportData,
       status: "DRAFT",
       enabled: true,
+      // Relaciones two-way
+      vehicle: reportData.vehicleId, // relación → vehicles
+      createdByProfile: reportData.createdByProfileId, // relación → users_profile
     }
   );
 
@@ -90,6 +93,8 @@ export async function createServiceReport(data) {
             groupId: reportData.groupId,
             serviceHistoryId: doc.$id,
             enabled: true,
+            // Relaciones two-way
+            serviceHistory: doc.$id, // relación → service_histories
           }
         )
       )
@@ -202,6 +207,8 @@ export async function addServiceReportPart(
       groupId,
       serviceHistoryId,
       enabled: true,
+      // Relaciones two-way
+      serviceHistory: serviceHistoryId, // relación → service_histories
     }
   );
   return doc;
@@ -269,6 +276,8 @@ export async function uploadServiceReportFile(serviceHistoryId, groupId, file) {
       serviceHistoryId,
       fileId: storageFile.$id,
       enabled: true,
+      // Relaciones two-way
+      serviceHistory: serviceHistoryId, // relación → service_histories
     }
   );
 

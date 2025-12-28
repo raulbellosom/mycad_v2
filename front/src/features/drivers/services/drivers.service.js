@@ -36,6 +36,8 @@ export async function createDriver(data) {
       ...data,
       enabled: true,
       status: data.status || "ACTIVE",
+      // Relaciones two-way
+      linkedProfile: data.linkedProfileId || null, // relación → users_profile
     }
   );
 }
@@ -79,6 +81,8 @@ export async function createDriverLicense(data) {
     {
       ...data,
       enabled: true,
+      // Relaciones two-way
+      driver: data.driverId, // relación → drivers
     }
   );
 }
@@ -116,6 +120,8 @@ export async function registerDriverFileInDb(
       kind,
       label,
       enabled: true,
+      // Relaciones two-way
+      driver: driverId, // relación → drivers
     }
   );
 }
