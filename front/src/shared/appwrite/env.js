@@ -51,6 +51,11 @@ export const env = {
     .VITE_APPWRITE_COLLECTION_RENTAL_FILES_ID,
   collectionFilesId: import.meta.env.VITE_APPWRITE_COLLECTION_FILES_ID,
   collectionImagesId: import.meta.env.VITE_APPWRITE_COLLECTION_IMAGES_ID,
+  collectionDriversId: import.meta.env.VITE_APPWRITE_COLLECTION_DRIVERS_ID,
+  collectionDriverLicensesId: import.meta.env
+    .VITE_APPWRITE_COLLECTION_DRIVER_LICENSES_ID,
+  collectionDriverFilesId: import.meta.env
+    .VITE_APPWRITE_COLLECTION_DRIVER_FILES_ID,
 
   appName: import.meta.env.VITE_APP_NAME || "MyCAD Admin",
 };

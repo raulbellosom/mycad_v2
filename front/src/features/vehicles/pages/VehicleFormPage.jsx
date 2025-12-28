@@ -60,7 +60,7 @@ export function VehicleFormPage() {
 
   const [formData, setFormData] = useState({
     plate: "",
-    vin: "",
+    economicNumber: "",
     brandId: "",
     modelId: "",
     acquisitionDate: "",
@@ -117,7 +117,7 @@ export function VehicleFormPage() {
     if (vehicle) {
       setFormData({
         plate: vehicle.plate || "",
-        vin: vehicle.vin || "",
+        economicNumber: vehicle.economicNumber || "",
         brandId: vehicle.brandId || "",
         modelId: vehicle.modelId || "",
         acquisitionDate: vehicle.acquisitionDate || "",
@@ -130,6 +130,18 @@ export function VehicleFormPage() {
       });
     }
   }, [vehicle]);
+
+  // Prevent accidental navigation with staged files
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (stagedFiles.length > 0) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [stagedFiles]);
 
   const mutation = useMutation({
     mutationFn: async (data) => {
@@ -184,8 +196,8 @@ export function VehicleFormPage() {
       toast.error("Selecciona un grupo primero");
       return;
     }
-    if (!formData.typeId) {
-      toast.error("Selecciona un tipo de vehículo");
+    if (!formData.economicNumber) {
+      toast.error("El Número Económico es obligatorio");
       return;
     }
     mutation.mutate(formData);
@@ -211,6 +223,27 @@ export function VehicleFormPage() {
 
   const handleModelCreated = (newModel) => {
     handleModelSelect(newModel.$id);
+  };
+
+  const handleCancel = async () => {
+    if (stagedFiles.length > 0) {
+      const confirmCleanup = window.confirm(
+        "Tienes archivos subidos. ¿Estás seguro de que deseas cancelar? Se eliminarán los archivos temporales."
+      );
+      if (!confirmCleanup) return;
+
+      const toastId = toast.loading("Limpiando archivos...");
+      try {
+        await Promise.all(
+          stagedFiles.map((file) => deleteVehicleFile(null, file.fileId))
+        );
+        toast.success("Limpieza completada", { id: toastId });
+      } catch (error) {
+        console.error("Cleanup error:", error);
+        toast.error("Error al limpiar archivos", { id: toastId });
+      }
+    }
+    nav(-1);
   };
 
   const deleteExistingFileMutation = useMutation({
@@ -269,7 +302,7 @@ export function VehicleFormPage() {
               id="vehicle-form"
               className="space-y-6"
             >
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Input
                   label="Placa / Matrícula"
                   value={formData.plate}
@@ -277,10 +310,21 @@ export function VehicleFormPage() {
                   placeholder="ABC-123"
                 />
                 <Input
-                  label="VIN / Número de serie"
-                  value={formData.vin}
-                  onChange={(e) => handleChange("vin", e.target.value)}
-                  placeholder="1HGBH41JXMN109186"
+                  label="N° Económico *"
+                  value={formData.economicNumber}
+                  onChange={(e) =>
+                    handleChange(
+                      "economicNumber",
+                      e.target.value.toUpperCase().slice(0, 8)
+                    )
+                  }
+                  placeholder="E-1234"
+                />
+                <Input
+                  label="N° Serie"
+                  value={formData.serialNumber}
+                  onChange={(e) => handleChange("serialNumber", e.target.value)}
+                  placeholder="SN123456789"
                 />
               </div>
 
@@ -377,9 +421,10 @@ export function VehicleFormPage() {
                 existingFiles={existingFiles}
                 stagedFiles={stagedFiles}
                 onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
-                onRemoveStaged={(id) =>
-                  setStagedFiles((prev) => prev.filter((f) => f.fileId !== id))
-                }
+                onRemoveStaged={async (id) => {
+                  setStagedFiles((prev) => prev.filter((f) => f.fileId !== id));
+                  await deleteVehicleFile(null, id);
+                }}
                 onRemoveExisting={(docId, fileId) =>
                   deleteExistingFileMutation.mutate({ docId, fileId })
                 }
@@ -403,9 +448,10 @@ export function VehicleFormPage() {
                 existingFiles={existingFiles}
                 stagedFiles={stagedFiles}
                 onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
-                onRemoveStaged={(id) =>
-                  setStagedFiles((prev) => prev.filter((f) => f.fileId !== id))
-                }
+                onRemoveStaged={async (id) => {
+                  setStagedFiles((prev) => prev.filter((f) => f.fileId !== id));
+                  await deleteVehicleFile(null, id);
+                }}
                 onRemoveExisting={(docId, fileId) =>
                   deleteExistingFileMutation.mutate({ docId, fileId })
                 }
@@ -430,7 +476,7 @@ export function VehicleFormPage() {
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => nav(-1)}
+                  onClick={handleCancel}
                   className="w-full justify-center"
                 >
                   Cancelar
@@ -443,9 +489,9 @@ export function VehicleFormPage() {
                 </h4>
                 <div className="space-y-2 text-xs text-(--muted-fg)">
                   <p className="flex justify-between">
-                    <span>Placa:</span>
+                    <span>Económico:</span>
                     <span className="font-semibold text-(--fg)">
-                      {formData.plate || "—"}
+                      {formData.economicNumber || "—"}
                     </span>
                   </p>
                   <p className="flex justify-between">

@@ -28,7 +28,7 @@ export function VehiclesPage() {
       (v.brandId || "").toLowerCase().includes(term) ||
       (v.modelId || "").toLowerCase().includes(term) || // Assuming IDs are names or readable for now
       (v.plate || "").toLowerCase().includes(term) ||
-      (v.vin || "").toLowerCase().includes(term)
+      (v.economicNumber || "").toLowerCase().includes(term)
     );
   });
 
@@ -66,7 +66,7 @@ export function VehiclesPage() {
             <Search size={16} />
           </div>
           <Input
-            placeholder="Buscar por placa, VIN..."
+            placeholder="Buscar por placa, económico..."
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}

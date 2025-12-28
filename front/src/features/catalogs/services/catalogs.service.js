@@ -19,22 +19,22 @@ export async function listVehicleTypes(groupId) {
   return res.documents;
 }
 
-export async function createVehicleType(groupId, name) {
+export async function createVehicleType(groupId, name, economicGroup) {
   const doc = await databases.createDocument(
     env.databaseId,
     env.collectionVehicleTypesId,
     ID.unique(),
-    { groupId, name, enabled: true }
+    { groupId, name, economicGroup, enabled: true }
   );
   return doc;
 }
 
-export async function updateVehicleType(id, name) {
+export async function updateVehicleType(id, name, economicGroup) {
   const doc = await databases.updateDocument(
     env.databaseId,
     env.collectionVehicleTypesId,
     id,
-    { name }
+    { name, economicGroup }
   );
   return doc;
 }

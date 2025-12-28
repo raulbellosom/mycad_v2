@@ -15,14 +15,14 @@ export function Select({
   return (
     <div className="w-full">
       {label && (
-        <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label className="mb-1.5 block text-sm font-medium text-(--fg)">
           {label}
         </label>
       )}
       <select
         className={twMerge(
           clsx(
-            "flex h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
+            "flex h-10 w-full rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-sm text-(--fg) ring-offset-(--bg) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
             error && "border-red-500 focus-visible:ring-red-500",
             className
           )

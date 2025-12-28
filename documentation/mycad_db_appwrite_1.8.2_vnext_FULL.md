@@ -306,11 +306,12 @@
 
 ## H.1 Attributes
 
-| Field   | Type       | Required | Default | Notes  |
-| ------- | ---------- | -------: | ------- | ------ |
-| groupId | String(64) |       ✅ |         | tenant |
-| name    | String(80) |       ✅ |         |        |
-| enabled | Boolean    |       ❌ | true    |        |
+| Field         | Type       | Required | Default | Notes  |
+| ------------- | ---------- | -------: | ------- | ------ |
+| groupId       | String(64) |       ✅ |         | tenant |
+| name          | String(80) |       ✅ |         |        |
+| economicGroup | String(32) |       ✅ |         |        |
+| enabled       | Boolean    |       ❌ | true    |        |
 
 ## H.2 Indexes
 
@@ -396,7 +397,6 @@
 | color           | String(40)                 |       ❌ |         |                                                    |
 | plate           | String(15)                 |       ❌ |         |                                                    |
 | economicNumber  | String(32)                 |       ✅ |         |                                                    |
-| vin             | String(20)                 |       ❌ |         |                                                    |
 | serialNumber    | String(60)                 |       ❌ |         |                                                    |
 | acquisitionDate | Datetime                   |       ❌ |         |                                                    |
 | purchaseCost    | Float(min=0,max=100000000) |       ❌ |         |                                                    |
@@ -793,11 +793,131 @@
 
 ---
 
-## 4) Checklist de validación (rápida)
+# Z) drivers
 
-- [ ] Ningún índice usa `$id`
-- [ ] Ningún índice usa Relationship attribute
-- [ ] Defaults solo en campos NOT required
-- [ ] Todos los Integer/Float tienen min/max
-- [ ] Todas las tablas traen `groupId` donde aplica (multi-tenant)
-- [ ] Relationships documentadas con: one-way/two-way, cardinalidad, onDelete, keys
+## Z.1 Attributes
+
+| Field           | Type         | Required | Default | Notes                                                             |
+| --------------- | ------------ | -------: | ------- | ----------------------------------------------------------------- |
+| groupId         | String(64)   |       ✅ |         | tenant (TeamId o tu groupId estándar)                             |
+| linkedProfileId | String(64)   |       ❌ |         | **si ya es usuario**, guarda `users_profile.$id` aquí (indexable) |
+| firstName       | String(80)   |       ✅ |         |                                                                   |
+| lastName        | String(80)   |       ✅ |         |                                                                   |
+| phone           | String(30)   |       ❌ |         |                                                                   |
+| email           | String(254)  |       ❌ |         | recomendable para “invitar” luego                                 |
+| birthDate       | Datetime     |       ❌ |         | opcional                                                          |
+| notes           | String(1000) |       ❌ |         |                                                                   |
+| status          | Enum         |       ❌ | ACTIVE  | ACTIVE / INACTIVE / SUSPENDED                                     |
+| enabled         | Boolean      |       ❌ | true    | soft delete                                                       |
+
+## Z.2 Indexes
+
+- `idx_drivers_groupId` → `groupId`
+- `idx_drivers_group_name` → (`groupId`, `firstName`, `lastName`)
+- `idx_drivers_group_email` → (`groupId`, `email`)
+- `idx_drivers_linkedProfileId` → `linkedProfileId`
+- `idx_drivers_enabled` → `enabled`
+- `uq_drivers_group_email` → (`unique`) (`groupId`, `email`)
+
+## Z.3 Relationships
+
+### Z.3.1 `linkedProfile`
+
+- **Two-way**
+- Related: `users_profile`
+- Attribute key: `linkedProfile`
+- Backref key: `driverRecord`
+- Cardinalidad: **Many-to-one**
+- On delete: **Restrict**
+
+# AA) driver_licenses
+
+## AA.1 Attributes
+
+| Field         | Type         | Required | Default | Notes                                         |
+| ------------- | ------------ | -------: | ------- | --------------------------------------------- |
+| groupId       | String(64)   |       ✅ |         |                                               |
+| driverId      | String(64)   |       ✅ |         | `drivers.$id` (indexable)                     |
+| licenseNumber | String(40)   |       ✅ |         |                                               |
+| licenseType   | Enum         |       ❌ |         | A/B/C… (o el catálogo que uses)               |
+| country       | String(2)    |       ❌ |         | MX/US…                                        |
+| state         | String(3-10) |       ❌ |         | JAL/NAY…                                      |
+| issuedAt      | Datetime     |       ❌ |         |                                               |
+| expiresAt     | Datetime     |       ❌ |         |                                               |
+| frontImageId  | String(64)   |       ❌ |         | `images.$id` o `files.$id` (elige 1 estándar) |
+| backImageId   | String(64)   |       ❌ |         | idem                                          |
+| enabled       | Boolean      |       ❌ | true    |                                               |
+
+## AA.2 Indexes
+
+- `idx_driver_licenses_group_driver` → (`groupId`, `driverId`)
+- `idx_driver_licenses_group_number` → (`groupId`, `licenseNumber`)
+- `idx_driver_licenses_enabled` → `enabled`
+
+## AA.3 Relationships
+
+- `driver`: Two-way ↔ `drivers.licenses` (Many-to-one) On delete Cascade/Restrict (tú política; con soft delete da igual)
+
+# AB) driver_files
+
+## AB.1 Attributes
+
+| Field    | Type        | Required | Default | Notes                                                        |
+| -------- | ----------- | -------: | ------- | ------------------------------------------------------------ |
+| groupId  | String(64)  |       ✅ |         |                                                              |
+| driverId | String(64)  |       ✅ |         |                                                              |
+| fileId   | String(64)  |       ✅ |         | `files.$id` (o `images.$id`, pero ideal unificar a `files`)  |
+| kind     | Enum        |       ✅ |         | LICENSE_FRONT / LICENSE_BACK / ID / CONTRACT / PHOTO / OTHER |
+| label    | String(120) |       ❌ |         |                                                              |
+| enabled  | Boolean     |       ❌ | true    |                                                              |
+
+## AB.2 Indexes
+
+- `idx_driver_files_group_driver` → (`groupId`, `driverId`)
+- `idx_driver_files_group_kind` → (`groupId`, `kind`)
+- `idx_driver_files_enabled` → `enabled`
+
+## AB.3 Relationships
+
+- `driver`: Two-way ↔ `drivers.files` (Many-to-one) On delete Cascade
+- `file`: Two-way ↔ `files.driverLinks` (Many-to-one) On delete Restrict
+
+## AB.4 Soft delete
+
+- `enabled`: Boolean (default true)
+
+# AC) vehicle_driver_assignments
+
+| Field              | Type         | Required | Default   | Notes                                                            |
+| ------------------ | ------------ | -------: | --------- | ---------------------------------------------------------------- |
+| groupId            | String(64)   |       ✅ |           | tenant / grupo                                                   |
+| vehicleId          | String(64)   |       ✅ |           | referencia a `vehicles.$id` (scalar)                             |
+| driverId           | String(64)   |       ✅ |           | referencia a `drivers.$id` (scalar)                              |
+| startDate          | Datetime     |       ✅ |           | desde cuándo                                                     |
+| endDate            | Datetime     |       ❌ |           | **null = indefinida / activa**                                   |
+| isActive           | Boolean      |       ❌ | true      | útil para filtrar rápido (pero debe ser consistente con endDate) |
+| role               | Enum         |       ❌ | PRIMARY   | PRIMARY / SECONDARY / TEMP / SUBSTITUTE                          |
+| assignmentType     | Enum         |       ❌ | OPERATION | OPERATION / RENTAL / MAINTENANCE / DELIVERY / OTHER              |
+| startMileage       | Integer      |       ❌ |           | km/mi al inicio                                                  |
+| endMileage         | Integer      |       ❌ |           | km/mi al cierre                                                  |
+| startFuelLevel     | Integer      |       ❌ |           | 0–100 (si lo ocupas)                                             |
+| endFuelLevel       | Integer      |       ❌ |           | 0–100                                                            |
+| notes              | String(1500) |       ❌ |           | observaciones                                                    |
+| createdByProfileId | String(64)   |       ✅ |           | `users_profile.$id` (quién asignó)                               |
+| enabled            | Boolean      |       ❌ | true      | soft delete                                                      |
+
+## AC.2 Indexes
+
+- `idx_vda_group_vehicle` → (`groupId`, `vehicleId`)
+- `idx_vda_group_driver` → (`groupId`, `driverId`)
+- `idx_vda_group_vehicle_active` → (`groupId`, `vehicleId`, `isActive`)
+- `idx_vda_group_driver_active` → (`groupId`, `driverId`, `isActive`)
+- `idx_vda_group_dates` → (`groupId`, `startDate`) (opcional para reportes por periodo)
+- `idx_vda_enabled` → `enabled`
+- `uq_vda_active_vehicle` → (`groupId`, `vehicleId`, `isActive`)
+
+## AC.3 Relationships
+
+- `vehicle`: Two-way ↔ `vehicles.driverAssignments` (Many-to-one) On delete Cascade
+- `driver`: Two-way ↔ `drivers.vehicleAssignments` (Many-to-one) On delete Cascade
+- `createdBy`: Two-way ↔ `users_profile.vehicleDriverAssignmentsCreated` (Many-to-one) On delete Cascade

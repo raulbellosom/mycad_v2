@@ -27,6 +27,8 @@ export function TypesTab({ groupId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [editingEconomicGroup, setEditingEconomicGroup] = useState("");
+  const [newEconomicGroup, setNewEconomicGroup] = useState("");
   const queryClient = useQueryClient();
 
   const { data: types = [], isLoading } = useQuery({
@@ -40,21 +42,25 @@ export function TypesTab({ groupId }) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (name) => createVehicleType(groupId, name),
+    mutationFn: ({ name, economicGroup }) =>
+      createVehicleType(groupId, name, economicGroup),
     onSuccess: () => {
       queryClient.invalidateQueries(["vehicleTypes"]);
       toast.success("Tipo creado");
       setSearchTerm("");
+      setNewEconomicGroup("");
     },
     onError: (err) => toast.error(err.message || "Error al crear"),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, name }) => updateVehicleType(id, name),
+    mutationFn: ({ id, name, economicGroup }) =>
+      updateVehicleType(id, name, economicGroup),
     onSuccess: () => {
       queryClient.invalidateQueries(["vehicleTypes"]);
       toast.success("Tipo actualizado");
       setEditingId(null);
+      setEditingEconomicGroup("");
     },
     onError: (err) => toast.error(err.message || "Error al actualizar"),
   });
@@ -71,16 +77,24 @@ export function TypesTab({ groupId }) {
   const startEdit = (type) => {
     setEditingId(type.$id);
     setEditingName(type.name);
+    setEditingEconomicGroup(type.economicGroup || "");
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditingName("");
+    setEditingEconomicGroup("");
   };
 
   const saveEdit = (id) => {
-    if (editingName.trim()) {
-      updateMutation.mutate({ id, name: editingName.trim() });
+    if (editingName.trim() && editingEconomicGroup.trim()) {
+      updateMutation.mutate({
+        id,
+        name: editingName.trim(),
+        economicGroup: editingEconomicGroup.trim().toUpperCase(),
+      });
+    } else {
+      toast.error("Nombre y Grupo Económico son obligatorios");
     }
   };
 
@@ -106,35 +120,59 @@ export function TypesTab({ groupId }) {
 
   return (
     <Card className="p-6">
-      <div className="mb-6 flex gap-3">
-        <div className="relative flex-1">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-(--muted-fg)"
-            size={18}
-          />
-          <Input
-            placeholder="Buscar o agregar tipo (ej: Sedán, Pickup...)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && canCreate) {
-                createMutation.mutate(searchTerm.trim());
-              }
-            }}
-            className="pl-10"
-          />
-        </div>
+      <div className="mb-6 flex flex-col gap-3">
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-(--muted-fg)"
+              size={18}
+            />
+            <Input
+              placeholder="Buscar o agregar tipo (ej: Sedán, Pickup...)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-        <Button
-          onClick={() => createMutation.mutate(searchTerm.trim())}
-          loading={createMutation.isPending}
-          disabled={!canCreate}
-        >
-          <Plus size={18} />
-          {searchTerm.trim() && filteredTypes.length === 0
-            ? `Agregar "${searchTerm}"`
-            : "Agregar"}
-        </Button>
+          {canCreate && (
+            <div className="w-32">
+              <Input
+                placeholder="Grupo (4 car.)"
+                value={newEconomicGroup}
+                onChange={(e) =>
+                  setNewEconomicGroup(e.target.value.toUpperCase().slice(0, 4))
+                }
+                className="text-center font-mono"
+              />
+            </div>
+          )}
+
+          <Button
+            onClick={() => {
+              if (!newEconomicGroup.trim()) {
+                toast.error("El Grupo Económico es obligatorio");
+                return;
+              }
+              createMutation.mutate({
+                name: searchTerm.trim(),
+                economicGroup: newEconomicGroup.trim().toUpperCase(),
+              });
+            }}
+            loading={createMutation.isPending}
+            disabled={!canCreate}
+          >
+            <Plus size={18} />
+            {searchTerm.trim() && filteredTypes.length === 0
+              ? `Agregar "${searchTerm}"`
+              : "Agregar"}
+          </Button>
+        </div>
+        {canCreate && (
+          <p className="text-xs text-(--brand) font-medium">
+            * Introduce un código de 4 caracteres para el Grupo Económico
+          </p>
+        )}
       </div>
 
       {filteredTypes.length === 0 ? (
@@ -155,16 +193,24 @@ export function TypesTab({ groupId }) {
             >
               {editingId === type.$id ? (
                 <>
-                  <Input
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") saveEdit(type.$id);
-                      if (e.key === "Escape") cancelEdit();
-                    }}
-                    className="flex-1"
-                    autoFocus
-                  />
+                  <div className="flex flex-1 flex-col gap-2">
+                    <Input
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      placeholder="Nombre"
+                      className="text-sm"
+                    />
+                    <Input
+                      value={editingEconomicGroup}
+                      onChange={(e) =>
+                        setEditingEconomicGroup(
+                          e.target.value.toUpperCase().slice(0, 4)
+                        )
+                      }
+                      placeholder="Grupo"
+                      className="text-xs font-mono"
+                    />
+                  </div>
                   <div className="flex gap-1">
                     <button
                       onClick={() => saveEdit(type.$id)}
@@ -183,7 +229,12 @@ export function TypesTab({ groupId }) {
               ) : (
                 <>
                   <div className="flex-1">
-                    <div className="font-medium text-(--fg)">{type.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium text-(--fg)">{type.name}</div>
+                      <span className="rounded bg-(--muted) px-1.5 py-0.5 text-[10px] font-mono font-bold text-(--muted-fg)">
+                        {type.economicGroup || "N/A"}
+                      </span>
+                    </div>
                     <div className="text-xs text-(--muted-fg)">
                       {vehicleCountByType[type.$id] || 0} vehículo(s)
                     </div>

@@ -13,15 +13,15 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../../shared/utils/cn";
 import {
-  getFilePreview,
-  uploadFileToStorage,
-  deleteVehicleFile,
-  getFileDownload,
-} from "../services/vehicles.service";
+  getDriverFilePreview,
+  uploadDriverFile,
+  deleteDriverFile,
+  getDriverFileDownload,
+} from "../services/drivers.service";
 import toast from "react-hot-toast";
 import { ImageViewerModal } from "../../../shared/ui/ImageViewerModal";
 
-export function VehicleMediaManager({
+export function DriverMediaManager({
   existingFiles = [],
   stagedFiles = [],
   onAddStaged,
@@ -52,7 +52,7 @@ export function VehicleMediaManager({
       setIsUploading(true);
       for (const file of acceptedFiles) {
         try {
-          const res = await uploadFileToStorage(file);
+          const res = await uploadDriverFile(file);
           onAddStaged({
             fileId: res.$id,
             name: file.name,
@@ -85,8 +85,6 @@ export function VehicleMediaManager({
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
         ".xlsx",
       ],
-      "application/zip": [".zip"],
-      "application/x-rar-compressed": [".rar"],
     },
   });
 
@@ -129,7 +127,7 @@ export function VehicleMediaManager({
                 : "Arrastra o haz clic para subir fotos y documentos"}
             </p>
             <p className="text-xs text-(--muted-fg)">
-              Fotos (JPG, PNG, SVG) o Documentos (PDF, MD, DOCX, XLSX)
+              Documentación, contratos o fotos adicionales
             </p>
           </div>
         </div>
@@ -137,7 +135,6 @@ export function VehicleMediaManager({
 
       {/* Media Grid */}
       <div className="space-y-6">
-        {/* Photos Grid */}
         {allPhotos.length > 0 && (
           <div>
             <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--fg)">
@@ -151,13 +148,13 @@ export function VehicleMediaManager({
                     className="h-full w-full cursor-pointer overflow-hidden rounded-xl border border-(--border) bg-(--card) shadow-sm transition-all hover:border-(--brand)/50"
                   >
                     <img
-                      src={getFilePreview(file.fileId)}
+                      src={getDriverFilePreview(file.fileId)}
                       alt={file.name}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
 
-                  {/* Action Menu - Unified Trigger for Desktop & Mobile */}
+                  {/* Action Menu */}
                   <div className="absolute top-1.5 left-1.5 z-20">
                     <button
                       type="button"
@@ -254,7 +251,7 @@ export function VehicleMediaManager({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const url = getFileDownload(file.fileId);
+                        const url = getDriverFileDownload(file.fileId);
                         const link = document.createElement("a");
                         link.href = url;
                         link.download = file.name;

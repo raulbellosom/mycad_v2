@@ -3,6 +3,7 @@ import { Command } from "cmdk";
 import { Check, ChevronsUpDown, Plus, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./Button";
+import clsx from "clsx";
 
 export function Combobox({
   value,
@@ -54,19 +55,20 @@ export function Combobox({
 
   return (
     <div className={`relative ${className}`} ref={buttonRef}>
-      <Button
+      <button
         type="button"
-        variant="outline"
-        size="md"
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
-        className="w-full justify-between"
+        className={clsx(
+          "flex h-10 w-full items-center justify-between rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          !selected ? "text-(--muted-fg)" : "text-(--fg)"
+        )}
       >
         <span className="truncate">
           {selected ? selected[displayKey] : placeholder}
         </span>
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-      </Button>
+      </button>
 
       <AnimatePresence>
         {open && (

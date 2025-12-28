@@ -8,6 +8,8 @@ import {
   Download,
   Loader2,
   Maximize2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import clsx from "clsx";
 import { storage } from "../appwrite/client";
@@ -16,18 +18,48 @@ import { env } from "../appwrite/env";
 export function ImageViewerModal({
   isOpen,
   onClose,
-  fileId,
-  fileName,
+  currentImageId,
+  images = [],
   bucketId = env.bucketVehiclesId,
 }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [imageUrl, setImageUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isTweaking, setIsTweaking] = useState(false);
 
   const containerRef = useRef(null);
   const [touchStartDist, setTouchStartDist] = useState(null);
+
+  // Sync index when currentImageId changes
+  useEffect(() => {
+    if (currentImageId && images.length > 0) {
+      const idx = images.indexOf(currentImageId);
+      if (idx !== -1) setCurrentIndex(idx);
+    }
+  }, [currentImageId, images]);
+
+  const activeFileId = images[currentIndex];
+
+  // Reset scale/rotation when changing image
+  useEffect(() => {
+    setScale(1);
+    setRotation(0);
+    setIsTweaking(false);
+    setLoading(true);
+  }, [currentIndex]);
+
+  const nextImage = (e) => {
+    e?.stopPropagation();
+    if (images.length <= 1) return;
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e) => {
+    e?.stopPropagation();
+    if (images.length <= 1) return;
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   // Handle Wheel Zoom
   const handleWheel = (e) => {
@@ -37,7 +69,7 @@ export function ImageViewerModal({
     setIsTweaking(true);
   };
 
-  // Handle Pinch Zoom
+  // Handle Pinch Zoom (Mobile)
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
       const dist = Math.hypot(
@@ -66,32 +98,14 @@ export function ImageViewerModal({
     setTouchStartDist(null);
   };
 
-  // Determine URLs
-  useEffect(() => {
-    if (fileId && isOpen) {
-      try {
-        const viewUrl = storage.getFileView(bucketId, fileId);
-        setImageUrl(viewUrl);
-        setLoading(true);
-      } catch (e) {
-        console.error("Error generating view URL", e);
-      }
-    } else {
-      // Reset state on close
-      setScale(1);
-      setRotation(0);
-      setImageUrl(null);
-      setIsTweaking(false);
-    }
-  }, [fileId, isOpen, bucketId]);
-
   const handleDownload = (e) => {
     e.stopPropagation();
+    if (!activeFileId) return;
     try {
-      const downloadUrl = storage.getFileDownload(bucketId, fileId);
+      const downloadUrl = storage.getFileDownload(bucketId, activeFileId);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = fileName || "image.png";
+      link.download = `image-${activeFileId}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -106,45 +120,71 @@ export function ImageViewerModal({
     setIsTweaking(false);
   };
 
+  const imageUrl = activeFileId
+    ? storage.getFileView(bucketId, activeFileId)
+    : null;
+
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center overflow-hidden">
-          {/* Glass Backdrop */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+            className="absolute inset-0 bg-black/90 backdrop-blur-md"
           />
 
-          {/* Controls Container */}
-          <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-50">
-            {/* Header / Close */}
+          {/* Controls Layer */}
+          <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 sm:p-6 z-50 text-white">
+            {/* Top Bar */}
             <motion.div
               initial={{ y: -50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -50, opacity: 0 }}
-              className="flex justify-end pointer-events-auto"
+              className="flex justify-between items-center pointer-events-auto"
             >
+              <div className="bg-black/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm font-medium border border-white/10">
+                {currentIndex + 1} / {images.length}
+              </div>
               <button
                 onClick={onClose}
-                className="group p-3 bg-white/10 hover:bg-white/20 hover:scale-110 active:scale-95 border border-white/10 rounded-full text-white transition-all duration-300 backdrop-blur-md shadow-lg"
+                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors border border-white/10"
               >
                 <X size={24} />
               </button>
             </motion.div>
+
+            {/* Middle (Nav Buttons) */}
+            <div className="flex-1 flex items-center justify-between">
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="pointer-events-auto p-3 bg-black/20 hover:bg-black/40 rounded-full transition-all border border-white/5 disabled:opacity-30 ml-[-10px] sm:ml-0"
+                  >
+                    <ChevronLeft size={32} />
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="pointer-events-auto p-3 bg-black/20 hover:bg-black/40 rounded-full transition-all border border-white/5 mr-[-10px] sm:mr-0"
+                  >
+                    <ChevronRight size={32} />
+                  </button>
+                </>
+              )}
+            </div>
 
             {/* Bottom Toolbar */}
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 50, opacity: 0 }}
-              className="flex justify-center pointer-events-auto pb-4"
+              className="flex justify-center pointer-events-auto"
             >
-              <div className="flex items-center gap-1 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full p-2 shadow-2xl shadow-black/50">
+              <div className="flex items-center gap-1 bg-black/50 backdrop-blur-xl border border-white/10 rounded-full p-2 shadow-2xl">
                 <ToolButton
                   icon={ZoomOut}
                   onClick={() => {
@@ -153,11 +193,9 @@ export function ImageViewerModal({
                   }}
                   label="Zoom Out"
                 />
-
-                <div className="px-3 min-w-[60px] text-center font-mono text-sm font-medium text-white/90 select-none">
+                <div className="px-3 min-w-[60px] text-center font-mono text-sm font-medium text-white/90">
                   {Math.round(scale * 100)}%
                 </div>
-
                 <ToolButton
                   icon={ZoomIn}
                   onClick={() => {
@@ -166,9 +204,7 @@ export function ImageViewerModal({
                   }}
                   label="Zoom In"
                 />
-
                 <div className="w-px h-6 bg-white/10 mx-2" />
-
                 <ToolButton
                   icon={RotateCw}
                   onClick={() => {
@@ -177,24 +213,21 @@ export function ImageViewerModal({
                   }}
                   label="Rotate"
                 />
-
                 <ToolButton
                   icon={Maximize2}
                   onClick={resetView}
                   label="Reset"
                   active={isTweaking}
                   className={clsx(
-                    isTweaking ? "text-emerald-400" : "text-zinc-400"
+                    isTweaking ? "text-(--brand)" : "text-zinc-400"
                   )}
                 />
-
                 <div className="w-px h-6 bg-white/10 mx-2" />
-
                 <ToolButton
                   icon={Download}
                   onClick={handleDownload}
                   label="Download"
-                  className="bg-white/10 hover:bg-white/20 text-white"
+                  className="bg-white/15 hover:bg-white/25 text-white"
                 />
               </div>
             </motion.div>
@@ -203,34 +236,34 @@ export function ImageViewerModal({
           {/* Image Layer */}
           <motion.div
             ref={containerRef}
-            className="relative z-10 w-full h-full flex items-center justify-center p-8 pointer-events-auto touch-none"
+            className="absolute inset-0 z-10 flex items-center justify-center p-4 sm:p-12 pointer-events-auto touch-none"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
             onWheel={handleWheel}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
             {loading && (
-              <div className="absolute inset-0 flex items-center justify-center text-white/50">
+              <div className="absolute inset-0 flex items-center justify-center text-white/30">
                 <Loader2 size={48} className="animate-spin" />
               </div>
             )}
 
             {imageUrl && (
               <motion.img
+                key={activeFileId}
                 src={imageUrl}
-                alt={fileName}
+                alt="Quick View"
                 onLoad={() => setLoading(false)}
                 animate={{ scale, rotate: rotation }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                transition={{ type: "spring", stiffness: 250, damping: 25 }}
                 drag
                 dragConstraints={containerRef}
-                dragElastic={0.1}
+                dragElastic={0.05}
                 className={clsx(
-                  "max-w-full max-h-full object-contain cursor-grab active:cursor-grabbing shadow-2xl shadow-black/50 rounded-lg",
+                  "max-w-full max-h-full object-contain cursor-grab active:cursor-grabbing shadow-2xl rounded-sm",
                   loading ? "opacity-0" : "opacity-100"
                 )}
               />
@@ -242,20 +275,17 @@ export function ImageViewerModal({
   );
 }
 
-function ToolButton({ icon: Icon, onClick, label, className }) {
+function ToolButton({ icon: Icon, onClick, label, className, active }) {
   return (
     <button
       onClick={onClick}
       className={clsx(
-        "p-3 rounded-full transition-all duration-200 group relative",
+        "p-2.5 rounded-full transition-all duration-200 group active:scale-95",
         className || "text-zinc-300 hover:text-white hover:bg-white/10"
       )}
       title={label}
     >
-      <Icon
-        size={20}
-        className="transition-transform group-hover:scale-110 active:scale-90"
-      />
+      <Icon size={20} className="transition-transform group-hover:scale-110" />
     </button>
   );
 }

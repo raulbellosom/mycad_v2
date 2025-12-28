@@ -21,7 +21,9 @@ export function VehicleDetailPage() {
         title={`${vehicle.brandId || ""} ${vehicle.modelId || ""} ${
           vehicle.year || ""
         }`}
-        subtitle={`Placa: ${vehicle.plate || "—"} • VIN: ${vehicle.vin || "—"}`}
+        subtitle={`Placa: ${vehicle.plate || "—"} • Económico: ${
+          vehicle.economicNumber || "—"
+        }`}
       />
       <div>
         {/* Tabs and content implementation pending */}
