@@ -7,9 +7,7 @@ import {
   Users,
   UserPlus,
   Crown,
-  ShieldCheck,
   User,
-  Eye,
   ChevronRight,
   Calendar,
   Mail,
@@ -21,7 +19,6 @@ import toast from "react-hot-toast";
 import { Card } from "../../../shared/ui/Card";
 import { Input } from "../../../shared/ui/Input";
 import { Button } from "../../../shared/ui/Button";
-import { Select } from "../../../shared/ui/Select";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { Modal, ModalHeader, ModalFooter } from "../../../shared/ui/Modal";
@@ -31,7 +28,6 @@ import { UserSearch } from "../../../shared/ui/UserSearch";
 import {
   listGroupMembers,
   addGroupMember,
-  updateGroupMember,
   removeGroupMember,
   listRoles,
   listUserRoles,
@@ -41,8 +37,9 @@ import { SYSTEM_PERMISSIONS } from "../context/PermissionsProvider";
 import { usePermissions } from "../hooks/usePermissions";
 import { getAvatarUrl } from "../../../shared/utils/storage";
 
-// Roles de membresía del grupo (diferentes a los roles RBAC)
-const MEMBERSHIP_ROLES = [
+// Tipos de membresía básicos (OWNER es especial, MEMBER es el default)
+// Los permisos reales vienen del sistema RBAC (roles y permisos)
+const MEMBERSHIP_TYPES = [
   {
     value: "OWNER",
     label: "Propietario",
@@ -52,28 +49,12 @@ const MEMBERSHIP_ROLES = [
     badge: "warning",
   },
   {
-    value: "ADMIN",
-    label: "Administrador",
-    icon: ShieldCheck,
-    color: "text-blue-500",
-    bgColor: "bg-blue-100 dark:bg-blue-900/20",
-    badge: "info",
-  },
-  {
     value: "MEMBER",
     label: "Miembro",
     icon: User,
-    color: "text-green-500",
-    bgColor: "bg-green-100 dark:bg-green-900/20",
-    badge: "success",
-  },
-  {
-    value: "VIEWER",
-    label: "Visor",
-    icon: Eye,
-    color: "text-gray-500",
-    bgColor: "bg-gray-100 dark:bg-gray-900/20",
-    badge: "default",
+    color: "text-(--brand)",
+    bgColor: "bg-(--brand)/10",
+    badge: "primary",
   },
 ];
 
@@ -98,7 +79,6 @@ export function MembersTab({ groupId }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState(null);
   const [selectedUserForAdd, setSelectedUserForAdd] = useState(null);
-  const [newRole, setNewRole] = useState("MEMBER");
   const queryClient = useQueryClient();
   const { isGroupAdmin, isGroupOwner, hasPermission } = usePermissions();
 
@@ -132,25 +112,14 @@ export function MembersTab({ groupId }) {
 
   // Mutations
   const addMemberMutation = useMutation({
-    mutationFn: ({ profileId, role }) =>
-      addGroupMember(groupId, profileId, role),
+    mutationFn: (profileId) => addGroupMember(groupId, profileId, "MEMBER"), // Siempre se agrega como MEMBER
     onSuccess: () => {
       queryClient.invalidateQueries(["group-members", groupId]);
       toast.success("Miembro agregado exitosamente");
       setShowAddModal(false);
       setSelectedUserForAdd(null);
-      setNewRole("MEMBER");
     },
     onError: (err) => toast.error(err.message || "Error al agregar miembro"),
-  });
-
-  const updateMemberMutation = useMutation({
-    mutationFn: ({ memberId, data }) => updateGroupMember(memberId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["group-members", groupId]);
-      toast.success("Miembro actualizado");
-    },
-    onError: (err) => toast.error(err.message || "Error al actualizar"),
   });
 
   const removeMemberMutation = useMutation({
@@ -175,14 +144,6 @@ export function MembersTab({ groupId }) {
     },
     onError: (err) => toast.error(err.message || "Error al actualizar roles"),
   });
-
-  const handleRoleChange = (memberId, newMembershipRole) => {
-    if (!canManageMembers) return;
-    updateMemberMutation.mutate({
-      memberId,
-      data: { role: newMembershipRole },
-    });
-  };
 
   const handleRbacRoleToggle = (roleId) => {
     if (!canManageMembers) return;
@@ -222,9 +183,10 @@ export function MembersTab({ groupId }) {
   const memberRoleIds = memberRoles.map((ur) => ur.roleId);
   const existingProfileIds = members.map((m) => m.profileId);
 
-  const getRoleConfig = (role) => {
+  // Obtener configuración visual del tipo de membresía
+  const getMembershipConfig = (role) => {
     return (
-      MEMBERSHIP_ROLES.find((r) => r.value === role) || MEMBERSHIP_ROLES[2]
+      MEMBERSHIP_TYPES.find((r) => r.value === role) || MEMBERSHIP_TYPES[1]
     );
   };
 
@@ -291,8 +253,8 @@ export function MembersTab({ groupId }) {
               >
                 {filteredMembers.map((member) => {
                   const profile = member.profile || {};
-                  const config = getRoleConfig(member.role);
-                  const RoleIcon = config.icon;
+                  const config = getMembershipConfig(member.role);
+                  const MembershipIcon = config.icon;
                   const isSelected = selectedMemberId === member.$id;
 
                   return (
@@ -322,7 +284,7 @@ export function MembersTab({ groupId }) {
                         <div
                           className={`absolute -bottom-0.5 -right-0.5 p-0.5 rounded-full ${config.bgColor}`}
                         >
-                          <RoleIcon size={10} className={config.color} />
+                          <MembershipIcon size={10} className={config.color} />
                         </div>
                       </div>
 
@@ -442,40 +404,15 @@ export function MembersTab({ groupId }) {
 
                 {/* Contenido */}
                 <div className="p-6 space-y-6">
-                  {/* Nivel de membresía */}
-                  <div>
-                    <label className="text-sm font-medium flex items-center gap-2 mb-2">
-                      <ShieldCheck size={14} className="text-(--brand)" />
-                      Nivel de membresía
-                    </label>
-                    <Select
-                      value={selectedMember.role}
-                      onChange={(e) =>
-                        handleRoleChange(selectedMember.$id, e.target.value)
-                      }
-                      disabled={
-                        !canManageMembers ||
-                        selectedMember.role === "OWNER" ||
-                        !isGroupOwner
-                      }
-                    >
-                      {MEMBERSHIP_ROLES.map((role) => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                    </Select>
-                    <p className="mt-2 text-xs text-(--muted-fg)">
-                      {selectedMember.role === "OWNER" &&
-                        "El propietario tiene acceso completo al grupo"}
-                      {selectedMember.role === "ADMIN" &&
-                        "Los administradores pueden gestionar miembros y configuraciones"}
-                      {selectedMember.role === "MEMBER" &&
-                        "Los miembros pueden acceder según sus roles asignados"}
-                      {selectedMember.role === "VIEWER" &&
-                        "Los visores tienen acceso de solo lectura"}
-                    </p>
-                  </div>
+                  {/* Info de tipo de membresía (solo visual) */}
+                  {selectedMember.role === "OWNER" && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                      <Crown size={16} className="text-yellow-500" />
+                      <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                        Propietario del grupo - Tiene acceso completo
+                      </span>
+                    </div>
+                  )}
 
                   {/* Roles RBAC */}
                   <div>
@@ -568,7 +505,7 @@ export function MembersTab({ groupId }) {
           <ModalHeader
             icon={UserPlus}
             title="Agregar Miembro"
-            subtitle="Busca un usuario y asígnale un rol en el grupo"
+            subtitle="Busca un usuario para agregarlo al grupo"
           />
         }
         footer={
@@ -583,12 +520,7 @@ export function MembersTab({ groupId }) {
               Cancelar
             </Button>
             <Button
-              onClick={() =>
-                addMemberMutation.mutate({
-                  profileId: selectedUserForAdd?.$id,
-                  role: newRole,
-                })
-              }
+              onClick={() => addMemberMutation.mutate(selectedUserForAdd?.$id)}
               loading={addMemberMutation.isPending}
               disabled={!selectedUserForAdd}
             >
@@ -610,23 +542,10 @@ export function MembersTab({ groupId }) {
             />
           </div>
 
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Rol inicial
-            </label>
-            <Select
-              value={newRole}
-              onChange={(e) => setNewRole(e.target.value)}
-            >
-              {MEMBERSHIP_ROLES.filter((r) => r.value !== "OWNER").map(
-                (role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                )
-              )}
-            </Select>
-          </div>
+          <p className="text-sm text-(--muted-fg)">
+            El usuario será agregado como miembro. Puedes asignarle roles de
+            permisos después de agregarlo.
+          </p>
         </div>
       </Modal>
 

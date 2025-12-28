@@ -74,6 +74,9 @@ export function ModelsTab({ groupId }) {
   // Create lookup maps
   const brandMap = Object.fromEntries(brands.map((b) => [b.$id, b.name]));
   const typeMap = Object.fromEntries(types.map((t) => [t.$id, t.name]));
+  const typeEconomicGroupMap = Object.fromEntries(
+    types.map((t) => [t.$id, t.economicGroup])
+  );
 
   // Count vehicles per model
   const vehicleCountByModel = vehicles.reduce((acc, v) => {
@@ -160,6 +163,11 @@ export function ModelsTab({ groupId }) {
                     {model.typeId && (
                       <span className="rounded bg-(--muted) px-2 py-0.5">
                         {typeMap[model.typeId] || "—"}
+                      </span>
+                    )}
+                    {model.typeId && typeEconomicGroupMap[model.typeId] && (
+                      <span className="rounded bg-(--brand)/10 text-(--brand) px-2 py-0.5 font-medium">
+                        {typeEconomicGroupMap[model.typeId]}
                       </span>
                     )}
                   </div>

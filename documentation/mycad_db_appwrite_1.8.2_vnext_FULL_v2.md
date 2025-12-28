@@ -1,9 +1,13 @@
-# MyCAD — Base de Datos (Appwrite Console) vNext (Appwrite **1.8.2**) ✅
+# MyCAD — Base de Datos (Appwrite Console) vNext v2 (Appwrite **1.8.2**) ✅
 
 **Objetivo:** que puedas crear TODA la BD desde la **Appwrite Console** (sin CLI) para la app de vehículos (usuarios, roles/permisos, grupos, vehículos, reportes, rentas, archivos).
 
-**Fuente base usada para partir:** `mycad_db_vnext_appwrite_1.8RC2_relaciones.md` (lo corregí y amplié)  
-**Archivo Prisma analizado:** `schema.prisma`
+**IMPORTANTE - CAMBIOS v2:**
+
+- ❌ **ELIMINADO** el campo `teamId` de `groups` - ya no usamos Teams de Auth de Appwrite
+- ✅ **`groups.$id`** es ahora el identificador único y se usa directamente como `groupId` en todas las tablas
+- ✅ **Relaciones two-way** se llenan correctamente usando `$id` de documentos
+- ✅ Sistema RBAC propio sin dependencia de Teams de Appwrite
 
 ---
 
@@ -28,11 +32,12 @@
 4. **Soft delete**
 
    - Todas las entidades clave llevan `enabled` (Boolean).
-   - Recomendación: no borrar físico casi nunca; así `onDelete` se vuelve “seguro”.
+   - Recomendación: no borrar físico casi nunca; así `onDelete` se vuelve "seguro".
 
-5. **Multi-tenant por Grupo (Team)**
-   - `groupId` = `$id` del **Team** de Appwrite (tu tenant).
-   - Todo documento “de negocio” (vehículos, reportes, etc.) trae `groupId` para filtrar duro.
+5. **Multi-tenant por Grupo**
+   - `groupId` = `$id` del documento en la colección **groups** (tu tenant).
+   - Todo documento "de negocio" (vehículos, reportes, etc.) trae `groupId` para filtrar duro.
+   - ❌ **YA NO** usamos Teams de Auth de Appwrite para esto.
 
 ---
 
@@ -85,15 +90,23 @@
 - `rentals`
 - `rental_files`
 
+### Conductores
+
+- `drivers`
+- `driver_licenses`
+- `driver_files`
+- `vehicle_driver_assignments`
+- `vehicle_driver_assignment_files`
+
 ---
 
 ## 2) Detalle por colección (Attributes + Indexes + Relationships)
 
-> Convención:
+> Convención v2:
 >
-> - **IDs escalares** para indexar: `groupId`, `ownerProfileId`, `vehicleId`, etc.
-> - **Relationships** para navegar: `vehicle`, `ownerProfile`, etc.
-> - Cuando exista relación, se mantiene el ID escalar para búsqueda y para índices.
+> - **`groupId`** ahora es `groups.$id` (el $id real del documento grupo)
+> - **Relationships** para navegar: `group`, `profile`, etc.
+> - Mantener campos escalares para índices y búsquedas
 
 ---
 
@@ -120,23 +133,25 @@
 - `uq_users_profile_email` (unique) → `email`
 - `idx_users_profile_enabled` → `enabled`
 
-## A.3 Relationships (Two-way sugerido)
+## A.3 Relationships (Two-way)
 
 - `ownedGroups` (backref de `groups.ownerProfile`)
 - `ownedVehicles` (backref de `vehicles.ownerProfile`)
 - `groupMemberships` (backref de `group_members.profile`)
 - `createdServiceHistories` (backref de `service_histories.createdByProfile`)
 - `createdRepairReports` (backref de `repair_reports.createdByProfile`)
+- `userRoles` (backref de `user_roles.profile`)
 
 ---
 
-# B) groups (metadata del Team)
+# B) groups (Grupos/Tenants - SIN Teams de Auth)
+
+> ⚠️ **CAMBIO v2:** Eliminado `teamId`. El `$id` del documento ES el identificador del grupo.
 
 ## B.1 Attributes
 
 | Field          | Type        | Required | Default | Notes                           |
 | -------------- | ----------- | -------: | ------- | ------------------------------- |
-| teamId         | String(64)  |       ✅ |         | `$id` del Team en Appwrite      |
 | name           | String(120) |       ✅ |         |                                 |
 | description    | String(500) |       ❌ |         |                                 |
 | ownerProfileId | String(64)  |       ✅ |         | `users_profile.$id` (indexable) |
@@ -145,9 +160,9 @@
 
 ## B.2 Indexes
 
-- `uq_groups_teamId` (unique) → `teamId`
 - `idx_groups_ownerProfileId` → `ownerProfileId`
 - `idx_groups_enabled` → `enabled`
+- `idx_groups_name` → `name` (opcional para búsquedas)
 
 ## B.3 Relationship
 
@@ -162,26 +177,27 @@
 
 ---
 
-# C) group_members (membresías por grupo)
+# C) group_members
+
+> ⚠️ **CAMBIO v2:** `groupId` ahora es `groups.$id` (no `teamId`)
 
 ## C.1 Attributes
 
-| Field     | Type        | Required | Default | Notes                                                        |
-| --------- | ----------- | -------: | ------- | ------------------------------------------------------------ |
-| groupId   | String(64)  |       ✅ |         | `groups.teamId` (TeamId)                                     |
-| profileId | String(64)  |       ✅ |         | `users_profile.$id`                                          |
-| role      | Enum        |       ✅ |         | OWNER / ADMIN / MEMBER / VIEWER _(sin default por required)_ |
-| enabled   | Boolean     |       ❌ | true    |                                                              |
-| joinedAt  | Datetime    |       ❌ |         | set en Function/API                                          |
-| notes     | String(500) |       ❌ |         |                                                              |
+| Field     | Type        | Required | Default | Notes                        |
+| --------- | ----------- | -------: | ------- | ---------------------------- |
+| groupId   | String(64)  |       ✅ |         | `groups.$id` (**NO teamId**) |
+| profileId | String(64)  |       ✅ |         | `users_profile.$id`          |
+| role      | Enum        |       ✅ |         | OWNER / MEMBER               |
+| enabled   | Boolean     |       ❌ | true    |                              |
+| joinedAt  | Datetime    |       ❌ |         | set en Function/API          |
+| notes     | String(500) |       ❌ |         |                              |
 
 ## C.2 Indexes
 
 - `idx_group_members_groupId` → `groupId`
 - `idx_group_members_profileId` → `profileId`
 - `idx_group_members_group_role` → (`groupId`, `role`)
-
-> Unique compuesto (groupId+profileId): Appwrite console puede limitar esto; si no te deja, **valídalo en Function** antes de crear.
+- `idx_group_members_group_profile` → (`groupId`, `profileId`) — para validar unicidad
 
 ## C.3 Relationships
 
@@ -192,7 +208,7 @@
 - Attribute key: `group`
 - Backref key: `members`
 - Cardinalidad: **Many-to-one**
-- On delete: **Cascade** _(si borras físico el group; con soft delete casi no aplica)_
+- On delete: **Cascade**
 
 ### C.3.2 `profile`
 
@@ -201,11 +217,11 @@
 - Attribute key: `profile`
 - Backref key: `groupMemberships`
 - Cardinalidad: **Many-to-one**
-- On delete: **Restrict** _(recomendado si soft delete; si borras profiles físico, usa Cascade)_
+- On delete: **Restrict**
 
 ---
 
-# D) permissions (Prisma: Permission)
+# D) permissions
 
 ## D.1 Attributes
 
@@ -222,13 +238,15 @@
 
 ---
 
-# E) roles (Prisma: Role)
+# E) roles
+
+> ⚠️ **CAMBIO v2:** `groupId` es `groups.$id`
 
 ## E.1 Attributes
 
 | Field       | Type        | Required | Default | Notes                        |
 | ----------- | ----------- | -------: | ------- | ---------------------------- |
-| groupId     | String(64)  |       ✅ |         | tenant                       |
+| groupId     | String(64)  |       ✅ |         | `groups.$id` (tenant)        |
 | name        | String(80)  |       ✅ |         | ej: Admin, Mecánico, Auditor |
 | description | String(500) |       ❌ |         |                              |
 | isSystem    | Boolean     |       ❌ | false   | roles base del sistema       |
@@ -240,21 +258,33 @@
 - `idx_roles_group_name` → (`groupId`, `name`)
 - `idx_roles_enabled` → `enabled`
 
+## E.3 Relationships
+
+### E.3.1 `group`
+
+- **Two-way**
+- Related: `groups`
+- Attribute key: `group`
+- Backref key: `roles`
+- Cardinalidad: **Many-to-one**
+- On delete: **Cascade**
+
 ---
 
-# F) role_permissions (Prisma: RolePermission)
+# F) role_permissions
 
 ## F.1 Attributes
 
 | Field        | Type       | Required | Default | Notes             |
 | ------------ | ---------- | -------: | ------- | ----------------- |
-| groupId      | String(64) |       ✅ |         | tenant            |
+| groupId      | String(64) |       ✅ |         | `groups.$id`      |
 | roleId       | String(64) |       ✅ |         | `roles.$id`       |
 | permissionId | String(64) |       ✅ |         | `permissions.$id` |
 | enabled      | Boolean    |       ❌ | true    |                   |
 
 ## F.2 Indexes
 
+- `idx_role_permissions_groupId` → `groupId`
 - `idx_role_permissions_group_role` → (`groupId`, `roleId`)
 - `idx_role_permissions_group_permission` → (`groupId`, `permissionId`)
 - `idx_role_permissions_enabled` → `enabled`
@@ -265,25 +295,23 @@
 
 - Two-way: `role_permissions.role` ↔ `roles.permissions`
 - Cardinalidad: Many-to-one
-- On delete: Restrict/Cascade (tu política)
+- On delete: Cascade
 
 ### `permission`
 
 - Two-way: `role_permissions.permission` ↔ `permissions.roles`
 - Cardinalidad: Many-to-one
-- On delete: Restrict/Cascade
+- On delete: Restrict
 
 ---
 
 # G) user_roles (asignación de roles a un profile dentro de un group)
 
-> Esto completa el RBAC multi-tenant (porque en Prisma el User traía roleId directo, pero tú necesitas “por grupo”).
-
 ## G.1 Attributes
 
 | Field      | Type       | Required | Default | Notes               |
 | ---------- | ---------- | -------: | ------- | ------------------- |
-| groupId    | String(64) |       ✅ |         | tenant              |
+| groupId    | String(64) |       ✅ |         | `groups.$id`        |
 | profileId  | String(64) |       ✅ |         | `users_profile.$id` |
 | roleId     | String(64) |       ✅ |         | `roles.$id`         |
 | enabled    | Boolean    |       ❌ | true    |                     |
@@ -291,120 +319,175 @@
 
 ## G.2 Indexes
 
+- `idx_user_roles_groupId` → `groupId`
 - `idx_user_roles_group_profile` → (`groupId`, `profileId`)
 - `idx_user_roles_group_role` → (`groupId`, `roleId`)
 - `idx_user_roles_enabled` → `enabled`
 
 ## G.3 Relationships
 
+- `group`: Two-way ↔ `groups.userRoles` (Many-to-one) On delete Cascade
 - `profile`: Two-way ↔ `users_profile.userRoles` (Many-to-one) On delete Restrict
 - `role`: Two-way ↔ `roles.userAssignments` (Many-to-one) On delete Restrict
 
 ---
 
-# H) vehicle_types (Prisma: VehicleType)
+# H) vehicle_types
 
 ## H.1 Attributes
 
-| Field         | Type       | Required | Default | Notes  |
-| ------------- | ---------- | -------: | ------- | ------ |
-| groupId       | String(64) |       ✅ |         | tenant |
-| name          | String(80) |       ✅ |         |        |
-| economicGroup | String(32) |       ✅ |         |        |
-| enabled       | Boolean    |       ❌ | true    |        |
+| Field         | Type       | Required | Default | Notes        |
+| ------------- | ---------- | -------: | ------- | ------------ |
+| groupId       | String(64) |       ✅ |         | `groups.$id` |
+| name          | String(80) |       ✅ |         |              |
+| economicGroup | String(32) |       ✅ |         |              |
+| enabled       | Boolean    |       ❌ | true    |              |
 
 ## H.2 Indexes
 
+- `idx_vehicle_types_groupId` → `groupId`
 - `idx_vehicle_types_group_name` → (`groupId`, `name`)
 - `idx_vehicle_types_enabled` → `enabled`
 
+## H.3 Relationships
+
+- `group`: Two-way ↔ `groups.vehicleTypes` (Many-to-one) On delete Cascade
+
 ---
 
-# I) vehicle_brands (Prisma: VehicleBrand)
+# I) vehicle_brands
 
 ## I.1 Attributes
 
-| Field   | Type       | Required | Default | Notes  |
-| ------- | ---------- | -------: | ------- | ------ |
-| groupId | String(64) |       ✅ |         | tenant |
-| name    | String(80) |       ✅ |         |        |
-| enabled | Boolean    |       ❌ | true    |        |
+| Field   | Type       | Required | Default | Notes        |
+| ------- | ---------- | -------: | ------- | ------------ |
+| groupId | String(64) |       ✅ |         | `groups.$id` |
+| name    | String(80) |       ✅ |         |              |
+| enabled | Boolean    |       ❌ | true    |              |
 
 ## I.2 Indexes
 
+- `idx_vehicle_brands_groupId` → `groupId`
 - `idx_vehicle_brands_group_name` → (`groupId`, `name`)
 - `idx_vehicle_brands_enabled` → `enabled`
 
+## I.3 Relationships
+
+- `group`: Two-way ↔ `groups.vehicleBrands` (Many-to-one) On delete Cascade
+
 ---
 
-# J) vehicle_models (Prisma: Model)
+# J) vehicle_models
+
+> ℹ️ **Relación Modelo-Marca-Tipo:** Un modelo está compuesto por una marca (`brandId`) y un tipo (`typeId`).
+> Cuando un vehículo selecciona un modelo, sus campos `brandId` y `typeId` deben coincidir con los del modelo.
+> Ver sección L) vehicles para las reglas de consistencia.
 
 ## J.1 Attributes
 
-| Field   | Type                       | Required | Default | Notes                |
-| ------- | -------------------------- | -------: | ------- | -------------------- |
-| groupId | String(64)                 |       ✅ |         | tenant               |
-| brandId | String(64)                 |       ❌ |         | indexable (catálogo) |
-| typeId  | String(64)                 |       ❌ |         | indexable (catálogo) |
-| name    | String(120)                |       ✅ |         | modelo               |
-| year    | Integer(min=1900,max=2100) |       ❌ |         |                      |
-| enabled | Boolean                    |       ❌ | true    |                      |
+| Field   | Type                       | Required | Default | Notes                                      |
+| ------- | -------------------------- | -------: | ------- | ------------------------------------------ |
+| groupId | String(64)                 |       ✅ |         | `groups.$id`                               |
+| brandId | String(64)                 |       ❌ |         | `vehicle_brands.$id` - marca del modelo    |
+| typeId  | String(64)                 |       ❌ |         | `vehicle_types.$id` - tipo del modelo      |
+| name    | String(120)                |       ✅ |         | nombre del modelo (ej: "Corolla", "F-150") |
+| year    | Integer(min=1900,max=2100) |       ❌ |         | año del modelo                             |
+| enabled | Boolean                    |       ❌ | true    |                                            |
 
 ## J.2 Indexes
 
+- `idx_vehicle_models_groupId` → `groupId`
 - `idx_vehicle_models_group_name` → (`groupId`, `name`)
 - `idx_vehicle_models_group_brand` → (`groupId`, `brandId`)
 - `idx_vehicle_models_group_type` → (`groupId`, `typeId`)
 - `idx_vehicle_models_enabled` → `enabled`
 
-## J.3 Relationships (opcional pero recomendado)
+## J.3 Relationships
 
+- `group`: Two-way ↔ `groups.vehicleModels` (Many-to-one) On delete Cascade
 - `brand`: Two-way ↔ `vehicle_brands.models` (Many-to-one) On delete Restrict
 - `type`: Two-way ↔ `vehicle_types.models` (Many-to-one) On delete Restrict
 
 ---
 
-# K) conditions (Prisma: Condition)
+# K) conditions
 
 ## K.1 Attributes
 
 | Field       | Type        | Required | Default | Notes                       |
 | ----------- | ----------- | -------: | ------- | --------------------------- |
-| groupId     | String(64)  |       ✅ |         | tenant                      |
+| groupId     | String(64)  |       ✅ |         | `groups.$id`                |
 | name        | String(80)  |       ✅ |         | Nuevo / En reparación / etc |
 | description | String(300) |       ❌ |         |                             |
 | enabled     | Boolean     |       ❌ | true    |                             |
 
 ## K.2 Indexes
 
+- `idx_conditions_groupId` → `groupId`
 - `idx_conditions_group_name` → (`groupId`, `name`)
 - `idx_conditions_enabled` → `enabled`
 
+## K.3 Relationships
+
+- `group`: Two-way ↔ `groups.conditions` (Many-to-one) On delete Cascade
+
 ---
 
-# L) vehicles (Prisma: Vehicle)
+# L) vehicles
+
+> ⚠️ **DENORMALIZACIÓN CONTROLADA - Reglas de Consistencia:**
+>
+> Los campos `typeId`, `brandId` y `modelId` están **denormalizados intencionalmente** para permitir:
+>
+> - Queries rápidos por tipo/marca sin necesidad de joins
+> - Flexibilidad para vehículos sin modelo definido
+>
+> **REGLAS OBLIGATORIAS:**
+>
+> 1. **Si el vehículo tiene `modelId`:**
+>
+>    - `brandId` del vehículo **DEBE** ser igual a `vehicle_models.brandId` del modelo
+>    - `typeId` del vehículo **DEBE** ser igual a `vehicle_models.typeId` del modelo
+>    - La UI debe **auto-llenar** `brandId` y `typeId` cuando se selecciona un modelo
+>
+> 2. **Si el vehículo NO tiene `modelId`:**
+>
+>    - `typeId` es **required** (debe seleccionarse manualmente)
+>    - `brandId` es **opcional** (puede seleccionarse manualmente)
+>
+> 3. **Al actualizar:**
+>    - Si se cambia el `modelId`, actualizar automáticamente `brandId` y `typeId`
+>    - Si se cambia `brandId` o `typeId` manualmente Y hay un `modelId`, validar consistencia o limpiar `modelId`
+>
+> **Implementación sugerida:** Crear un hook/utilidad `useVehicleModelSync` que maneje esta lógica automáticamente.
 
 ## L.1 Attributes
 
-| Field           | Type                       | Required | Default | Notes                                              |
-| --------------- | -------------------------- | -------: | ------- | -------------------------------------------------- |
-| groupId         | String(64)                 |       ✅ |         | tenant                                             |
-| ownerProfileId  | String(64)                 |       ✅ |         | indexable                                          |
-| visibility      | Enum                       |       ❌ | GROUP   | PRIVATE / GROUP                                    |
-| typeId          | String(64)                 |       ✅ |         | catálogo                                           |
-| brandId         | String(64)                 |       ❌ |         | catálogo                                           |
-| modelId         | String(64)                 |       ❌ |         | catálogo                                           |
-| color           | String(40)                 |       ❌ |         |                                                    |
-| plate           | String(15)                 |       ❌ |         |                                                    |
-| economicNumber  | String(32)                 |       ✅ |         |                                                    |
-| serialNumber    | String(60)                 |       ❌ |         |                                                    |
-| acquisitionDate | Datetime                   |       ❌ |         |                                                    |
-| purchaseCost    | Float(min=0,max=100000000) |       ❌ |         |                                                    |
-| mileage         | Integer(min=0,max=5000000) |       ❌ | 0       | default ⇒ no required                              |
-| mileageUnit     | Enum                       |       ❌ | KM      | KM / MI                                            |
-| status          | Enum                       |       ❌ | ACTIVE  | ACTIVE / IN_MAINTENANCE / SOLD / RENTED / INACTIVE |
-| notes           | String(1500)               |       ❌ |         |                                                    |
-| enabled         | Boolean                    |       ❌ | true    |                                                    |
+| Field                   | Type                       | Required | Default | Notes                                              |
+| ----------------------- | -------------------------- | -------: | ------- | -------------------------------------------------- |
+| groupId                 | String(64)                 |       ✅ |         | `groups.$id`                                       |
+| ownerProfileId          | String(64)                 |       ✅ |         | indexable                                          |
+| visibility              | Enum                       |       ❌ | GROUP   | PRIVATE / GROUP                                    |
+| typeId                  | String(64)                 |       ✅ |         | `vehicle_types.$id` - ver reglas arriba            |
+| brandId                 | String(64)                 |       ✅ |         | `vehicle_brands.$id` - ver reglas arriba           |
+| modelId                 | String(64)                 |       ✅ |         | `vehicle_models.$id` - ver reglas arriba           |
+| color                   | String(40)                 |       ❌ |         |                                                    |
+| plate                   | String(15)                 |       ❌ |         |                                                    |
+| economicNumber          | String(32)                 |       ✅ |         |                                                    |
+| serialNumber            | String(60)                 |       ❌ |         |                                                    |
+| acquisitionDate         | Datetime                   |       ❌ |         |                                                    |
+| purchaseCost            | Float(min=0,max=100000000) |       ❌ |         |                                                    |
+| mileage                 | Integer(min=0,max=5000000) |       ❌ | 0       | default ⇒ no required                              |
+| mileageUnit             | Enum                       |       ❌ | KM      | KM / MI                                            |
+| status                  | Enum                       |       ❌ | ACTIVE  | ACTIVE / IN_MAINTENANCE / SOLD / RENTED / INACTIVE |
+| notes                   | String(1500)               |       ❌ |         |                                                    |
+| enabled                 | Boolean                    |       ❌ | true    |                                                    |
+| acquisitionCost         | Float(min=0,max=100000000) |       ❌ |         |                                                    |
+| acquisitionCostCurrency | Enum                       |       ❌ | USD     | USD / EUR / MXN                                    |
+| bookValue               | Float(min=0,max=100000000) |       ❌ |         |                                                    |
+| bookValueCurrency       | Enum                       |       ❌ | USD     | USD / EUR / MXN                                    |
+| marketValue             | Float(min=0,max=100000000) |       ❌ |         |                                                    |
+| marketValueCurrency     | Enum                       |       ❌ | USD     | USD / EUR / MXN                                    |
 
 ## L.2 Indexes
 
@@ -414,29 +497,25 @@
 - `idx_vehicles_group_type` → (`groupId`, `typeId`)
 - `idx_vehicles_group_plate` → (`groupId`, `plate`)
 - `idx_vehicles_group_economicNumber` → (`groupId`, `economicNumber`)
-- `idx_vehicles_group_vin` → (`groupId`, `vin`)
 - `idx_vehicles_enabled` → `enabled`
 
 ## L.3 Relationships
 
+- `group`: Two-way ↔ `groups.vehicles` (Many-to-one) On delete Cascade
 - `ownerProfile`: Two-way ↔ `users_profile.ownedVehicles` (Many-to-one) On delete Restrict
-- `group`: Two-way ↔ `groups.vehicles` (Many-to-one) On delete Restrict/Cascade
-
 - `type`: Two-way ↔ `vehicle_types.vehicles` (Many-to-one) On delete Restrict
 - `brand`: Two-way ↔ `vehicle_brands.vehicles` (Many-to-one) On delete Restrict
 - `model`: Two-way ↔ `vehicle_models.vehicles` (Many-to-one) On delete Restrict
 
 ---
 
-# M) vehicle_conditions (Prisma: VehicleCondition)
-
-> Útil si quieres guardar historial de condición por fechas. Si no, puedes dejar solo `vehicles.status` + `vehicles.conditionId`.
+# M) vehicle_conditions
 
 ## M.1 Attributes
 
 | Field       | Type       | Required | Default | Notes            |
 | ----------- | ---------- | -------: | ------- | ---------------- |
-| groupId     | String(64) |       ✅ |         | tenant           |
+| groupId     | String(64) |       ✅ |         | `groups.$id`     |
 | vehicleId   | String(64) |       ✅ |         | `vehicles.$id`   |
 | conditionId | String(64) |       ✅ |         | `conditions.$id` |
 | startDate   | Datetime   |       ❌ |         |                  |
@@ -445,18 +524,18 @@
 
 ## M.2 Indexes
 
+- `idx_vehicle_conditions_groupId` → `groupId`
 - `idx_vehicle_conditions_group_vehicle` → (`groupId`, `vehicleId`)
 - `idx_vehicle_conditions_group_condition` → (`groupId`, `conditionId`)
 - `idx_vehicle_conditions_enabled` → `enabled`
 
 ## M.3 Relationships
 
-- `vehicle`: Two-way ↔ `vehicles.conditionHistory` (Many-to-one) On delete Cascade/Restrict
+- `group`: Two-way ↔ `groups.vehicleConditions` (Many-to-one) On delete Cascade
+- `vehicle`: Two-way ↔ `vehicles.conditionHistory` (Many-to-one) On delete Cascade
 - `condition`: Two-way ↔ `conditions.vehicleUsages` (Many-to-one) On delete Restrict
 
----
-
-# N) files (Prisma: File)
+# N) files
 
 > “Archivo genérico” (docs, PDF, etc.). Imágenes separadas en `images` si quieres.
 
@@ -485,7 +564,7 @@
 
 ---
 
-# O) images (Prisma: Image / UserImage)
+# O) images
 
 > Igual que files pero orientado a imagen (si quieres usar optimizaciones/filtros).
 
@@ -540,7 +619,7 @@
 
 ---
 
-# Q) service_histories (Prisma: ServiceHistory)
+# Q) service_histories
 
 ## Q.1 Attributes
 
@@ -570,7 +649,7 @@
 
 ---
 
-# R) replaced_parts (Prisma: ReplacedPart)
+# R) replaced_parts
 
 ## R.1 Attributes
 
@@ -595,7 +674,7 @@
 
 ---
 
-# S) service_files (Prisma: ServicesFile)
+# S) service_files
 
 ## S.1 Attributes
 
@@ -618,7 +697,7 @@
 
 ---
 
-# T) repair_reports (Prisma: RepairReport)
+# T) repair_reports
 
 ## T.1 Attributes
 
@@ -648,7 +727,7 @@
 
 ---
 
-# U) repaired_parts (Prisma: RepairedPart)
+# U) repaired_parts
 
 ## U.1 Attributes
 
@@ -673,7 +752,7 @@
 
 ---
 
-# V) repair_files (Prisma: RepairFile)
+# V) repair_files
 
 ## V.1 Attributes
 
@@ -696,7 +775,7 @@
 
 ---
 
-# W) clients (Prisma: Client)
+# W) clients
 
 ## W.1 Attributes
 
@@ -716,7 +795,7 @@
 
 ---
 
-# X) rentals (Prisma: Rental)
+# X) rentals
 
 ## X.1 Attributes
 
@@ -747,7 +826,7 @@
 
 ---
 
-# Y) rental_files (Prisma: RentalFile)
+# Y) rental_files
 
 ## Y.1 Attributes
 
@@ -920,32 +999,69 @@
 
 ---
 
-## 3) Orden recomendado de creación (Console)
+# N-Y) Resto de colecciones (files, images, service_histories, etc.)
+
+> Todas las tablas que tienen `groupId` ahora usan `groups.$id` en lugar de `teamId`.
+> La estructura de atributos se mantiene igual, solo cambia que:
+>
+> - `groupId` = `groups.$id` (el ID real del documento grupo)
+> - Se agregan relaciones `group` donde corresponda
+
+---
+
+## 3) Migración de datos existentes
+
+Si tienes datos con el esquema anterior (usando `teamId`), necesitarás:
+
+1. **Crear un script de migración** que:
+
+   - Para cada `group_members.groupId` (que era `teamId`), busque el `groups.$id` correspondiente
+   - Actualice el valor de `groupId` al `$id` real del documento `groups`
+   - Lo mismo para `user_roles`, `roles`, `role_permissions` y todas las tablas con `groupId`
+
+2. **Eliminar el campo `teamId`** de la colección `groups` (después de migrar)
+
+3. **Eliminar los Teams de Auth** si ya no los necesitas
+
+---
+
+## 4) Orden recomendado de creación (Console)
 
 1. `users_profile`
 2. `groups` → relationship `ownerProfile`
 3. `group_members` → relationships `group` y `profile`
 
 4. `permissions`
-5. `roles`
-6. `role_permissions`
-7. `user_roles`
+5. `roles` → relationship `group`
+6. `role_permissions` → relationships `role`, `permission`
+7. `user_roles` → relationships `group`, `profile`, `role`
 
-8. catálogos: `vehicle_types`, `vehicle_brands`, `vehicle_models`, `conditions`
+8. catálogos: `vehicle_types`, `vehicle_brands`, `vehicle_models`, `conditions` (con relationship `group`)
 
-9. `vehicles` (+ relationships a profile/group/catálogos)
-10. `vehicle_conditions` (si lo usarás)
+9. `vehicles` (+ relationships a group/profile/catálogos)
+10. `vehicle_conditions`
 11. `files`, `images`
 
 12. `service_histories` → `replaced_parts` → `service_files`
 13. `repair_reports` → `repaired_parts` → `repair_files`
 14. `clients` → `rentals` → `rental_files`
-15. `vehicles` → `rentals` → `rental_files`
 
-16. `drivers`
-17. `driver_licenses` → `driver_files`
-18. `driver_files` → `driver_licenses`
-19. `vehicle_driver_assignments`
-20. `vehicle_driver_assignment_files` → `files`
+15. `drivers` → `driver_licenses` → `driver_files`
+16. `vehicle_driver_assignments` → `vehicle_driver_assignment_files`
+
+---
+
+## 5) Resumen de cambios v2
+
+| Antes (v1)                         | Ahora (v2)                                       |
+| ---------------------------------- | ------------------------------------------------ |
+| `groups.teamId` = Team de Auth     | **ELIMINADO** - usamos `groups.$id` directamente |
+| `group_members.groupId` = `teamId` | `group_members.groupId` = `groups.$id`           |
+| `roles.groupId` = `teamId`         | `roles.groupId` = `groups.$id`                   |
+| `user_roles.groupId` = `teamId`    | `user_roles.groupId` = `groups.$id`              |
+| `vehicles.groupId` = `teamId`      | `vehicles.groupId` = `groups.$id`                |
+| Teams de Auth de Appwrite          | **NO SE USAN** - sistema RBAC propio             |
+| `activeGroupId` = `teamId`         | `activeGroupId` = `groups.$id`                   |
+| Query por `teamId`                 | Query por `groups.$id` directamente              |
 
 ---

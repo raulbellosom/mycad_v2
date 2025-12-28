@@ -7,6 +7,7 @@ import {
   FileBarChart2,
   ScrollText,
   UserCog,
+  Building2,
 } from "lucide-react";
 
 /**
@@ -34,6 +35,12 @@ export const nav = [
     label: "Conductores",
     icon: Users,
     requiredPermission: "drivers.view",
+  },
+  {
+    to: "/clients",
+    label: "Clientes",
+    icon: Building2,
+    requiredPermission: "clients.view",
   },
   {
     to: "/catalogs",

@@ -390,7 +390,7 @@ export async function getGroupMembership(groupId, profileId) {
 
 /**
  * Agrega un miembro al grupo
- * @param {string} groupId - teamId del grupo (groups.teamId)
+ * @param {string} groupId - groups.$id (ID del documento grupo)
  * @param {string} profileId - users_profile.$id
  * @param {string} role - OWNER/ADMIN/MEMBER/VIEWER
  * @param {string} notes - notas opcionales
@@ -425,33 +425,17 @@ export async function addGroupMember(
     return doc;
   }
 
-  // Buscar el $id del documento de groups para la relación
-  let groupDocId = null;
-  if (GROUPS_COLLECTION) {
-    const groupsResult = await databases.listDocuments(
-      env.databaseId,
-      GROUPS_COLLECTION,
-      [Query.equal("teamId", groupId), Query.limit(1)]
-    );
-    if (groupsResult.documents.length > 0) {
-      groupDocId = groupsResult.documents[0].$id;
-    }
-  }
-
+  // ⚠️ CAMBIO v2: groupId ya ES groups.$id, no necesitamos buscar
   const memberData = {
-    groupId, // teamId para búsquedas/índices
+    groupId, // groups.$id directamente
     profileId, // para búsquedas/índices
     role,
     notes,
     enabled: true,
     joinedAt: new Date().toISOString(),
+    group: groupId, // relación → groups (mismo valor que groupId)
     profile: profileId, // relación → users_profile
   };
-
-  // Solo agregar la relación group si encontramos el documento
-  if (groupDocId) {
-    memberData.group = groupDocId; // relación → groups
-  }
 
   return databases.createDocument(
     env.databaseId,

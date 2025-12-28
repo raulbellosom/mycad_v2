@@ -58,7 +58,7 @@ export function AppTopbar({ onMenuClick }) {
               onChange={(v) => setActiveGroupId(v || null)}
               placeholder="Selecciona un grupo"
               options={(groups || []).map((g) => ({
-                value: g.teamId,
+                value: g.$id,
                 label: g.name,
               }))}
             />

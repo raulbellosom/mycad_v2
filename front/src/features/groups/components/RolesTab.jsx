@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   XCircle,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -563,19 +564,37 @@ export function RolesTab({ groupId }) {
                         size="sm"
                         variant="outline"
                         onClick={() => toggleAllPermissions(true)}
-                        disabled={assignedPermissions === totalPermissions}
+                        disabled={
+                          assignedPermissions === totalPermissions ||
+                          updatePermissionsMutation.isPending
+                        }
                       >
-                        <CheckCircle2 size={14} />
-                        Todos
+                        {updatePermissionsMutation.isPending ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={14} />
+                        )}
+                        {updatePermissionsMutation.isPending
+                          ? "Aplicando..."
+                          : "Todos"}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => toggleAllPermissions(false)}
-                        disabled={assignedPermissions === 0}
+                        disabled={
+                          assignedPermissions === 0 ||
+                          updatePermissionsMutation.isPending
+                        }
                       >
-                        <XCircle size={14} />
-                        Ninguno
+                        {updatePermissionsMutation.isPending ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <XCircle size={14} />
+                        )}
+                        {updatePermissionsMutation.isPending
+                          ? "Aplicando..."
+                          : "Ninguno"}
                       </Button>
                     </div>
                   )}
@@ -631,8 +650,11 @@ export function RolesTab({ groupId }) {
                                     !allAssigned
                                   )
                                 }
+                                disabled={updatePermissionsMutation.isPending}
                               >
-                                {allAssigned ? (
+                                {updatePermissionsMutation.isPending ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : allAssigned ? (
                                   <>
                                     <XCircle size={12} />
                                     Quitar
@@ -671,7 +693,10 @@ export function RolesTab({ groupId }) {
                                       onChange={() =>
                                         handlePermissionToggle(perm.$id)
                                       }
-                                      disabled={!canManageRoles}
+                                      disabled={
+                                        !canManageRoles ||
+                                        updatePermissionsMutation.isPending
+                                      }
                                       className="h-4 w-4 rounded border-(--border) text-(--brand) focus:ring-(--brand)"
                                     />
                                     <div className="flex-1 min-w-0">

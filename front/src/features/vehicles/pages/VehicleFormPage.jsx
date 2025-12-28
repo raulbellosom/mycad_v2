@@ -9,6 +9,7 @@ import {
   Camera,
   FileText,
   Image as ImageIcon,
+  DollarSign,
 } from "lucide-react";
 
 import { SectionHeader } from "../../../shared/ui/SectionHeader";
@@ -50,6 +51,12 @@ const MILEAGE_UNIT_OPTIONS = [
   { value: "MI", label: "Millas" },
 ];
 
+const CURRENCY_OPTIONS = [
+  { value: "MXN", label: "MXN - Peso Mexicano" },
+  { value: "USD", label: "USD - Dólar Americano" },
+  { value: "EUR", label: "EUR - Euro" },
+];
+
 export function VehicleFormPage() {
   const { id } = useParams();
   const isEdit = Boolean(id) && id !== "new";
@@ -70,6 +77,13 @@ export function VehicleFormPage() {
     mileage: 0,
     mileageUnit: "KM",
     serialNumber: "",
+    // Accounting fields
+    acquisitionCost: "",
+    acquisitionCostCurrency: "USD",
+    bookValue: "",
+    bookValueCurrency: "USD",
+    marketValue: "",
+    marketValueCurrency: "USD",
   });
 
   // Media state
@@ -127,6 +141,13 @@ export function VehicleFormPage() {
         mileage: vehicle.mileage || 0,
         mileageUnit: vehicle.mileageUnit || "KM",
         serialNumber: vehicle.serialNumber || "",
+        // Accounting fields
+        acquisitionCost: vehicle.acquisitionCost ?? "",
+        acquisitionCostCurrency: vehicle.acquisitionCostCurrency || "USD",
+        bookValue: vehicle.bookValue ?? "",
+        bookValueCurrency: vehicle.bookValueCurrency || "USD",
+        marketValue: vehicle.marketValue ?? "",
+        marketValueCurrency: vehicle.marketValueCurrency || "USD",
       });
     }
   }, [vehicle]);
@@ -408,6 +429,104 @@ export function VehicleFormPage() {
                 />
               </div>
             </form>
+          </Card>
+
+          {/* Accounting/Financial Section */}
+          <Card className="p-6">
+            <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
+              <DollarSign size={20} className="text-(--brand)" />
+              Datos Contables
+            </h3>
+            <div className="space-y-4">
+              {/* Acquisition Cost */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <Input
+                    label="Costo de Adquisición"
+                    type="number"
+                    min="0"
+                    max="100000000"
+                    step="0.01"
+                    value={formData.acquisitionCost}
+                    onChange={(e) =>
+                      handleChange(
+                        "acquisitionCost",
+                        e.target.value ? parseFloat(e.target.value) : ""
+                      )
+                    }
+                    placeholder="0.00"
+                    form="vehicle-form"
+                  />
+                </div>
+                <Select
+                  label="Moneda"
+                  value={formData.acquisitionCostCurrency}
+                  onChange={(v) => handleChange("acquisitionCostCurrency", v)}
+                  options={CURRENCY_OPTIONS}
+                />
+              </div>
+
+              {/* Book Value */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <Input
+                    label="Valor en Libros"
+                    type="number"
+                    min="0"
+                    max="100000000"
+                    step="0.01"
+                    value={formData.bookValue}
+                    onChange={(e) =>
+                      handleChange(
+                        "bookValue",
+                        e.target.value ? parseFloat(e.target.value) : ""
+                      )
+                    }
+                    placeholder="0.00"
+                    form="vehicle-form"
+                  />
+                </div>
+                <Select
+                  label="Moneda"
+                  value={formData.bookValueCurrency}
+                  onChange={(v) => handleChange("bookValueCurrency", v)}
+                  options={CURRENCY_OPTIONS}
+                />
+              </div>
+
+              {/* Market Value */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <Input
+                    label="Valor de Mercado"
+                    type="number"
+                    min="0"
+                    max="100000000"
+                    step="0.01"
+                    value={formData.marketValue}
+                    onChange={(e) =>
+                      handleChange(
+                        "marketValue",
+                        e.target.value ? parseFloat(e.target.value) : ""
+                      )
+                    }
+                    placeholder="0.00"
+                    form="vehicle-form"
+                  />
+                </div>
+                <Select
+                  label="Moneda"
+                  value={formData.marketValueCurrency}
+                  onChange={(v) => handleChange("marketValueCurrency", v)}
+                  options={CURRENCY_OPTIONS}
+                />
+              </div>
+
+              <p className="text-xs text-(--muted-fg) mt-2">
+                Estos valores son opcionales y se utilizan para reportes
+                contables y de depreciación.
+              </p>
+            </div>
           </Card>
 
           {/* Media Section Integrated Below Main Form (Large Screens) */}

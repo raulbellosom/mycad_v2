@@ -261,7 +261,7 @@ export function GroupsPage() {
             <div className="flex flex-wrap gap-4 justify-center text-xs text-(--muted-fg)">
               <span className="flex items-center gap-1">
                 <Building2 size={12} />
-                Team ID: <code className="ml-1">{activeGroup.teamId}</code>
+                Group ID: <code className="ml-1">{activeGroup.$id}</code>
               </span>
               <span className="flex items-center gap-1">
                 <Settings size={12} />

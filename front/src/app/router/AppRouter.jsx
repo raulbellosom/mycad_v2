@@ -17,6 +17,7 @@ import { ReportsPage } from "../../features/reports/pages/ReportsPage";
 import { AuditLogsPage } from "../../features/audit/pages/AuditLogsPage";
 import { DriversPage } from "../../features/drivers/pages/DriversPage";
 import { DriverFormPage } from "../../features/drivers/pages/DriverFormPage";
+import { ClientsPage } from "../../features/clients/pages/ClientsPage";
 import { NotFoundPage } from "../../shared/pages/NotFoundPage";
 import { PermissionsAdminPage } from "../../features/groups/pages/PermissionsAdminPage";
 
@@ -49,6 +50,7 @@ export function AppRouter() {
         <Route path="drivers" element={<DriversPage />} />
         <Route path="drivers/new" element={<DriverFormPage />} />
         <Route path="drivers/:id" element={<DriverFormPage />} />
+        <Route path="clients" element={<ClientsPage />} />
         <Route path="admin/permissions" element={<PermissionsAdminPage />} />
       </Route>
 

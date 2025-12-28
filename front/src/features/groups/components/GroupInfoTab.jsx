@@ -190,7 +190,7 @@ export function GroupInfoTab({ groupId }) {
                   >
                     <Card
                       className="cursor-pointer p-4 hover:border-(--brand) transition-all"
-                      onClick={() => setActiveGroupId(g.teamId)}
+                      onClick={() => setActiveGroupId(g.$id)}
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-(--brand)/10 overflow-hidden">
@@ -432,13 +432,7 @@ export function GroupInfoTab({ groupId }) {
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2 border-b border-(--border)">
-                <span className="text-sm text-(--muted-fg)">Team ID</span>
-                <code className="text-sm bg-(--muted) px-2 py-1 rounded">
-                  {activeGroup.teamId}
-                </code>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-(--border)">
-                <span className="text-sm text-(--muted-fg)">Document ID</span>
+                <span className="text-sm text-(--muted-fg)">Group ID</span>
                 <code className="text-sm bg-(--muted) px-2 py-1 rounded">
                   {activeGroup.$id}
                 </code>
@@ -513,7 +507,7 @@ export function GroupInfoTab({ groupId }) {
             </h3>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {groups.map((g) => {
-                const isActive = activeGroup?.teamId === g.teamId;
+                const isActive = activeGroup?.$id === g.$id;
 
                 return (
                   <motion.div
@@ -522,7 +516,7 @@ export function GroupInfoTab({ groupId }) {
                     whileTap={{ scale: 0.98 }}
                   >
                     <Card
-                      onClick={() => !isActive && setActiveGroupId(g.teamId)}
+                      onClick={() => !isActive && setActiveGroupId(g.$id)}
                       className={`p-3 transition-all ${
                         isActive
                           ? "border-(--brand) bg-(--brand)/5 cursor-default"
@@ -549,7 +543,7 @@ export function GroupInfoTab({ groupId }) {
                             {g.name}
                           </div>
                           <div className="text-xs text-(--muted-fg) truncate">
-                            {g.teamId}
+                            {g.$id}
                           </div>
                         </div>
                         {isActive && (

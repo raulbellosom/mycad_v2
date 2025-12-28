@@ -29,17 +29,17 @@ export function ActiveGroupProvider({ children }) {
     setActiveGroupId(id);
   };
 
-  // Derive active group object
+  // Derive active group object - ⚠️ CAMBIO v2: Ahora usamos $id en lugar de teamId
   const activeGroup = useMemo(() => {
     if (!groups || !activeGroupId) return null;
-    return groups.find((g) => g.teamId === activeGroupId) || null;
+    return groups.find((g) => g.$id === activeGroupId) || null;
   }, [groups, activeGroupId]);
 
   // Auto-select first group if none selected and groups exist
   useEffect(() => {
     if (!isLoading && groups?.length > 0 && !activeGroupId) {
       // Optional: Auto-select. For now we leave it empty to force user selection or explicitly select the first.
-      // handleSetActiveGroupId(groups[0].teamId)
+      // handleSetActiveGroupId(groups[0].$id)
     }
   }, [groups, activeGroupId, isLoading]);
 

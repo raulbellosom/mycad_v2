@@ -117,30 +117,32 @@ export default async ({ req, res, log, error }) => {
     log?.(`Profile created: ${createdProfile.$id}`);
 
     // 3) Optional: create group membership (group_members)
-    // Schema: groupId = groups.teamId (TeamId), profileId = users_profile.$id
+    // ⚠️ CAMBIO v2: groupId ahora es groups.$id directamente (no teamId)
+    // Schema: groupId = groups.$id, profileId = users_profile.$id
     // Relationships: group = groups.$id, profile = users_profile.$id
     if (payload.groupId && groupMembersCollectionId) {
       try {
-        log?.(`Creating group membership for teamId: ${payload.groupId}`);
+        log?.(`Creating group membership for groupId: ${payload.groupId}`);
 
-        // Buscar el $id del documento de groups usando teamId
-        // para poder llenar la relación "group"
-        let groupDocId = null;
+        // Verificar que el grupo existe
+        let groupExists = false;
         if (groupsCollectionId) {
-          const groupsResult = await databases.listDocuments(
-            databaseId,
-            groupsCollectionId,
-            [Query.equal("teamId", payload.groupId), Query.limit(1)]
-          );
-          if (groupsResult.documents.length > 0) {
-            groupDocId = groupsResult.documents[0].$id;
-            log?.(`Found group document: ${groupDocId}`);
+          try {
+            await databases.getDocument(
+              databaseId,
+              groupsCollectionId,
+              payload.groupId
+            );
+            groupExists = true;
+            log?.(`Group document verified: ${payload.groupId}`);
+          } catch (e) {
+            log?.(`Warning: Group document not found: ${payload.groupId}`);
           }
         }
 
         const memberPayload = {
           // Campos de índice/búsqueda
-          groupId: String(payload.groupId), // teamId para queries
+          groupId: String(payload.groupId), // groups.$id directamente
           profileId: createdProfile.$id, // para queries
           // Campos de datos
           role: String(payload.role || defaultGroupRole),
@@ -151,9 +153,9 @@ export default async ({ req, res, log, error }) => {
           profile: createdProfile.$id, // relación → users_profile
         };
 
-        // Solo agregar la relación group si encontramos el documento
-        if (groupDocId) {
-          memberPayload.group = groupDocId; // relación → groups
+        // Agregar la relación group si el grupo existe
+        if (groupExists) {
+          memberPayload.group = payload.groupId; // relación → groups (mismo valor que groupId)
         }
 
         groupMemberDoc = await databases.createDocument(
@@ -172,6 +174,7 @@ export default async ({ req, res, log, error }) => {
     }
 
     // 4) Optional: assign a default Role (user_roles)
+    // ⚠️ CAMBIO v2: groupId es groups.$id directamente
     if (
       payload.groupId &&
       userRolesCollectionId &&
@@ -184,10 +187,11 @@ export default async ({ req, res, log, error }) => {
           userRolesCollectionId,
           ID.unique(),
           {
-            groupId: String(payload.groupId),
+            groupId: String(payload.groupId), // groups.$id directamente
             profileId: createdProfile.$id,
             profile: createdProfile.$id, // relación → users_profile
             roleId: String(payload.roleId || defaultRoleId),
+            group: payload.groupId, // relación → groups
             enabled: true,
             assignedAt: new Date().toISOString(),
           }
