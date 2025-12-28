@@ -1,17 +1,20 @@
 import { createContext, useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listMyGroups } from "../services/groups.service";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 export const ActiveGroupContext = createContext(null);
 
 export function ActiveGroupProvider({ children }) {
+  const { profile } = useAuth();
   const [activeGroupId, setActiveGroupId] = useState(
     () => localStorage.getItem("mycad_active_group_id") || ""
   );
 
   const { data: groups, isLoading } = useQuery({
-    queryKey: ["my-groups"],
-    queryFn: listMyGroups,
+    queryKey: ["my-groups", profile?.$id],
+    queryFn: () => listMyGroups(profile?.$id),
+    enabled: !!profile?.$id, // Solo ejecutar si hay un perfil autenticado
     staleTime: 1000 * 60 * 5, // 5 min
     retry: 1,
   });

@@ -3,6 +3,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "../../features/auth/context/AuthProvider";
 import { ActiveGroupProvider } from "../../features/groups/context/ActiveGroupProvider";
+import { PermissionsProvider } from "../../features/groups/context/PermissionsProvider";
 import { ThemeProvider } from "../../shared/theme/ThemeProvider";
 
 export const queryClient = new QueryClient({
@@ -20,9 +21,11 @@ export function RootProvider({ children }) {
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
         <AuthProvider>
           <ActiveGroupProvider>
-            {children}
-            <Toaster position="top-center" reverseOrder={false} />
-            <ReactQueryDevtools initialIsOpen={false} />
+            <PermissionsProvider>
+              {children}
+              <Toaster position="top-center" reverseOrder={false} />
+              <ReactQueryDevtools initialIsOpen={false} />
+            </PermissionsProvider>
           </ActiveGroupProvider>
         </AuthProvider>
       </ThemeProvider>

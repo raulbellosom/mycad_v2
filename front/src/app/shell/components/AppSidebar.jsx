@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,10 +7,34 @@ import { AppLogo } from "../../../shared/ui/AppLogo";
 import { nav } from "./nav";
 import { useAuth } from "../../../features/auth/hooks/useAuth";
 import { useActiveGroup } from "../../../features/groups/hooks/useActiveGroup";
+import { usePermissions } from "../../../features/groups/hooks/usePermissions";
 
 export function AppSidebar({ mobileOpen, onMobileClose }) {
   const { profile } = useAuth();
   const { activeGroup } = useActiveGroup();
+  const permissions = usePermissions();
+
+  // Extraer funciones del contexto con valores por defecto seguros
+  const can = permissions?.can;
+  const isPlatformAdmin =
+    permissions?.isPlatformAdmin || profile?.isPlatformAdmin;
+
+  // Filtrar elementos de navegación según permisos
+  const filteredNav = useMemo(() => {
+    return nav.filter((item) => {
+      // Si no requiere permiso, siempre mostrar
+      if (!item.requiredPermission) return true;
+
+      // Platform admins ven todo
+      if (isPlatformAdmin) return true;
+
+      // Si no hay función can disponible (sin grupo activo), mostrar solo items sin permiso requerido
+      if (typeof can !== "function") return false;
+
+      // Verificar si el usuario tiene el permiso requerido
+      return can(item.requiredPermission);
+    });
+  }, [can, isPlatformAdmin]);
 
   const sidebarContent = (
     <div className="flex h-full flex-col p-4">
@@ -29,7 +53,7 @@ export function AppSidebar({ mobileOpen, onMobileClose }) {
 
       {/* Navigation Links */}
       <nav className="flex flex-1 flex-col gap-1.5">
-        {nav.map((item) => (
+        {filteredNav.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, Plus, Save } from "lucide-react";
+import { Plus, Save, Car } from "lucide-react";
 import toast from "react-hot-toast";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
 import { Combobox } from "../../../shared/ui/Combobox";
+import { Modal, ModalHeader, ModalFooter } from "../../../shared/ui/Modal";
 import {
   createVehicleModel,
   updateVehicleModel,
@@ -160,194 +160,163 @@ export function CreateModelModal({
   const typeOptions = types.map((t) => ({ label: t.name, value: t.$id }));
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleClose}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-          />
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      size="lg"
+      header={
+        <ModalHeader
+          icon={Car}
+          title={editingModel ? "Editar Modelo" : "Crear Modelo de Vehículo"}
+          subtitle={
+            editingModel
+              ? "Modifica la información del modelo"
+              : "Agrega un nuevo modelo de vehículo al catálogo"
+          }
+        />
+      }
+      footer={
+        <ModalFooter>
+          <Button type="button" variant="ghost" onClick={handleClose}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            loading={
+              createModelMutation.isPending || updateModelMutation.isPending
+            }
+          >
+            {editingModel ? <Save size={18} /> : <Plus size={18} />}
+            {editingModel ? "Guardar Cambios" : "Crear Modelo"}
+          </Button>
+        </ModalFooter>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Nombre del Modelo *"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Ej: Corolla, F-150, Civic..."
+          required
+        />
 
-          {/* Modal */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-lg rounded-xl border border-(--border) bg-(--card) shadow-2xl"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-(--border) px-6 py-4">
-                <h2 className="text-lg font-semibold text-(--fg)">
-                  {editingModel ? "Editar Modelo" : "Crear Modelo de Vehículo"}
-                </h2>
-                <button
-                  onClick={handleClose}
-                  className="rounded-lg p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+        <Input
+          label="Año del Modelo"
+          type="number"
+          min="1900"
+          max="2100"
+          value={formData.year}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              year: parseInt(e.target.value) || new Date().getFullYear(),
+            })
+          }
+        />
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4 p-6">
-                <Input
-                  label="Nombre del Modelo *"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="Ej: Corolla, F-150, Civic..."
-                  required
-                />
+        {/* Brand Selection/Creation */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-(--fg)">
+            Marca *
+          </label>
+          {showBrandCreate ? (
+            <div className="flex gap-2">
+              <Input
+                value={newBrandName}
+                onChange={(e) => setNewBrandName(e.target.value)}
+                placeholder="Nombre de la marca"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                onClick={() =>
+                  newBrandName.trim() &&
+                  createBrandMutation.mutate(newBrandName.trim())
+                }
+                loading={createBrandMutation.isPending}
+                disabled={!newBrandName.trim()}
+              >
+                Crear
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setShowBrandCreate(false);
+                  setNewBrandName("");
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          ) : (
+            <Combobox
+              value={formData.brandId}
+              onChange={(value) => setFormData({ ...formData, brandId: value })}
+              options={brandOptions}
+              placeholder="Selecciona una marca"
+              emptyText="No se encontraron marcas"
+              onCreateNew={(search) => {
+                setNewBrandName(search || "");
+                setShowBrandCreate(true);
+              }}
+              createLabel="Crear nueva marca"
+            />
+          )}
+        </div>
 
-                <Input
-                  label="Año del Modelo"
-                  type="number"
-                  min="1900"
-                  max="2100"
-                  value={formData.year}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      year:
-                        parseInt(e.target.value) || new Date().getFullYear(),
-                    })
-                  }
-                />
-
-                {/* Brand Selection/Creation */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-(--fg)">
-                    Marca *
-                  </label>
-                  {showBrandCreate ? (
-                    <div className="flex gap-2">
-                      <Input
-                        value={newBrandName}
-                        onChange={(e) => setNewBrandName(e.target.value)}
-                        placeholder="Nombre de la marca"
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() =>
-                          newBrandName.trim() &&
-                          createBrandMutation.mutate(newBrandName.trim())
-                        }
-                        loading={createBrandMutation.isPending}
-                        disabled={!newBrandName.trim()}
-                      >
-                        Crear
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                          setShowBrandCreate(false);
-                          setNewBrandName("");
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  ) : (
-                    <Combobox
-                      value={formData.brandId}
-                      onChange={(value) =>
-                        setFormData({ ...formData, brandId: value })
-                      }
-                      options={brandOptions}
-                      placeholder="Selecciona una marca"
-                      emptyText="No se encontraron marcas"
-                      onCreateNew={(search) => {
-                        setNewBrandName(search || "");
-                        setShowBrandCreate(true);
-                      }}
-                      createLabel="Crear nueva marca"
-                    />
-                  )}
-                </div>
-
-                {/* Type Selection/Creation */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-(--fg)">
-                    Tipo de Vehículo *
-                  </label>
-                  {showTypeCreate ? (
-                    <div className="flex gap-2">
-                      <Input
-                        value={newTypeName}
-                        onChange={(e) => setNewTypeName(e.target.value)}
-                        placeholder="Nombre del tipo"
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() =>
-                          newTypeName.trim() &&
-                          createTypeMutation.mutate(newTypeName.trim())
-                        }
-                        loading={createTypeMutation.isPending}
-                        disabled={!newTypeName.trim()}
-                      >
-                        Crear
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                          setShowTypeCreate(false);
-                          setNewTypeName("");
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  ) : (
-                    <Combobox
-                      value={formData.typeId}
-                      onChange={(value) =>
-                        setFormData({ ...formData, typeId: value })
-                      }
-                      options={typeOptions}
-                      placeholder="Selecciona un tipo"
-                      emptyText="No se encontraron tipos"
-                      onCreateNew={(search) => {
-                        setNewTypeName(search || "");
-                        setShowTypeCreate(true);
-                      }}
-                      createLabel="Crear nuevo tipo"
-                    />
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end gap-3 border-t border-(--border) pt-4">
-                  <Button type="button" variant="ghost" onClick={handleClose}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    loading={
-                      createModelMutation.isPending ||
-                      updateModelMutation.isPending
-                    }
-                  >
-                    {editingModel ? <Save size={18} /> : <Plus size={18} />}
-                    {editingModel ? "Guardar Cambios" : "Crear Modelo"}
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        </>
-      )}
-    </AnimatePresence>
+        {/* Type Selection/Creation */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-(--fg)">
+            Tipo de Vehículo *
+          </label>
+          {showTypeCreate ? (
+            <div className="flex gap-2">
+              <Input
+                value={newTypeName}
+                onChange={(e) => setNewTypeName(e.target.value)}
+                placeholder="Nombre del tipo"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                onClick={() =>
+                  newTypeName.trim() &&
+                  createTypeMutation.mutate(newTypeName.trim())
+                }
+                loading={createTypeMutation.isPending}
+                disabled={!newTypeName.trim()}
+              >
+                Crear
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setShowTypeCreate(false);
+                  setNewTypeName("");
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          ) : (
+            <Combobox
+              value={formData.typeId}
+              onChange={(value) => setFormData({ ...formData, typeId: value })}
+              options={typeOptions}
+              placeholder="Selecciona un tipo"
+              emptyText="No se encontraron tipos"
+              onCreateNew={(search) => {
+                setNewTypeName(search || "");
+                setShowTypeCreate(true);
+              }}
+              createLabel="Crear nuevo tipo"
+            />
+          )}
+        </div>
+      </form>
+    </Modal>
   );
 }

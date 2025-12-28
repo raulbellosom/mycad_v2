@@ -20,11 +20,8 @@ function safeBodyJson(req) {
 }
 
 function json(res, statusCode, body) {
-  return res.json({
-    statusCode,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  // Appwrite Functions 1.6+ formato directo
+  return res.json(body, statusCode);
 }
 
 function splitName(fullName = "") {
@@ -35,4 +32,14 @@ function splitName(fullName = "") {
   };
 }
 
-export { must, safeBodyJson, json, splitName, Client, Databases, Users, ID, Query };
+export {
+  must,
+  safeBodyJson,
+  json,
+  splitName,
+  Client,
+  Databases,
+  Users,
+  ID,
+  Query,
+};

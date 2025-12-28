@@ -897,6 +897,27 @@
 - `driver`: Two-way ↔ `drivers.vehicleAssignments` (Many-to-one) On delete Cascade
 - `createdBy`: Two-way ↔ `users_profile.vehicleDriverAssignmentsCreated` (Many-to-one) On delete Cascade
 
+# AD) vehicle_driver_assignment_files
+
+| Field        | Type       | Required | Notes                                         |
+| ------------ | ---------- | -------: | --------------------------------------------- |
+| groupId      | String(64) |       ✅ |                                               |
+| assignmentId | String(64) |       ✅ | `vehicle_driver_assignments.$id`              |
+| fileId       | String(64) |       ✅ | `files.$id`                                   |
+| kind         | Enum       |       ✅ | DELIVERY_PHOTO / SIGNATURE / CONTRACT / OTHER |
+| enabled      | Boolean    |       ❌ | true                                          |
+
+## AD.2 Indexes
+
+- `idx_vda_group_assignment` → (`groupId`, `assignmentId`)
+- `idx_vda_group_kind` → (`groupId`, `kind`)
+- `idx_vda_enabled` → `enabled`
+
+## AD.3 Relationships
+
+- `assignment`: Two-way ↔ `vehicle_driver_assignments.files` (Many-to-one) On delete Cascade
+- `file`: Two-way ↔ `files.vehicleDriverAssignmentsFiles` (Many-to-one) On delete Cascade
+
 ---
 
 ## 3) Orden recomendado de creación (Console)
@@ -925,5 +946,6 @@
 17. `driver_licenses` → `driver_files`
 18. `driver_files` → `driver_licenses`
 19. `vehicle_driver_assignments`
+20. `vehicle_driver_assignment_files` → `files`
 
 ---

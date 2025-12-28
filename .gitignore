@@ -7,3 +7,27 @@ node_modules
 yarn.lock
 
 *.tar.gz
+dist
+build/
+dist/
+coverage/
+.vscode/
+.DS_Store
+.idea/
+*.log
+npm-debug.log*
+yarn-debug.log*
+lerna-debug.log*
+.cache/
+.next/
+out/
+.build/
+.svelte-kit/
+.nuxt/
+.vite/
+.public/
+.webpack/
+.tmp/
+.pnp/
+.pnp.js
+*.tsbuildinfo
