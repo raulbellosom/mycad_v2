@@ -623,18 +623,29 @@
 
 ## Q.1 Attributes
 
-| Field              | Type                       | Required | Default | Notes |
-| ------------------ | -------------------------- | -------: | ------- | ----- |
-| groupId            | String(64)                 |       ✅ |         |       |
-| vehicleId          | String(64)                 |       ✅ |         |       |
-| createdByProfileId | String(64)                 |       ✅ |         |       |
-| serviceDate        | Datetime                   |       ✅ |         |       |
-| odometer           | Integer(min=0,max=5000000) |       ❌ |         |       |
-| title              | String(120)                |       ✅ |         |       |
-| description        | String(1500)               |       ❌ |         |       |
-| cost               | Float(min=0,max=100000000) |       ❌ |         |       |
-| vendorName         | String(120)                |       ❌ |         |       |
-| enabled            | Boolean                    |       ❌ | true    |       |
+| Field                  | Type                       | Required | Default     | Notes                             |
+| ---------------------- | -------------------------- | -------: | ----------- | --------------------------------- |
+| groupId                | String(64)                 |       ✅ |             |                                   |
+| vehicleId              | String(64)                 |       ✅ |             |                                   |
+| createdByProfileId     | String(64)                 |       ✅ |             |                                   |
+| serviceDate            | Datetime                   |       ✅ |             |                                   |
+| odometer               | Integer(min=0,max=5000000) |       ❌ |             |                                   |
+| title                  | String(120)                |       ✅ |             |                                   |
+| description            | String(1500)               |       ❌ |             |                                   |
+| cost                   | Float(min=0,max=100000000) |       ❌ |             |                                   |
+| vendorName             | String(120)                |       ❌ |             |                                   |
+| enabled                | Boolean                    |       ❌ | true        |                                   |
+| `status`               | Enum                       |       ❌ | DRAFT       | DRAFT/FINALIZED                   |
+| `serviceType`          | Enum                       |       ❌ | MAINTENANCE | MAINTENANCE/INSPECTION/OTHER      |
+| `invoiceNumber`        | String(50)                 |       ❌ |             | Número de factura                 |
+| `laborCost`            | Float(min=0)               |       ❌ |             | Costo de mano de obra             |
+| `partsCost`            | Float(min=0)               |       ❌ |             | Costo de refacciones (calculado)  |
+| `workshopAddress`      | String(200)                |       ❌ |             | Dirección del taller              |
+| `workshopPhone`        | String(30)                 |       ❌ |             | Teléfono del taller               |
+| `nextServiceDate`      | Datetime                   |       ❌ |             | Próximo servicio                  |
+| `nextServiceOdometer`  | Integer                    |       ❌ |             | Kilometraje para próximo servicio |
+| `finalizedAt`          | Datetime                   |       ❌ |             | Fecha de finalización             |
+| `finalizedByProfileId` | String(64)                 |       ❌ |             | Quien finalizó                    |
 
 ## Q.2 Indexes
 
@@ -701,18 +712,33 @@
 
 ## T.1 Attributes
 
-| Field              | Type                       | Required | Default | Notes                                |
-| ------------------ | -------------------------- | -------: | ------- | ------------------------------------ |
-| groupId            | String(64)                 |       ✅ |         |                                      |
-| vehicleId          | String(64)                 |       ✅ |         |                                      |
-| createdByProfileId | String(64)                 |       ✅ |         |                                      |
-| reportDate         | Datetime                   |       ✅ |         |                                      |
-| title              | String(120)                |       ✅ |         |                                      |
-| description        | String(2000)               |       ❌ |         |                                      |
-| status             | Enum                       |       ❌ | OPEN    | OPEN / IN_PROGRESS / DONE / CANCELED |
-| costEstimate       | Float(min=0,max=100000000) |       ❌ |         |                                      |
-| finalCost          | Float(min=0,max=100000000) |       ❌ |         |                                      |
-| enabled            | Boolean                    |       ❌ | true    |                                      |
+| Field                  | Type                       | Required | Default    | Notes                                     |
+| ---------------------- | -------------------------- | -------: | ---------- | ----------------------------------------- |
+| groupId                | String(64)                 |       ✅ |            |                                           |
+| vehicleId              | String(64)                 |       ✅ |            |                                           |
+| createdByProfileId     | String(64)                 |       ✅ |            |                                           |
+| reportDate             | Datetime                   |       ✅ |            |                                           |
+| title                  | String(120)                |       ✅ |            |                                           |
+| description            | String(2000)               |       ❌ |            |                                           |
+| status                 | Enum                       |       ❌ | OPEN       | OPEN / IN_PROGRESS / DONE / CANCELED      |
+| costEstimate           | Float(min=0,max=100000000) |       ❌ |            |                                           |
+| finalCost              | Float(min=0,max=100000000) |       ❌ |            |                                           |
+| enabled                | Boolean                    |       ❌ | true       |                                           |
+| `reportNumber`         | String(50)                 |       ❌ |            | Número de reporte (auto-generado)         |
+| `odometer`             | Integer                    |       ❌ |            | Kilometraje al momento del reporte        |
+| `priority`             | Enum                       |       ❌ | NORMAL     | LOW/NORMAL/HIGH/URGENT                    |
+| `damageType`           | Enum                       |       ❌ | MECHANICAL | MECHANICAL/ELECTRICAL/BODY/INTERIOR/OTHER |
+| `laborCost`            | Float                      |       ❌ |            | Costo de mano de obra                     |
+| `partsCost`            | Float                      |       ❌ |            | Costo de refacciones                      |
+| `workshopName`         | String(120)                |       ❌ |            | Nombre del taller                         |
+| `workshopAddress`      | String(200)                |       ❌ |            | Dirección del taller                      |
+| `workshopPhone`        | String(30)                 |       ❌ |            | Teléfono del taller                       |
+| `startDate`            | Datetime                   |       ❌ |            | Fecha inicio reparación                   |
+| `completionDate`       | Datetime                   |       ❌ |            | Fecha fin reparación                      |
+| `finalizedAt`          | Datetime                   |       ❌ |            | Fecha de finalización (bloquea edición)   |
+| `finalizedByProfileId` | String(64)                 |       ❌ |            | Quien finalizó                            |
+| `warrantyDays`         | Integer                    |       ❌ |            | Días de garantía                          |
+| `warrantyNotes`        | String(500)                |       ❌ |            | Notas de garantía                         |
 
 ## T.2 Indexes
 

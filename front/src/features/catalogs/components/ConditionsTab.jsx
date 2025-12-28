@@ -21,12 +21,18 @@ import {
   updateCondition,
   deleteCondition,
 } from "../services/catalogs.service";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 export function ConditionsTab({ groupId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
   const queryClient = useQueryClient();
+  const { can } = usePermissions();
+
+  // Permisos
+  const canManage = can(SYSTEM_PERMISSIONS.CATALOGS_MANAGE);
 
   const { data: conditions = [], isLoading } = useQuery({
     queryKey: ["conditions", groupId],
@@ -114,16 +120,18 @@ export function ConditionsTab({ groupId }) {
           />
         </div>
 
-        <Button
-          onClick={() => createMutation.mutate(searchTerm.trim())}
-          loading={createMutation.isPending}
-          disabled={!canCreate}
-        >
-          <Plus size={18} />
-          {searchTerm.trim() && filteredConditions.length === 0
-            ? `Agregar "${searchTerm}"`
-            : "Agregar"}
-        </Button>
+        {canManage && (
+          <Button
+            onClick={() => createMutation.mutate(searchTerm.trim())}
+            loading={createMutation.isPending}
+            disabled={!canCreate}
+          >
+            <Plus size={18} />
+            {searchTerm.trim() && filteredConditions.length === 0
+              ? `Agregar "${searchTerm}"`
+              : "Agregar"}
+          </Button>
+        )}
       </div>
 
       {filteredConditions.length === 0 ? (
@@ -176,20 +184,22 @@ export function ConditionsTab({ groupId }) {
                       {condition.name}
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => startEdit(condition)}
-                      className="rounded p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(condition.$id)}
-                      className="rounded p-1.5 text-(--muted-fg) hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  {canManage && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => startEdit(condition)}
+                        className="rounded p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteMutation.mutate(condition.$id)}
+                        className="rounded p-1.5 text-(--muted-fg) hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

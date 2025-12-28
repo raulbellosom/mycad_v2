@@ -22,6 +22,8 @@ import {
   deleteVehicleType,
 } from "../services/catalogs.service";
 import { listVehicles } from "../../vehicles/services/vehicles.service";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 export function TypesTab({ groupId }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,6 +32,10 @@ export function TypesTab({ groupId }) {
   const [editingEconomicGroup, setEditingEconomicGroup] = useState("");
   const [newEconomicGroup, setNewEconomicGroup] = useState("");
   const queryClient = useQueryClient();
+  const { can } = usePermissions();
+
+  // Permisos
+  const canManage = can(SYSTEM_PERMISSIONS.CATALOGS_MANAGE);
 
   const { data: types = [], isLoading } = useQuery({
     queryKey: ["vehicleTypes", groupId],
@@ -148,27 +154,29 @@ export function TypesTab({ groupId }) {
             </div>
           )}
 
-          <Button
-            onClick={() => {
-              if (!newEconomicGroup.trim()) {
-                toast.error("El Grupo Económico es obligatorio");
-                return;
-              }
-              createMutation.mutate({
-                name: searchTerm.trim(),
-                economicGroup: newEconomicGroup.trim().toUpperCase(),
-              });
-            }}
-            loading={createMutation.isPending}
-            disabled={!canCreate}
-          >
-            <Plus size={18} />
-            {searchTerm.trim() && filteredTypes.length === 0
-              ? `Agregar "${searchTerm}"`
-              : "Agregar"}
-          </Button>
+          {canManage && (
+            <Button
+              onClick={() => {
+                if (!newEconomicGroup.trim()) {
+                  toast.error("El Grupo Económico es obligatorio");
+                  return;
+                }
+                createMutation.mutate({
+                  name: searchTerm.trim(),
+                  economicGroup: newEconomicGroup.trim().toUpperCase(),
+                });
+              }}
+              loading={createMutation.isPending}
+              disabled={!canCreate}
+            >
+              <Plus size={18} />
+              {searchTerm.trim() && filteredTypes.length === 0
+                ? `Agregar "${searchTerm}"`
+                : "Agregar"}
+            </Button>
+          )}
         </div>
-        {canCreate && (
+        {canCreate && canManage && (
           <p className="text-xs text-(--brand) font-medium">
             * Introduce un código de 4 caracteres para el Grupo Económico
           </p>
@@ -239,20 +247,22 @@ export function TypesTab({ groupId }) {
                       {vehicleCountByType[type.$id] || 0} vehículo(s)
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => startEdit(type)}
-                      className="rounded p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(type.$id)}
-                      className="rounded p-1.5 text-(--muted-fg) hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  {canManage && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => startEdit(type)}
+                        className="rounded p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteMutation.mutate(type.$id)}
+                        className="rounded p-1.5 text-(--muted-fg) hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

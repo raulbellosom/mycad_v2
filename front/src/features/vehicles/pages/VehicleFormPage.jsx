@@ -80,11 +80,11 @@ export function VehicleFormPage() {
     serialNumber: "",
     // Accounting fields
     acquisitionCost: "",
-    acquisitionCostCurrency: "USD",
+    acquisitionCostCurrency: "MXN",
     bookValue: "",
-    bookValueCurrency: "USD",
+    bookValueCurrency: "MXN",
     marketValue: "",
-    marketValueCurrency: "USD",
+    marketValueCurrency: "MXN",
   });
 
   // Media state
@@ -144,11 +144,11 @@ export function VehicleFormPage() {
         serialNumber: vehicle.serialNumber || "",
         // Accounting fields
         acquisitionCost: vehicle.acquisitionCost ?? "",
-        acquisitionCostCurrency: vehicle.acquisitionCostCurrency || "USD",
+        acquisitionCostCurrency: vehicle.acquisitionCostCurrency || "MXN",
         bookValue: vehicle.bookValue ?? "",
-        bookValueCurrency: vehicle.bookValueCurrency || "USD",
+        bookValueCurrency: vehicle.bookValueCurrency || "MXN",
         marketValue: vehicle.marketValue ?? "",
-        marketValueCurrency: vehicle.marketValueCurrency || "USD",
+        marketValueCurrency: vehicle.marketValueCurrency || "MXN",
       });
     }
   }, [vehicle]);

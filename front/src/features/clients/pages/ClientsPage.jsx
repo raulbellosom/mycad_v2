@@ -20,6 +20,8 @@ import {
   useDeleteClient,
 } from "../hooks/useClients";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Card } from "../../../shared/ui/Card";
@@ -48,6 +50,12 @@ const SORT_OPTIONS = [
 export function ClientsPage() {
   const { activeGroupId } = useActiveGroup();
   const { data: clients = [], isLoading, refetch, isRefetching } = useClients();
+  const { can } = usePermissions();
+
+  // Permisos
+  const canCreate = can(SYSTEM_PERMISSIONS.CLIENTS_CREATE);
+  const canEdit = can(SYSTEM_PERMISSIONS.CLIENTS_EDIT);
+  const canDelete = can(SYSTEM_PERMISSIONS.CLIENTS_DELETE);
 
   // Estado del UI
   const [searchTerm, setSearchTerm] = useState("");
@@ -166,9 +174,11 @@ export function ClientsPage() {
       title="Clientes"
       subtitle="Gestiona la información de tus clientes"
       actions={
-        <Button onClick={handleOpenCreate}>
-          <Plus size={18} className="mr-2" /> Nuevo Cliente
-        </Button>
+        canCreate && (
+          <Button onClick={handleOpenCreate}>
+            <Plus size={18} className="mr-2" /> Nuevo Cliente
+          </Button>
+        )
       }
     >
       {/* Toolbar */}
@@ -308,8 +318,8 @@ export function ClientsPage() {
                   key={client.$id}
                   client={client}
                   index={index}
-                  onEdit={handleOpenEdit}
-                  onDelete={handleOpenDelete}
+                  onEdit={canEdit ? handleOpenEdit : undefined}
+                  onDelete={canDelete ? handleOpenDelete : undefined}
                   onSelect={handleOpenDetail}
                 />
               ))}
@@ -326,8 +336,8 @@ export function ClientsPage() {
                 <ClientListItem
                   key={client.$id}
                   client={client}
-                  onEdit={handleOpenEdit}
-                  onDelete={handleOpenDelete}
+                  onEdit={canEdit ? handleOpenEdit : undefined}
+                  onDelete={canDelete ? handleOpenDelete : undefined}
                   onSelect={handleOpenDetail}
                 />
               ))}
@@ -344,7 +354,8 @@ export function ClientsPage() {
               : "Comienza agregando tu primer cliente al sistema"
           }
           action={
-            !searchTerm && (
+            !searchTerm &&
+            canCreate && (
               <Button onClick={handleOpenCreate} className="mt-4">
                 <Plus size={18} className="mr-2" />
                 Agregar Cliente
@@ -367,8 +378,8 @@ export function ClientsPage() {
         isOpen={showDetailModal}
         onClose={() => setShowDetailModal(false)}
         client={selectedClient}
-        onEdit={handleOpenEdit}
-        onDelete={handleOpenDelete}
+        onEdit={canEdit ? handleOpenEdit : undefined}
+        onDelete={canDelete ? handleOpenDelete : undefined}
       />
 
       <ConfirmModal

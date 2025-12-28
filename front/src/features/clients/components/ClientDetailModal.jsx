@@ -104,22 +104,28 @@ export function ClientDetailModal({
       }
       footer={
         <ModalFooter className="justify-between">
-          <Button
-            variant="ghost"
-            className="text-red-500 hover:bg-red-500/10 hover:text-red-600"
-            onClick={handleDelete}
-          >
-            <Trash2 size={16} className="mr-2" />
-            Eliminar
-          </Button>
+          {onDelete ? (
+            <Button
+              variant="ghost"
+              className="text-red-500 hover:bg-red-500/10 hover:text-red-600"
+              onClick={handleDelete}
+            >
+              <Trash2 size={16} className="mr-2" />
+              Eliminar
+            </Button>
+          ) : (
+            <div />
+          )}
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>
               Cerrar
             </Button>
-            <Button onClick={handleEdit}>
-              <Edit2 size={16} className="mr-2" />
-              Editar
-            </Button>
+            {onEdit && (
+              <Button onClick={handleEdit}>
+                <Edit2 size={16} className="mr-2" />
+                Editar
+              </Button>
+            )}
           </div>
         </ModalFooter>
       }

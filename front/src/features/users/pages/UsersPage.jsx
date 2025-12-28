@@ -22,6 +22,8 @@ import { UserDetail } from "../components/UserDetail";
 import { CreateUserModal } from "../components/CreateUserModal";
 import { listAllUsers, getUserStats } from "../services/usersAdmin.service";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 // Filter options
 const STATUS_FILTERS = [
@@ -39,6 +41,10 @@ export function UsersPage() {
 
   // Obtener grupo activo para crear conductores
   const { activeGroupId } = useActiveGroup();
+  const { can } = usePermissions();
+
+  // Permisos
+  const canCreate = can(SYSTEM_PERMISSIONS.USERS_CREATE);
 
   // Query: Lista de usuarios
   const {
@@ -116,10 +122,12 @@ export function UsersPage() {
             />
             Actualizar
           </Button>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <UserPlus size={16} />
-            Nuevo usuario
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setShowCreateModal(true)}>
+              <UserPlus size={16} />
+              Nuevo usuario
+            </Button>
+          )}
         </div>
       }
     >

@@ -11,10 +11,16 @@ import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { listVehicles } from "../services/vehicles.service";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 export function VehiclesPage() {
   const { activeGroupId } = useActiveGroup();
   const [search, setSearch] = useState("");
+  const { can } = usePermissions();
+
+  // Permisos
+  const canCreate = can(SYSTEM_PERMISSIONS.VEHICLES_CREATE);
 
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ["vehicles", activeGroupId],
@@ -50,12 +56,14 @@ export function VehiclesPage() {
       title="Vehículos"
       subtitle="Gestiona la flotilla de tu grupo."
       actions={
-        <Button asChild>
-          <Link to="/vehicles/new">
-            <Plus size={18} className="mr-2" />
-            Nuevo vehículo
-          </Link>
-        </Button>
+        canCreate && (
+          <Button asChild>
+            <Link to="/vehicles/new">
+              <Plus size={18} className="mr-2" />
+              Nuevo vehículo
+            </Link>
+          </Button>
+        )
       }
     >
       <div className="flex items-center gap-4">
@@ -82,12 +90,14 @@ export function VehiclesPage() {
               : "Aún no tienes vehículos registrados en este grupo. ¡Agrega tu primer vehículo para comenzar!"
           }
         >
-          <Button asChild>
-            <Link to="/vehicles/new">
-              <Plus size={18} className="mr-2" />
-              Agregar Vehículo
-            </Link>
-          </Button>
+          {canCreate && (
+            <Button asChild>
+              <Link to="/vehicles/new">
+                <Plus size={18} className="mr-2" />
+                Agregar Vehículo
+              </Link>
+            </Button>
+          )}
         </EmptyState>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

@@ -19,12 +19,18 @@ import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { cn } from "../../../shared/utils/cn";
 import { listDrivers } from "../services/drivers.service";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 export function DriversPage() {
   const { activeGroupId } = useActiveGroup();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const nav = useNavigate();
+  const { can } = usePermissions();
+
+  // Permisos
+  const canCreate = can(SYSTEM_PERMISSIONS.DRIVERS_CREATE);
 
   const { data: drivers = [], isLoading } = useQuery({
     queryKey: ["drivers", activeGroupId],
@@ -61,9 +67,11 @@ export function DriversPage() {
       title="Conductores"
       subtitle="Gestiona el personal y sus licencias de conducir"
       actions={
-        <Button onClick={() => nav("new")}>
-          <Plus size={18} className="mr-2" /> Nuevo Conductor
-        </Button>
+        canCreate && (
+          <Button onClick={() => nav("new")}>
+            <Plus size={18} className="mr-2" /> Nuevo Conductor
+          </Button>
+        )
       }
     >
       {/* Filters Card */}

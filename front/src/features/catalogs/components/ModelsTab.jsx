@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { Card } from "../../../shared/ui/Card";
 import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
+import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { CreateModelModal } from "../../vehicles/components/CreateModelModal";
 import {
   listVehicleModels,
@@ -14,12 +15,18 @@ import {
   listVehicleTypes,
 } from "../services/catalogs.service";
 import { listVehicles } from "../../vehicles/services/vehicles.service";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 export function ModelsTab({ groupId }) {
   const [showModal, setShowModal] = useState(false);
   const [editingModel, setEditingModel] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
+  const { can } = usePermissions();
+
+  // Permisos
+  const canManage = can(SYSTEM_PERMISSIONS.CATALOGS_MANAGE);
 
   const { data: models = [], isLoading } = useQuery({
     queryKey: ["vehicleModels", groupId],
@@ -66,10 +73,7 @@ export function ModelsTab({ groupId }) {
     setEditingModel(null);
   };
 
-  if (isLoading)
-    return (
-      <div className="py-8 text-center text-(--muted-fg)">Cargando...</div>
-    );
+  if (isLoading) return <LoadingScreen label="Cargando modelos..." />;
 
   // Create lookup maps
   const brandMap = Object.fromEntries(brands.map((b) => [b.$id, b.name]));
@@ -112,15 +116,17 @@ export function ModelsTab({ groupId }) {
             className="pl-10"
           />
         </div>
-        <Button
-          onClick={() => {
-            setEditingModel(null);
-            setShowModal(true);
-          }}
-        >
-          <Plus size={18} />
-          Agregar Modelo
-        </Button>
+        {canManage && (
+          <Button
+            onClick={() => {
+              setEditingModel(null);
+              setShowModal(true);
+            }}
+          >
+            <Plus size={18} />
+            Agregar Modelo
+          </Button>
+        )}
       </div>
 
       {filteredModels.length === 0 ? (
@@ -172,20 +178,22 @@ export function ModelsTab({ groupId }) {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => handleEdit(model)}
-                    className="rounded p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={() => deleteMutation.mutate(model.$id)}
-                    className="rounded p-1.5 text-(--muted-fg) hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+                {canManage && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleEdit(model)}
+                      className="rounded p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={() => deleteMutation.mutate(model.$id)}
+                      className="rounded p-1.5 text-(--muted-fg) hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="text-xs text-(--muted-fg)">
                 {vehicleCountByModel[model.$id] || 0} vehículo(s)

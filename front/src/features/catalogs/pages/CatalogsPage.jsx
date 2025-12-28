@@ -40,10 +40,14 @@ export function CatalogsPage() {
       <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
 
       {/* Tab content */}
-      {activeTab === "types" && <TypesTab groupId={activeGroupId} />}
-      {activeTab === "brands" && <BrandsTab groupId={activeGroupId} />}
-      {activeTab === "models" && <ModelsTab groupId={activeGroupId} />}
-      {activeTab === "conditions" && <ConditionsTab groupId={activeGroupId} />}
+      <div className="mt-6">
+        {activeTab === "types" && <TypesTab groupId={activeGroupId} />}
+        {activeTab === "brands" && <BrandsTab groupId={activeGroupId} />}
+        {activeTab === "models" && <ModelsTab groupId={activeGroupId} />}
+        {activeTab === "conditions" && (
+          <ConditionsTab groupId={activeGroupId} />
+        )}
+      </div>
     </PageLayout>
   );
 }

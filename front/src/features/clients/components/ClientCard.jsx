@@ -51,28 +51,32 @@ function ActionMenu({ onEdit, onDelete, isOpen, onToggle, menuRef }) {
           exit={{ opacity: 0, scale: 0.95, y: -10 }}
           className="absolute right-0 top-full mt-1 z-50 w-40 rounded-xl border border-(--border) bg-(--card) py-1 shadow-lg"
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-              onToggle();
-            }}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-(--fg) hover:bg-(--muted)/50 transition-colors"
-          >
-            <Edit2 size={14} />
-            Editar
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-              onToggle();
-            }}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
-          >
-            <Trash2 size={14} />
-            Eliminar
-          </button>
+          {onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+                onToggle();
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-(--fg) hover:bg-(--muted)/50 transition-colors"
+            >
+              <Edit2 size={14} />
+              Editar
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+                onToggle();
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
+            >
+              <Trash2 size={14} />
+              Eliminar
+            </button>
+          )}
         </motion.div>
       )}
     </div>
@@ -133,13 +137,15 @@ export function ClientCard({ client, index, onEdit, onDelete, onSelect }) {
             {client.name?.charAt(0)?.toUpperCase() || "C"}
           </div>
 
-          <ActionMenu
-            isOpen={menuOpen}
-            onToggle={() => setMenuOpen(!menuOpen)}
-            onEdit={() => onEdit(client)}
-            onDelete={() => onDelete(client)}
-            menuRef={menuRef}
-          />
+          {(onEdit || onDelete) && (
+            <ActionMenu
+              isOpen={menuOpen}
+              onToggle={() => setMenuOpen(!menuOpen)}
+              onEdit={onEdit ? () => onEdit(client) : undefined}
+              onDelete={onDelete ? () => onDelete(client) : undefined}
+              menuRef={menuRef}
+            />
+          )}
         </div>
 
         {/* Nombre - permite 2 líneas */}
@@ -287,13 +293,15 @@ export function ClientListItem({ client, onEdit, onDelete, onSelect }) {
         </div>
       </div>
 
-      <ActionMenu
-        isOpen={menuOpen}
-        onToggle={() => setMenuOpen(!menuOpen)}
-        onEdit={() => onEdit(client)}
-        onDelete={() => onDelete(client)}
-        menuRef={menuRef}
-      />
+      {(onEdit || onDelete) && (
+        <ActionMenu
+          isOpen={menuOpen}
+          onToggle={() => setMenuOpen(!menuOpen)}
+          onEdit={onEdit ? () => onEdit(client) : undefined}
+          onDelete={onDelete ? () => onDelete(client) : undefined}
+          menuRef={menuRef}
+        />
+      )}
     </div>
   );
 }

@@ -729,6 +729,7 @@ export function PermissionsProvider({ children }) {
 
       // Methods
       hasPermission,
+      can: hasPermission, // Alias para compatibilidad con AppSidebar y otros componentes
       hasAnyPermission,
       hasAllPermissions,
 

@@ -22,12 +22,18 @@ import {
   deleteVehicleBrand,
 } from "../services/catalogs.service";
 import { listVehicles } from "../../vehicles/services/vehicles.service";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 export function BrandsTab({ groupId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
   const queryClient = useQueryClient();
+  const { can } = usePermissions();
+
+  // Permisos
+  const canManage = can(SYSTEM_PERMISSIONS.CATALOGS_MANAGE);
 
   const { data: brands = [], isLoading } = useQuery({
     queryKey: ["vehicleBrands", groupId],
@@ -125,16 +131,18 @@ export function BrandsTab({ groupId }) {
           />
         </div>
 
-        <Button
-          onClick={() => createMutation.mutate(searchTerm.trim())}
-          loading={createMutation.isPending}
-          disabled={!canCreate}
-        >
-          <Plus size={18} />
-          {searchTerm.trim() && filteredBrands.length === 0
-            ? `Agregar "${searchTerm}"`
-            : "Agregar"}
-        </Button>
+        {canManage && (
+          <Button
+            onClick={() => createMutation.mutate(searchTerm.trim())}
+            loading={createMutation.isPending}
+            disabled={!canCreate}
+          >
+            <Plus size={18} />
+            {searchTerm.trim() && filteredBrands.length === 0
+              ? `Agregar "${searchTerm}"`
+              : "Agregar"}
+          </Button>
+        )}
       </div>
 
       {filteredBrands.length === 0 ? (
@@ -188,20 +196,22 @@ export function BrandsTab({ groupId }) {
                       {vehicleCountByBrand[brand.$id] || 0} vehículo(s)
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => startEdit(brand)}
-                      className="rounded p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(brand.$id)}
-                      className="rounded p-1.5 text-(--muted-fg) hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  {canManage && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => startEdit(brand)}
+                        className="rounded p-1.5 text-(--muted-fg) hover:bg-(--muted) hover:text-(--fg) transition-colors"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteMutation.mutate(brand.$id)}
+                        className="rounded p-1.5 text-(--muted-fg) hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
