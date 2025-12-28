@@ -395,6 +395,7 @@
 | modelId         | String(64)                 |       ❌ |         | catálogo                                           |
 | color           | String(40)                 |       ❌ |         |                                                    |
 | plate           | String(15)                 |       ❌ |         |                                                    |
+| economicNumber  | String(32)                 |       ✅ |         |                                                    |
 | vin             | String(20)                 |       ❌ |         |                                                    |
 | serialNumber    | String(60)                 |       ❌ |         |                                                    |
 | acquisitionDate | Datetime                   |       ❌ |         |                                                    |
@@ -412,6 +413,7 @@
 - `idx_vehicles_group_status` → (`groupId`, `status`)
 - `idx_vehicles_group_type` → (`groupId`, `typeId`)
 - `idx_vehicles_group_plate` → (`groupId`, `plate`)
+- `idx_vehicles_group_economicNumber` → (`groupId`, `economicNumber`)
 - `idx_vehicles_group_vin` → (`groupId`, `vin`)
 - `idx_vehicles_enabled` → `enabled`
 

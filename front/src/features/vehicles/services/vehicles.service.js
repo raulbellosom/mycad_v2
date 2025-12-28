@@ -1,8 +1,10 @@
 import { ID, Query } from "appwrite";
-import { databases } from "../../../shared/appwrite/client";
+import { databases, storage } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
 
 const COLLECTION_ID = env.collectionVehiclesId;
+const FILES_COLLECTION_ID = env.collectionVehicleFilesId;
+const BUCKET_ID = env.bucketVehiclesId;
 
 export async function listVehicles(groupId) {
   if (!groupId) return [];
@@ -54,4 +56,104 @@ export async function deleteVehicle(id) {
     }
   );
   return doc;
+}
+
+// --- File Management ---
+
+/**
+ * Uploads a physical file to Storage and returns the storage response.
+ * This is used for "staged" uploads before the vehicle is created/saved.
+ */
+export async function uploadFileToStorage(file) {
+  const res = await storage.createFile(BUCKET_ID, ID.unique(), file);
+  return res;
+}
+
+/**
+ * Registers a file in the database collection.
+ * This links a storage fileId to a vehicleId and groupId.
+ */
+export async function registerFileInDb(
+  vehicleId,
+  groupId,
+  storageFileId,
+  fileName,
+  fileType,
+  fileSize
+) {
+  const isImage = fileType.startsWith("image/");
+  const doc = await databases.createDocument(
+    env.databaseId,
+    FILES_COLLECTION_ID,
+    ID.unique(),
+    {
+      vehicleId,
+      groupId,
+      fileId: storageFileId,
+      name: fileName,
+      type: fileType,
+      size: fileSize,
+      isImage,
+      enabled: true,
+    }
+  );
+  return doc;
+}
+
+/**
+ * Legacy/Convenience function that does both at once.
+ */
+export async function uploadVehicleFile(vehicleId, groupId, file) {
+  const storageRes = await uploadFileToStorage(file);
+  const fileRecord = await registerFileInDb(
+    vehicleId,
+    groupId,
+    storageRes.$id,
+    file.name,
+    file.type,
+    file.size
+  );
+  return { storageRes, fileRecord };
+}
+
+export async function listVehicleFiles(vehicleId) {
+  if (!vehicleId) return [];
+  const res = await databases.listDocuments(
+    env.databaseId,
+    FILES_COLLECTION_ID,
+    [
+      Query.equal("vehicleId", vehicleId),
+      Query.equal("enabled", true),
+      Query.orderDesc("$createdAt"),
+    ]
+  );
+  return res.documents;
+}
+
+export async function deleteVehicleFile(docId, fileId) {
+  // 1. Delete from database
+  if (docId) {
+    await databases.deleteDocument(env.databaseId, FILES_COLLECTION_ID, docId);
+  }
+
+  // 2. Delete from storage
+  if (fileId) {
+    try {
+      await storage.deleteFile(BUCKET_ID, fileId);
+    } catch (error) {
+      console.error("Error deleting file from storage:", error);
+    }
+  }
+}
+
+export function getFilePreview(fileId) {
+  return storage.getFilePreview(BUCKET_ID, fileId);
+}
+
+export function getFileView(fileId) {
+  return storage.getFileView(BUCKET_ID, fileId);
+}
+
+export function getFileDownload(fileId) {
+  return storage.getFileDownload(BUCKET_ID, fileId);
 }
