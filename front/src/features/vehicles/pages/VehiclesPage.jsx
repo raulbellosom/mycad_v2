@@ -1,43 +1,184 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Plus, Car, Search } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Plus,
+  Car,
+  Search,
+  ChevronRight,
+  Gauge,
+  LayoutGrid,
+  List,
+  Tag,
+  Edit,
+  Trash2,
+} from "lucide-react";
 
 import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Button } from "../../../shared/ui/Button";
 import { Card } from "../../../shared/ui/Card";
-import { Input } from "../../../shared/ui/Input";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { EmptyState } from "../../../shared/ui/EmptyState";
+import { ConfirmModal } from "../../../shared/ui/ConfirmModal";
+import { cn } from "../../../shared/utils/cn";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
-import { listVehicles } from "../services/vehicles.service";
+import { listVehicles, deleteVehicle } from "../services/vehicles.service";
+import {
+  listVehicleTypes,
+  listVehicleBrands,
+  listVehicleModels,
+} from "../../catalogs/services/catalogs.service";
 import { usePermissions } from "../../groups/hooks/usePermissions";
 import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "Todos" },
+  { value: "ACTIVE", label: "Activos" },
+  { value: "IN_MAINTENANCE", label: "Mantenimiento" },
+  { value: "INACTIVE", label: "Inactivos" },
+  { value: "SOLD", label: "Vendidos" },
+  { value: "RENTED", label: "Rentados" },
+];
+
+const STATUS_COLORS = {
+  ACTIVE: "bg-green-500/10 text-green-600 dark:text-green-400",
+  IN_MAINTENANCE: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  INACTIVE: "bg-gray-500/10 text-gray-600 dark:text-gray-400",
+  SOLD: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  RENTED: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+};
+
+const STATUS_LABELS = {
+  ACTIVE: "Activo",
+  IN_MAINTENANCE: "Mantenimiento",
+  INACTIVE: "Inactivo",
+  SOLD: "Vendido",
+  RENTED: "Rentado",
+};
+
 export function VehiclesPage() {
   const { activeGroupId } = useActiveGroup();
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [viewMode, setViewMode] = useState("grid"); // grid | list
+  const [vehicleToDelete, setVehicleToDelete] = useState(null);
+  const nav = useNavigate();
+  const queryClient = useQueryClient();
   const { can } = usePermissions();
 
   // Permisos
   const canCreate = can(SYSTEM_PERMISSIONS.VEHICLES_CREATE);
+  const canEdit = can(SYSTEM_PERMISSIONS.VEHICLES_EDIT);
+  const canDelete = can(SYSTEM_PERMISSIONS.VEHICLES_DELETE);
 
-  const { data: vehicles, isLoading } = useQuery({
+  // Mutation para eliminar
+  const deleteMutation = useMutation({
+    mutationFn: (vehicleId) => deleteVehicle(vehicleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["vehicles", activeGroupId]);
+      setVehicleToDelete(null);
+    },
+  });
+
+  // Fetch vehicles
+  const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["vehicles", activeGroupId],
     queryFn: () => listVehicles(activeGroupId),
     enabled: !!activeGroupId,
   });
 
-  // Basic filtering logic client-side for MVP
-  const filtered = (vehicles || []).filter((v) => {
-    const term = search.toLowerCase();
-    return (
-      (v.brandId || "").toLowerCase().includes(term) ||
-      (v.modelId || "").toLowerCase().includes(term) || // Assuming IDs are names or readable for now
-      (v.plate || "").toLowerCase().includes(term) ||
-      (v.economicNumber || "").toLowerCase().includes(term)
-    );
+  // Fetch catalogs for display names
+  const { data: types = [] } = useQuery({
+    queryKey: ["vehicleTypes", activeGroupId],
+    queryFn: () => listVehicleTypes(activeGroupId),
+    enabled: !!activeGroupId,
   });
+
+  const { data: brands = [] } = useQuery({
+    queryKey: ["vehicleBrands", activeGroupId],
+    queryFn: () => listVehicleBrands(activeGroupId),
+    enabled: !!activeGroupId,
+  });
+
+  const { data: models = [] } = useQuery({
+    queryKey: ["vehicleModels", activeGroupId],
+    queryFn: () => listVehicleModels(activeGroupId, null),
+    enabled: !!activeGroupId,
+  });
+
+  // Create lookup maps
+  const brandMap = useMemo(
+    () => Object.fromEntries(brands.map((b) => [b.$id, b])),
+    [brands]
+  );
+  const modelMap = useMemo(
+    () => Object.fromEntries(models.map((m) => [m.$id, m])),
+    [models]
+  );
+  const typeMap = useMemo(
+    () => Object.fromEntries(types.map((t) => [t.$id, t])),
+    [types]
+  );
+
+  // Filter vehicles
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((vehicle) => {
+      // Search filter
+      const term = searchTerm.toLowerCase().trim();
+      if (term) {
+        const model = modelMap[vehicle.modelId];
+        const brand = brandMap[vehicle.brandId];
+        const type = typeMap[vehicle.typeId];
+
+        const searchableText = [
+          vehicle.plate,
+          vehicle.economicNumber,
+          vehicle.serialNumber,
+          vehicle.color,
+          model?.name,
+          brand?.name,
+          type?.name,
+          type?.economicGroup,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        if (!searchableText.includes(term)) return false;
+      }
+
+      // Status filter
+      if (statusFilter !== "ALL" && vehicle.status !== statusFilter) {
+        return false;
+      }
+
+      // Type filter
+      if (typeFilter !== "ALL" && vehicle.typeId !== typeFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    vehicles,
+    searchTerm,
+    statusFilter,
+    typeFilter,
+    modelMap,
+    brandMap,
+    typeMap,
+  ]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const total = vehicles.length;
+    const active = vehicles.filter((v) => v.status === "ACTIVE").length;
+    const maintenance = vehicles.filter(
+      (v) => v.status === "IN_MAINTENANCE"
+    ).length;
+    return { total, active, maintenance };
+  }, [vehicles]);
 
   if (!activeGroupId) {
     return (
@@ -49,88 +190,502 @@ export function VehiclesPage() {
     );
   }
 
-  if (isLoading) return <LoadingScreen label="Cargando vehículos..." />;
-
   return (
     <PageLayout
       title="Vehículos"
       subtitle="Gestiona la flotilla de tu grupo."
       actions={
         canCreate && (
-          <Button asChild>
-            <Link to="/vehicles/new">
-              <Plus size={18} className="mr-2" />
-              Nuevo vehículo
-            </Link>
+          <Button onClick={() => nav("new")}>
+            <Plus size={18} className="mr-2" /> Nuevo vehículo
           </Button>
         )
       }
     >
-      <div className="flex items-center gap-4">
-        <div className="relative max-w-sm flex-1">
-          <div className="pointer-events-none absolute left-3 top-2.5 text-neutral-400">
-            <Search size={16} />
+      {/* Stats Cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-(--brand)/10">
+              <Car size={20} className="text-(--brand)" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-(--fg)">{stats.total}</p>
+              <p className="text-xs text-(--muted-fg)">Total vehículos</p>
+            </div>
           </div>
-          <Input
-            placeholder="Buscar por placa, económico..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+              <Car size={20} className="text-green-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-(--fg)">{stats.active}</p>
+              <p className="text-xs text-(--muted-fg)">Activos</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+              <Car size={20} className="text-amber-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-(--fg)">
+                {stats.maintenance}
+              </p>
+              <p className="text-xs text-(--muted-fg)">En mantenimiento</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
-      {filtered.length === 0 ? (
+      {/* Filters Card */}
+      <Card className="p-4">
+        <div className="flex flex-col gap-4">
+          {/* Search - Full width on mobile */}
+          <div className="relative w-full">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-(--muted-fg)"
+              size={20}
+            />
+            <input
+              type="text"
+              placeholder="Buscar por placa, número económico, modelo, marca, color..."
+              className="h-12 w-full rounded-xl border border-(--border) bg-(--card) pl-12 pr-4 text-base focus:border-(--brand) focus:ring-2 focus:ring-(--brand)/20 outline-none transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Filter Row */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Status Filter - Select */}
+            <div className="flex-1 min-w-[140px] max-w-[200px]">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-10 w-full rounded-lg border border-(--border) bg-(--card) px-3 text-sm focus:border-(--brand) focus:ring-2 focus:ring-(--brand)/20 outline-none transition-all cursor-pointer"
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Type Filter - Select */}
+            {types.length > 0 && (
+              <div className="flex-1 min-w-[140px] max-w-[200px]">
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-(--border) bg-(--card) px-3 text-sm focus:border-(--brand) focus:ring-2 focus:ring-(--brand)/20 outline-none transition-all cursor-pointer"
+                >
+                  <option value="ALL">Todos los tipos</option>
+                  {types.map((type) => (
+                    <option key={type.$id} value={type.$id}>
+                      {type.economicGroup ? `${type.economicGroup} - ` : ""}
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* View Toggle */}
+            <div className="flex items-center rounded-lg border border-(--border) overflow-hidden">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={cn(
+                  "p-2.5 transition-colors",
+                  viewMode === "grid"
+                    ? "bg-(--brand) text-white"
+                    : "bg-(--card) text-(--muted-fg) hover:bg-(--muted)"
+                )}
+                title="Vista en cuadrícula"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "p-2.5 transition-colors",
+                  viewMode === "list"
+                    ? "bg-(--brand) text-white"
+                    : "bg-(--card) text-(--muted-fg) hover:bg-(--muted)"
+                )}
+                title="Vista en lista"
+              >
+                <List size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Active filters indicator */}
+          {(statusFilter !== "ALL" || typeFilter !== "ALL" || searchTerm) && (
+            <div className="flex items-center gap-2 text-xs text-(--muted-fg)">
+              <span>
+                Mostrando {filteredVehicles.length} de {vehicles.length}{" "}
+                vehículos
+              </span>
+              {(statusFilter !== "ALL" || typeFilter !== "ALL") && (
+                <button
+                  onClick={() => {
+                    setStatusFilter("ALL");
+                    setTypeFilter("ALL");
+                    setSearchTerm("");
+                  }}
+                  className="text-(--brand) hover:underline font-medium"
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Results */}
+      {isLoading ? (
+        <LoadingScreen label="Cargando vehículos..." />
+      ) : filteredVehicles.length > 0 ? (
+        viewMode === "grid" ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredVehicles.map((vehicle) => (
+              <VehicleCard
+                key={vehicle.$id}
+                vehicle={vehicle}
+                brandMap={brandMap}
+                modelMap={modelMap}
+                typeMap={typeMap}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                onEdit={() => nav(`/vehicles/${vehicle.$id}/edit`)}
+                onDelete={() => setVehicleToDelete(vehicle)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-(--border) bg-(--muted)/30">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                      Vehículo
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                      N° Económico
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                      Placa
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                      Tipo
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                      Kilometraje
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                      Estado
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-(--border)">
+                  {filteredVehicles.map((vehicle) => (
+                    <VehicleRow
+                      key={vehicle.$id}
+                      vehicle={vehicle}
+                      brandMap={brandMap}
+                      modelMap={modelMap}
+                      typeMap={typeMap}
+                      canEdit={canEdit}
+                      canDelete={canDelete}
+                      onEdit={() => nav(`/vehicles/${vehicle.$id}/edit`)}
+                      onDelete={() => setVehicleToDelete(vehicle)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )
+      ) : (
         <EmptyState
           icon={Car}
-          title="No hay vehículos"
+          title="No se encontraron vehículos"
           description={
-            search
-              ? `No se encontraron vehículos que coincidan con "${search}".`
-              : "Aún no tienes vehículos registrados en este grupo. ¡Agrega tu primer vehículo para comenzar!"
+            searchTerm || statusFilter !== "ALL" || typeFilter !== "ALL"
+              ? "Prueba ajustando los filtros de búsqueda"
+              : "Comienza agregando tu primer vehículo al grupo"
           }
         >
-          {canCreate && (
-            <Button asChild>
-              <Link to="/vehicles/new">
-                <Plus size={18} className="mr-2" />
-                Agregar Vehículo
-              </Link>
+          {canCreate && !searchTerm && statusFilter === "ALL" && (
+            <Button onClick={() => nav("new")}>
+              <Plus size={18} className="mr-2" />
+              Agregar Vehículo
             </Button>
           )}
         </EmptyState>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((vehicle) => (
-            <Link key={vehicle.$id} to={`/vehicles/${vehicle.$id}`}>
-              <Card className="group h-full transition-colors hover:border-(--brand)/50">
-                <div className="mb-3 flex items-start justify-between">
-                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-neutral-100 dark:bg-neutral-800">
-                    <Car size={20} className="text-neutral-500" />
-                  </div>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                      vehicle.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
-                    }`}
-                  >
-                    {vehicle.status}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-neutral-900 dark:text-white">
-                    {vehicle.brandId} {vehicle.modelId} {vehicle.year}
-                  </h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    {vehicle.plate || "Sin placa"}
-                  </p>
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
       )}
+
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmModal
+        open={!!vehicleToDelete}
+        onClose={() => setVehicleToDelete(null)}
+        onConfirm={() => deleteMutation.mutate(vehicleToDelete?.$id)}
+        title="Eliminar vehículo"
+        description={`¿Estás seguro de que deseas eliminar el vehículo "${
+          vehicleToDelete?.plate ||
+          vehicleToDelete?.economicNumber ||
+          "seleccionado"
+        }"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </PageLayout>
+  );
+}
+
+// Vehicle Card Component
+function VehicleCard({
+  vehicle,
+  brandMap,
+  modelMap,
+  typeMap,
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
+}) {
+  const model = modelMap[vehicle.modelId];
+  const brand = brandMap[vehicle.brandId];
+  const type = typeMap[vehicle.typeId];
+
+  const economicGroup = type?.economicGroup;
+  const displayEconomicNumber = economicGroup
+    ? `${economicGroup}-${vehicle.economicNumber}`
+    : vehicle.economicNumber;
+
+  const handleEdit = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onEdit();
+  };
+
+  const handleDelete = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete();
+  };
+
+  return (
+    <Link to={`/vehicles/${vehicle.$id}`}>
+      <Card className="group h-full p-4 transition-all hover:border-(--brand)/40 hover:shadow-lg relative">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-(--brand)/10 text-(--brand)">
+            <Car size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-base font-bold text-(--fg) group-hover:text-(--brand) transition-colors">
+                {displayEconomicNumber || "Sin N°"}
+              </p>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                  STATUS_COLORS[vehicle.status] || STATUS_COLORS.INACTIVE
+                )}
+              >
+                {STATUS_LABELS[vehicle.status] || vehicle.status}
+              </span>
+            </div>
+            <p className="text-xs text-(--muted-fg)">
+              {vehicle.plate || "Sin placa"}
+            </p>
+          </div>
+        </div>
+
+        {/* Model & Brand Info */}
+        <div className="mt-3 space-y-1">
+          <p className="text-sm font-semibold text-(--fg) leading-tight truncate">
+            {brand?.name || ""} {model?.name || ""}
+            {model?.year ? ` (${model.year})` : ""}
+          </p>
+          {type && (
+            <p className="text-xs text-(--muted-fg) flex items-center gap-1.5">
+              <Tag size={12} className="shrink-0" />
+              <span className="truncate">{type.name}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Info Row */}
+        <div className="mt-3 flex items-center gap-3 text-xs text-(--muted-fg)">
+          {vehicle.mileage > 0 && (
+            <span className="flex items-center gap-1">
+              <Gauge size={13} className="shrink-0" />
+              <span className="truncate">
+                {vehicle.mileage.toLocaleString()} {vehicle.mileageUnit || "KM"}
+              </span>
+            </span>
+          )}
+          {vehicle.color && (
+            <span className="flex items-center gap-1.5">
+              <div
+                className="h-3 w-3 shrink-0 rounded-full border border-(--border)"
+                style={{ backgroundColor: vehicle.color.toLowerCase() }}
+              />
+              <span className="truncate">{vehicle.color}</span>
+            </span>
+          )}
+        </div>
+
+        {/* Footer - Acciones */}
+        <div className="mt-3 flex items-center justify-between border-t border-(--border) pt-3">
+          <div className="flex items-center gap-1">
+            {canEdit && (
+              <button
+                onClick={handleEdit}
+                className="p-1.5 rounded-lg hover:bg-(--muted) transition-colors text-(--muted-fg) hover:text-(--brand)"
+                title="Editar"
+              >
+                <Edit size={14} />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-(--muted-fg) hover:text-red-600"
+                title="Eliminar"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+
+          <span className="flex items-center gap-0.5 text-xs font-semibold text-(--brand) group-hover:underline shrink-0">
+            Ver <ChevronRight size={14} />
+          </span>
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+// Vehicle Row Component (for table view)
+function VehicleRow({
+  vehicle,
+  brandMap,
+  modelMap,
+  typeMap,
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
+}) {
+  const model = modelMap[vehicle.modelId];
+  const brand = brandMap[vehicle.brandId];
+  const type = typeMap[vehicle.typeId];
+
+  const economicGroup = type?.economicGroup;
+  const displayEconomicNumber = economicGroup
+    ? `${economicGroup}-${vehicle.economicNumber}`
+    : vehicle.economicNumber;
+
+  return (
+    <tr className="hover:bg-(--muted)/30 transition-colors">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-(--brand)/10 text-(--brand)">
+            <Car size={18} />
+          </div>
+          <div>
+            <p className="font-medium text-(--fg)">
+              {brand?.name || ""} {model?.name || ""}
+            </p>
+            {model?.year && (
+              <p className="text-xs text-(--muted-fg)">{model.year}</p>
+            )}
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <span className="font-mono font-semibold text-(--fg)">
+          {displayEconomicNumber || "—"}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-sm text-(--muted-fg)">
+        {vehicle.plate || "—"}
+      </td>
+      <td className="px-4 py-3">
+        {type ? (
+          <span className="inline-flex items-center gap-1 text-xs">
+            {type.economicGroup && (
+              <span className="rounded bg-(--muted) px-1.5 py-0.5 font-semibold">
+                {type.economicGroup}
+              </span>
+            )}
+            {type.name}
+          </span>
+        ) : (
+          <span className="text-sm text-(--muted-fg)">—</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-sm text-(--muted-fg)">
+        {vehicle.mileage > 0
+          ? `${vehicle.mileage.toLocaleString()} ${vehicle.mileageUnit || "KM"}`
+          : "—"}
+      </td>
+      <td className="px-4 py-3">
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
+            STATUS_COLORS[vehicle.status] || STATUS_COLORS.INACTIVE
+          )}
+        >
+          {STATUS_LABELS[vehicle.status] || vehicle.status}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center justify-end gap-2">
+          <Link
+            to={`/vehicles/${vehicle.$id}`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-(--brand) hover:underline"
+          >
+            Ver <ChevronRight size={14} />
+          </Link>
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="p-1.5 rounded-lg hover:bg-(--muted) transition-colors text-(--muted-fg) hover:text-(--brand)"
+              title="Editar"
+            >
+              <Edit size={16} />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={onDelete}
+              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-(--muted-fg) hover:text-red-600"
+              title="Eliminar"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
   );
 }
