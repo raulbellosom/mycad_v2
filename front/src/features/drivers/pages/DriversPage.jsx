@@ -6,22 +6,19 @@ import {
   Plus,
   Search,
   User,
-  MoreVertical,
-  Eye,
-  Edit,
   ShieldAlert,
   ChevronRight,
   Filter,
 } from "lucide-react";
-import { listDrivers } from "../services/drivers.service";
-import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+
+import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Button } from "../../../shared/ui/Button";
-import { Input } from "../../../shared/ui/Input";
 import { Card } from "../../../shared/ui/Card";
-import { SectionHeader } from "../../../shared/ui/SectionHeader";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { cn } from "../../../shared/utils/cn";
+import { listDrivers } from "../services/drivers.service";
+import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 
 export function DriversPage() {
   const { activeGroupId } = useActiveGroup();
@@ -51,27 +48,24 @@ export function DriversPage() {
 
   if (!activeGroupId) {
     return (
-      <div className="grid h-[60dvh] place-items-center px-4">
-        <EmptyState
-          icon={Users}
-          title="Selecciona un grupo"
-          description="Para gestionar conductores, primero debes seleccionar un grupo en el menú superior."
-        />
-      </div>
+      <PageLayout.Empty
+        icon={Users}
+        title="Selecciona un grupo"
+        description="Para gestionar conductores, primero debes seleccionar un grupo en el menú superior."
+      />
     );
   }
 
   return (
-    <div className="space-y-6">
-      <SectionHeader
-        title="Conductores"
-        subtitle="Gestiona el personal y sus licencias de conducir"
-      >
+    <PageLayout
+      title="Conductores"
+      subtitle="Gestiona el personal y sus licencias de conducir"
+      actions={
         <Button onClick={() => nav("new")}>
           <Plus size={18} className="mr-2" /> Nuevo Conductor
         </Button>
-      </SectionHeader>
-
+      }
+    >
       {/* Filters Card */}
       <Card className="p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -186,6 +180,6 @@ export function DriversPage() {
           }
         />
       )}
-    </div>
+    </PageLayout>
   );
 }

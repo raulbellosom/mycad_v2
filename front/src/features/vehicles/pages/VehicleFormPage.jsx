@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { SectionHeader } from "../../../shared/ui/SectionHeader";
+import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Card } from "../../../shared/ui/Card";
 import { Input } from "../../../shared/ui/Input";
 import { Button } from "../../../shared/ui/Button";
@@ -277,13 +278,11 @@ export function VehicleFormPage() {
 
   if (!activeGroupId) {
     return (
-      <div className="grid h-[60dvh] place-items-center px-4">
-        <EmptyState
-          icon={Car}
-          title="Selecciona un grupo"
-          description="Para crear o editar vehículos, primero debes seleccionar un grupo en el menú superior."
-        />
-      </div>
+      <PageLayout.Empty
+        icon={Car}
+        title="Selecciona un grupo"
+        description="Para crear o editar vehículos, primero debes seleccionar un grupo en el menú superior."
+      />
     );
   }
 
@@ -307,333 +306,342 @@ export function VehicleFormPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <SectionHeader title={isEdit ? "Editar Vehículo" : "Nuevo Vehículo"}>
+    <PageLayout
+      title={isEdit ? "Editar Vehículo" : "Nuevo Vehículo"}
+      actions={
         <Button variant="ghost" onClick={() => nav(-1)}>
           <ArrowLeft size={18} className="mr-2" /> Cancelar
         </Button>
-      </SectionHeader>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Col: Main Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6">
-            <form
-              onSubmit={handleSubmit}
-              id="vehicle-form"
-              className="space-y-6"
-            >
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <Input
-                  label="Placa / Matrícula"
-                  value={formData.plate}
-                  onChange={(e) => handleChange("plate", e.target.value)}
-                  placeholder="ABC-123"
-                />
-                <Input
-                  label="N° Económico *"
-                  value={formData.economicNumber}
-                  onChange={(e) =>
-                    handleChange(
-                      "economicNumber",
-                      e.target.value.toUpperCase().slice(0, 8)
-                    )
-                  }
-                  placeholder="E-1234"
-                />
-                <Input
-                  label="N° Serie"
-                  value={formData.serialNumber}
-                  onChange={(e) => handleChange("serialNumber", e.target.value)}
-                  placeholder="SN123456789"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-(--fg)">
-                    Modelo del Vehículo *
-                  </label>
-                  <Combobox
-                    value={formData.modelId}
-                    onChange={handleModelSelect}
-                    options={modelOptions}
-                    placeholder="Buscar modelo, marca, tipo..."
-                    emptyText="No se encontraron modelos"
-                    onCreateNew={(search) => {
-                      setModelSearchTerm(search);
-                      setIsModelModalOpen(true);
-                    }}
-                    createLabel="Crear modelo"
-                    searchKeys={["label", "brandName", "typeName", "year"]}
+      }
+    >
+      <div className="mx-auto max-w-4xl">
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left Col: Main Form */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="p-6">
+              <form
+                onSubmit={handleSubmit}
+                id="vehicle-form"
+                className="space-y-6"
+              >
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <Input
+                    label="Placa / Matrícula"
+                    value={formData.plate}
+                    onChange={(e) => handleChange("plate", e.target.value)}
+                    placeholder="ABC-123"
+                  />
+                  <Input
+                    label="N° Económico *"
+                    value={formData.economicNumber}
+                    onChange={(e) =>
+                      handleChange(
+                        "economicNumber",
+                        e.target.value.toUpperCase().slice(0, 8)
+                      )
+                    }
+                    placeholder="E-1234"
+                  />
+                  <Input
+                    label="N° Serie"
+                    value={formData.serialNumber}
+                    onChange={(e) =>
+                      handleChange("serialNumber", e.target.value)
+                    }
+                    placeholder="SN123456789"
                   />
                 </div>
 
-                <Input
-                  label="Fecha de Adquisición"
-                  type="date"
-                  value={formData.acquisitionDate}
-                  onChange={(e) =>
-                    handleChange("acquisitionDate", e.target.value)
-                  }
-                />
-              </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-(--fg)">
+                      Modelo del Vehículo *
+                    </label>
+                    <Combobox
+                      value={formData.modelId}
+                      onChange={handleModelSelect}
+                      options={modelOptions}
+                      placeholder="Buscar modelo, marca, tipo..."
+                      emptyText="No se encontraron modelos"
+                      onCreateNew={(search) => {
+                        setModelSearchTerm(search);
+                        setIsModelModalOpen(true);
+                      }}
+                      createLabel="Crear modelo"
+                      searchKeys={["label", "brandName", "typeName", "year"]}
+                    />
+                  </div>
 
-              {formData.modelId && (
+                  <Input
+                    label="Fecha de Adquisición"
+                    type="date"
+                    value={formData.acquisitionDate}
+                    onChange={(e) =>
+                      handleChange("acquisitionDate", e.target.value)
+                    }
+                  />
+                </div>
+
+                {formData.modelId && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Input
+                      label="Marca (auto-completado)"
+                      value={brandMap[formData.brandId] || ""}
+                      disabled
+                      className="bg-(--muted)/50"
+                    />
+                    <Input
+                      label="Tipo (auto-completado)"
+                      value={typeMap[formData.typeId] || ""}
+                      disabled
+                      className="bg-(--muted)/50"
+                    />
+                  </div>
+                )}
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input
-                    label="Marca (auto-completado)"
-                    value={brandMap[formData.brandId] || ""}
-                    disabled
-                    className="bg-(--muted)/50"
+                    label="Color"
+                    value={formData.color}
+                    onChange={(e) => handleChange("color", e.target.value)}
+                    placeholder="Blanco, Negro, Azul..."
                   />
-                  <Input
-                    label="Tipo (auto-completado)"
-                    value={typeMap[formData.typeId] || ""}
-                    disabled
-                    className="bg-(--muted)/50"
+                  <Select
+                    label="Estado"
+                    value={formData.status}
+                    onChange={(v) => handleChange("status", v)}
+                    options={VEHICLE_STATUS_OPTIONS}
                   />
                 </div>
-              )}
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  label="Color"
-                  value={formData.color}
-                  onChange={(e) => handleChange("color", e.target.value)}
-                  placeholder="Blanco, Negro, Azul..."
-                />
-                <Select
-                  label="Estado"
-                  value={formData.status}
-                  onChange={(v) => handleChange("status", v)}
-                  options={VEHICLE_STATUS_OPTIONS}
-                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Kilometraje actual"
+                    type="number"
+                    min="0"
+                    value={formData.mileage}
+                    onChange={(e) =>
+                      handleChange("mileage", parseInt(e.target.value) || 0)
+                    }
+                  />
+                  <Select
+                    label="Unidad de medida"
+                    value={formData.mileageUnit}
+                    onChange={(v) => handleChange("mileageUnit", v)}
+                    options={MILEAGE_UNIT_OPTIONS}
+                  />
+                </div>
+              </form>
+            </Card>
+
+            {/* Accounting/Financial Section */}
+            <Card className="p-6">
+              <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
+                <DollarSign size={20} className="text-(--brand)" />
+                Datos Contables
+              </h3>
+              <div className="space-y-4">
+                {/* Acquisition Cost */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="sm:col-span-2">
+                    <Input
+                      label="Costo de Adquisición"
+                      type="number"
+                      min="0"
+                      max="100000000"
+                      step="0.01"
+                      value={formData.acquisitionCost}
+                      onChange={(e) =>
+                        handleChange(
+                          "acquisitionCost",
+                          e.target.value ? parseFloat(e.target.value) : ""
+                        )
+                      }
+                      placeholder="0.00"
+                      form="vehicle-form"
+                    />
+                  </div>
+                  <Select
+                    label="Moneda"
+                    value={formData.acquisitionCostCurrency}
+                    onChange={(v) => handleChange("acquisitionCostCurrency", v)}
+                    options={CURRENCY_OPTIONS}
+                  />
+                </div>
+
+                {/* Book Value */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="sm:col-span-2">
+                    <Input
+                      label="Valor en Libros"
+                      type="number"
+                      min="0"
+                      max="100000000"
+                      step="0.01"
+                      value={formData.bookValue}
+                      onChange={(e) =>
+                        handleChange(
+                          "bookValue",
+                          e.target.value ? parseFloat(e.target.value) : ""
+                        )
+                      }
+                      placeholder="0.00"
+                      form="vehicle-form"
+                    />
+                  </div>
+                  <Select
+                    label="Moneda"
+                    value={formData.bookValueCurrency}
+                    onChange={(v) => handleChange("bookValueCurrency", v)}
+                    options={CURRENCY_OPTIONS}
+                  />
+                </div>
+
+                {/* Market Value */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="sm:col-span-2">
+                    <Input
+                      label="Valor de Mercado"
+                      type="number"
+                      min="0"
+                      max="100000000"
+                      step="0.01"
+                      value={formData.marketValue}
+                      onChange={(e) =>
+                        handleChange(
+                          "marketValue",
+                          e.target.value ? parseFloat(e.target.value) : ""
+                        )
+                      }
+                      placeholder="0.00"
+                      form="vehicle-form"
+                    />
+                  </div>
+                  <Select
+                    label="Moneda"
+                    value={formData.marketValueCurrency}
+                    onChange={(v) => handleChange("marketValueCurrency", v)}
+                    options={CURRENCY_OPTIONS}
+                  />
+                </div>
+
+                <p className="text-xs text-(--muted-fg) mt-2">
+                  Estos valores son opcionales y se utilizan para reportes
+                  contables y de depreciación.
+                </p>
               </div>
+            </Card>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  label="Kilometraje actual"
-                  type="number"
-                  min="0"
-                  value={formData.mileage}
-                  onChange={(e) =>
-                    handleChange("mileage", parseInt(e.target.value) || 0)
+            {/* Media Section Integrated Below Main Form (Large Screens) */}
+            <div className="hidden lg:block">
+              <Card className="p-6">
+                <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
+                  <ImageIcon size={20} className="text-(--brand)" />
+                  Fotos y Archivos
+                </h3>
+                <VehicleMediaManager
+                  existingFiles={existingFiles}
+                  stagedFiles={stagedFiles}
+                  onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
+                  onRemoveStaged={async (id) => {
+                    setStagedFiles((prev) =>
+                      prev.filter((f) => f.fileId !== id)
+                    );
+                    await deleteVehicleFile(null, id);
+                  }}
+                  onRemoveExisting={(docId, fileId) =>
+                    deleteExistingFileMutation.mutate({ docId, fileId })
                   }
+                  isUploading={isUploading}
+                  setIsUploading={setIsUploading}
                 />
-                <Select
-                  label="Unidad de medida"
-                  value={formData.mileageUnit}
-                  onChange={(v) => handleChange("mileageUnit", v)}
-                  options={MILEAGE_UNIT_OPTIONS}
-                />
-              </div>
-            </form>
-          </Card>
-
-          {/* Accounting/Financial Section */}
-          <Card className="p-6">
-            <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
-              <DollarSign size={20} className="text-(--brand)" />
-              Datos Contables
-            </h3>
-            <div className="space-y-4">
-              {/* Acquisition Cost */}
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="sm:col-span-2">
-                  <Input
-                    label="Costo de Adquisición"
-                    type="number"
-                    min="0"
-                    max="100000000"
-                    step="0.01"
-                    value={formData.acquisitionCost}
-                    onChange={(e) =>
-                      handleChange(
-                        "acquisitionCost",
-                        e.target.value ? parseFloat(e.target.value) : ""
-                      )
-                    }
-                    placeholder="0.00"
-                    form="vehicle-form"
-                  />
-                </div>
-                <Select
-                  label="Moneda"
-                  value={formData.acquisitionCostCurrency}
-                  onChange={(v) => handleChange("acquisitionCostCurrency", v)}
-                  options={CURRENCY_OPTIONS}
-                />
-              </div>
-
-              {/* Book Value */}
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="sm:col-span-2">
-                  <Input
-                    label="Valor en Libros"
-                    type="number"
-                    min="0"
-                    max="100000000"
-                    step="0.01"
-                    value={formData.bookValue}
-                    onChange={(e) =>
-                      handleChange(
-                        "bookValue",
-                        e.target.value ? parseFloat(e.target.value) : ""
-                      )
-                    }
-                    placeholder="0.00"
-                    form="vehicle-form"
-                  />
-                </div>
-                <Select
-                  label="Moneda"
-                  value={formData.bookValueCurrency}
-                  onChange={(v) => handleChange("bookValueCurrency", v)}
-                  options={CURRENCY_OPTIONS}
-                />
-              </div>
-
-              {/* Market Value */}
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="sm:col-span-2">
-                  <Input
-                    label="Valor de Mercado"
-                    type="number"
-                    min="0"
-                    max="100000000"
-                    step="0.01"
-                    value={formData.marketValue}
-                    onChange={(e) =>
-                      handleChange(
-                        "marketValue",
-                        e.target.value ? parseFloat(e.target.value) : ""
-                      )
-                    }
-                    placeholder="0.00"
-                    form="vehicle-form"
-                  />
-                </div>
-                <Select
-                  label="Moneda"
-                  value={formData.marketValueCurrency}
-                  onChange={(v) => handleChange("marketValueCurrency", v)}
-                  options={CURRENCY_OPTIONS}
-                />
-              </div>
-
-              <p className="text-xs text-(--muted-fg) mt-2">
-                Estos valores son opcionales y se utilizan para reportes
-                contables y de depreciación.
-              </p>
+              </Card>
             </div>
-          </Card>
+          </div>
 
-          {/* Media Section Integrated Below Main Form (Large Screens) */}
-          <div className="hidden lg:block">
-            <Card className="p-6">
-              <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
-                <ImageIcon size={20} className="text-(--brand)" />
-                Fotos y Archivos
-              </h3>
-              <VehicleMediaManager
-                existingFiles={existingFiles}
-                stagedFiles={stagedFiles}
-                onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
-                onRemoveStaged={async (id) => {
-                  setStagedFiles((prev) => prev.filter((f) => f.fileId !== id));
-                  await deleteVehicleFile(null, id);
-                }}
-                onRemoveExisting={(docId, fileId) =>
-                  deleteExistingFileMutation.mutate({ docId, fileId })
-                }
-                isUploading={isUploading}
-                setIsUploading={setIsUploading}
-              />
+          {/* Right Col: Media & Actions (Small/Med screens) / Sidebar (Large Screens) */}
+          <div className="space-y-6 flex flex-col">
+            {/* Media Section (Responsive version) - Order 1 on mobile */}
+            <div className="lg:hidden order-1">
+              <Card className="p-6">
+                <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
+                  <ImageIcon size={20} className="text-(--brand)" />
+                  Fotos y Archivos
+                </h3>
+                <VehicleMediaManager
+                  existingFiles={existingFiles}
+                  stagedFiles={stagedFiles}
+                  onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
+                  onRemoveStaged={async (id) => {
+                    setStagedFiles((prev) =>
+                      prev.filter((f) => f.fileId !== id)
+                    );
+                    await deleteVehicleFile(null, id);
+                  }}
+                  onRemoveExisting={(docId, fileId) =>
+                    deleteExistingFileMutation.mutate({ docId, fileId })
+                  }
+                  isUploading={isUploading}
+                  setIsUploading={setIsUploading}
+                />
+              </Card>
+            </div>
+
+            {/* Action Sidebar - Order 2 on mobile */}
+            <Card className="p-6 sticky top-24 order-2 mt-6 lg:mt-0">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="submit"
+                    form="vehicle-form"
+                    loading={mutation.isPending}
+                    className="w-full justify-center py-6 text-lg"
+                  >
+                    <Save size={20} className="mr-2" />
+                    {isEdit ? "Guardar Cambios" : "Crear Vehículo"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleCancel}
+                    className="w-full justify-center"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+
+                <div className="rounded-lg bg-(--muted)/30 p-4 border border-(--border)">
+                  <h4 className="text-sm font-medium text-(--fg) mb-2">
+                    Resumen
+                  </h4>
+                  <div className="space-y-2 text-xs text-(--muted-fg)">
+                    <p className="flex justify-between">
+                      <span>Económico:</span>
+                      <span className="font-semibold text-(--fg)">
+                        {formData.economicNumber || "—"}
+                      </span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span>Archivos:</span>
+                      <span className="font-semibold text-(--fg)">
+                        {existingFiles.length + stagedFiles.length}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
             </Card>
           </div>
         </div>
 
-        {/* Right Col: Media & Actions (Small/Med screens) / Sidebar (Large Screens) */}
-        <div className="space-y-6 flex flex-col">
-          {/* Media Section (Responsive version) - Order 1 on mobile */}
-          <div className="lg:hidden order-1">
-            <Card className="p-6">
-              <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
-                <ImageIcon size={20} className="text-(--brand)" />
-                Fotos y Archivos
-              </h3>
-              <VehicleMediaManager
-                existingFiles={existingFiles}
-                stagedFiles={stagedFiles}
-                onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
-                onRemoveStaged={async (id) => {
-                  setStagedFiles((prev) => prev.filter((f) => f.fileId !== id));
-                  await deleteVehicleFile(null, id);
-                }}
-                onRemoveExisting={(docId, fileId) =>
-                  deleteExistingFileMutation.mutate({ docId, fileId })
-                }
-                isUploading={isUploading}
-                setIsUploading={setIsUploading}
-              />
-            </Card>
-          </div>
-
-          {/* Action Sidebar - Order 2 on mobile */}
-          <Card className="p-6 sticky top-24 order-2 mt-6 lg:mt-0">
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="submit"
-                  form="vehicle-form"
-                  loading={mutation.isPending}
-                  className="w-full justify-center py-6 text-lg"
-                >
-                  <Save size={20} className="mr-2" />
-                  {isEdit ? "Guardar Cambios" : "Crear Vehículo"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleCancel}
-                  className="w-full justify-center"
-                >
-                  Cancelar
-                </Button>
-              </div>
-
-              <div className="rounded-lg bg-(--muted)/30 p-4 border border-(--border)">
-                <h4 className="text-sm font-medium text-(--fg) mb-2">
-                  Resumen
-                </h4>
-                <div className="space-y-2 text-xs text-(--muted-fg)">
-                  <p className="flex justify-between">
-                    <span>Económico:</span>
-                    <span className="font-semibold text-(--fg)">
-                      {formData.economicNumber || "—"}
-                    </span>
-                  </p>
-                  <p className="flex justify-between">
-                    <span>Archivos:</span>
-                    <span className="font-semibold text-(--fg)">
-                      {existingFiles.length + stagedFiles.length}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
+        {/* Create Model Modal */}
+        <CreateModelModal
+          isOpen={isModelModalOpen}
+          onClose={() => setIsModelModalOpen(false)}
+          onSuccess={handleModelCreated}
+          groupId={activeGroupId}
+          initialSearch={modelSearchTerm}
+        />
       </div>
-
-      {/* Create Model Modal */}
-      <CreateModelModal
-        isOpen={isModelModalOpen}
-        onClose={() => setIsModelModalOpen(false)}
-        onSuccess={handleModelCreated}
-        groupId={activeGroupId}
-        initialSearch={modelSearchTerm}
-      />
-    </div>
+    </PageLayout>
   );
 }

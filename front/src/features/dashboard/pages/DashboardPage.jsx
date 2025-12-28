@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-import { SectionHeader } from "../../../shared/ui/SectionHeader";
+import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Card } from "../../../shared/ui/Card";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 
@@ -41,16 +41,14 @@ export function DashboardPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <SectionHeader
-        title="Dashboard"
-        subtitle={
-          activeGroup
-            ? `Resumen del grupo: ${activeGroup.name}`
-            : "Selecciona un grupo para ver información."
-        }
-      />
-
+    <PageLayout
+      title="Dashboard"
+      subtitle={
+        activeGroup
+          ? `Resumen del grupo: ${activeGroup.name}`
+          : "Selecciona un grupo para ver información."
+      }
+    >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
@@ -127,6 +125,6 @@ export function DashboardPage() {
           </div>
         </Card>
       </div>
-    </div>
+    </PageLayout>
   );
 }

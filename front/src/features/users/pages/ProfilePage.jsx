@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Save } from "lucide-react";
-import { SectionHeader } from "../../../shared/ui/SectionHeader";
+import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Card } from "../../../shared/ui/Card";
 import { Input } from "../../../shared/ui/Input";
 import { Button } from "../../../shared/ui/Button";
@@ -60,55 +60,56 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="max-w-xl space-y-6">
-      <SectionHeader
-        title="Mi Perfil"
-        subtitle="Administra tu información personal."
-      />
-      <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Email"
-            value={formData.email}
-            disabled
-            className="bg-neutral-100 dark:bg-zinc-800"
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
+    <PageLayout
+      title="Mi Perfil"
+      subtitle="Administra tu información personal."
+    >
+      <div className="max-w-xl">
+        <Card className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Nombre"
-              value={formData.firstName}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, firstName: e.target.value }))
-              }
-              required
+              label="Email"
+              value={formData.email}
+              disabled
+              className="bg-neutral-100 dark:bg-zinc-800"
             />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Nombre"
+                value={formData.firstName}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, firstName: e.target.value }))
+                }
+                required
+              />
+              <Input
+                label="Apellido"
+                value={formData.lastName}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, lastName: e.target.value }))
+                }
+                required
+              />
+            </div>
+
             <Input
-              label="Apellido"
-              value={formData.lastName}
+              label="Teléfono"
+              value={formData.phone}
               onChange={(e) =>
-                setFormData((p) => ({ ...p, lastName: e.target.value }))
+                setFormData((p) => ({ ...p, phone: e.target.value }))
               }
-              required
             />
-          </div>
 
-          <Input
-            label="Teléfono"
-            value={formData.phone}
-            onChange={(e) =>
-              setFormData((p) => ({ ...p, phone: e.target.value }))
-            }
-          />
-
-          <div className="pt-2">
-            <Button type="submit" loading={mutation.isPending}>
-              <Save size={18} className="mr-2" />
-              Guardar cambios
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
+            <div className="pt-2">
+              <Button type="submit" loading={mutation.isPending}>
+                <Save size={18} className="mr-2" />
+                Guardar cambios
+              </Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    </PageLayout>
   );
 }

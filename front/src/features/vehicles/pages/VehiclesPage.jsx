@@ -1,15 +1,16 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Car, Search } from "lucide-react";
-import { SectionHeader } from "../../../shared/ui/SectionHeader";
+
+import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Button } from "../../../shared/ui/Button";
 import { Card } from "../../../shared/ui/Card";
 import { Input } from "../../../shared/ui/Input";
-import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
-import { listVehicles } from "../services/vehicles.service";
-import { useState } from "react";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { EmptyState } from "../../../shared/ui/EmptyState";
+import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+import { listVehicles } from "../services/vehicles.service";
 
 export function VehiclesPage() {
   const { activeGroupId } = useActiveGroup();
@@ -34,32 +35,29 @@ export function VehiclesPage() {
 
   if (!activeGroupId) {
     return (
-      <div className="grid h-[60dvh] place-items-center px-4">
-        <EmptyState
-          icon={Car}
-          title="Selecciona un grupo"
-          description="Para ver y gestionar vehículos, primero debes seleccionar un grupo en el menú superior."
-        />
-      </div>
+      <PageLayout.Empty
+        icon={Car}
+        title="Selecciona un grupo"
+        description="Para ver y gestionar vehículos, primero debes seleccionar un grupo en el menú superior."
+      />
     );
   }
 
   if (isLoading) return <LoadingScreen label="Cargando vehículos..." />;
 
   return (
-    <div className="space-y-6">
-      <SectionHeader
-        title="Vehículos"
-        subtitle="Gestiona la flotilla de tu grupo."
-      >
+    <PageLayout
+      title="Vehículos"
+      subtitle="Gestiona la flotilla de tu grupo."
+      actions={
         <Button asChild>
           <Link to="/vehicles/new">
             <Plus size={18} className="mr-2" />
             Nuevo vehículo
           </Link>
         </Button>
-      </SectionHeader>
-
+      }
+    >
       <div className="flex items-center gap-4">
         <div className="relative max-w-sm flex-1">
           <div className="pointer-events-none absolute left-3 top-2.5 text-neutral-400">
@@ -123,6 +121,6 @@ export function VehiclesPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

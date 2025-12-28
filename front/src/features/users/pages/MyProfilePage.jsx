@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Card } from "../../../shared/ui/Card";
+import { PageLayout } from "../../../shared/ui/PageLayout";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {
@@ -135,214 +136,226 @@ export function MyProfilePage() {
 
   if (!user || !profile) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <p className="text-(--muted-fg)">No se pudo cargar el perfil</p>
-      </div>
+      <PageLayout.Empty
+        icon={User}
+        title="Error al cargar perfil"
+        description="No se pudo cargar la información del perfil"
+      />
     );
   }
 
   const avatarUrl = getAvatarPreviewUrl(profile.avatarFileId, 200);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
-      {/* Header with Avatar */}
-      <Card className="relative overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 h-32 bg-gradient-to-r from-(--brand) to-(--brand)/60" />
+    <PageLayout title="Mi Perfil">
+      <div className="mx-auto max-w-4xl space-y-6">
+        {/* Header with Avatar */}
+        <Card className="relative overflow-hidden">
+          {/* Background gradient */}
+          <div className="absolute inset-0 h-32 bg-gradient-to-r from-(--brand) to-(--brand)/60" />
 
-        <div className="relative px-6 pb-6 pt-16">
-          {/* Avatar */}
-          <div className="flex flex-col items-center sm:flex-row sm:items-end gap-4">
-            <div className="relative" ref={menuRef}>
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="user"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
+          <div className="relative px-6 pb-6 pt-16">
+            {/* Avatar */}
+            <div className="flex flex-col items-center sm:flex-row sm:items-end gap-4">
+              <div className="relative" ref={menuRef}>
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
 
-              <div
-                className={cn(
-                  "h-28 w-28 rounded-2xl border-4 border-(--card) bg-(--card) shadow-xl overflow-hidden",
-                  isUploadingAvatar && "opacity-50"
-                )}
-              >
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt="Avatar"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-(--brand)/10 text-(--brand)">
-                    <User size={48} />
-                  </div>
-                )}
-              </div>
-
-              {/* Loading overlay */}
-              {isUploadingAvatar && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl">
-                  <Loader2 className="h-8 w-8 animate-spin text-white" />
-                </div>
-              )}
-
-              {/* Camera button - triggers file input or shows menu */}
-              <button
-                onClick={() => {
-                  if (avatarUrl) {
-                    setShowAvatarMenu(!showAvatarMenu);
-                  } else {
-                    fileInputRef.current?.click();
-                  }
-                }}
-                disabled={isUploadingAvatar}
-                className="absolute bottom-1 right-1 h-8 w-8 rounded-full bg-(--brand) text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform disabled:opacity-50"
-              >
-                {avatarUrl ? <MoreVertical size={16} /> : <Camera size={16} />}
-              </button>
-
-              {/* Avatar menu */}
-              <AnimatePresence>
-                {showAvatarMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 4 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 4 }}
-                    className="absolute top-full left-0 mt-2 w-44 rounded-xl border border-(--border) bg-(--card) shadow-xl z-50 overflow-hidden"
-                  >
-                    <button
-                      onClick={() => {
-                        setShowAvatarMenu(false);
-                        fileInputRef.current?.click();
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-(--fg) hover:bg-(--muted)/50 transition-colors"
-                    >
-                      <Upload size={16} className="text-(--brand)" />
-                      Cambiar foto
-                    </button>
-                    <div className="h-px bg-(--border)" />
-                    <button
-                      onClick={() => deleteAvatarMutation.mutate()}
-                      disabled={deleteAvatarMutation.isPending}
-                      className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 size={16} />
-                      Eliminar foto
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="text-center sm:text-left flex-1 pb-2">
-              <h1 className="text-2xl font-bold text-(--fg)">
-                {profile.firstName} {profile.lastName}
-              </h1>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 text-sm text-(--muted-fg)">
-                <span className="flex items-center gap-1">
-                  <Mail size={14} />
-                  {profile.email}
-                </span>
-                {profile.phone && (
-                  <span className="flex items-center gap-1">
-                    <Phone size={14} />
-                    {profile.phone}
-                  </span>
-                )}
-              </div>
-              {/* Badges */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-3">
-                {profile.isPlatformAdmin && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-3 py-1 text-xs font-medium text-purple-500">
-                    <Shield size={12} />
-                    Admin Plataforma
-                  </span>
-                )}
-                {driverRecord && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500">
-                    <Car size={12} />
-                    Conductor
-                  </span>
-                )}
-                <span
+                <div
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium",
-                    profile.status === "ACTIVE"
-                      ? "bg-green-500/10 text-green-500"
-                      : "bg-amber-500/10 text-amber-500"
+                    "h-28 w-28 rounded-2xl border-4 border-(--card) bg-(--card) shadow-xl overflow-hidden",
+                    isUploadingAvatar && "opacity-50"
                   )}
                 >
-                  {profile.status || "ACTIVE"}
-                </span>
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-(--brand)/10 text-(--brand)">
+                      <User size={48} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Loading overlay */}
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl">
+                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                  </div>
+                )}
+
+                {/* Camera button - triggers file input or shows menu */}
+                <button
+                  onClick={() => {
+                    if (avatarUrl) {
+                      setShowAvatarMenu(!showAvatarMenu);
+                    } else {
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  disabled={isUploadingAvatar}
+                  className="absolute bottom-1 right-1 h-8 w-8 rounded-full bg-(--brand) text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform disabled:opacity-50"
+                >
+                  {avatarUrl ? (
+                    <MoreVertical size={16} />
+                  ) : (
+                    <Camera size={16} />
+                  )}
+                </button>
+
+                {/* Avatar menu */}
+                <AnimatePresence>
+                  {showAvatarMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                      className="absolute top-full left-0 mt-2 w-44 rounded-xl border border-(--border) bg-(--card) shadow-xl z-50 overflow-hidden"
+                    >
+                      <button
+                        onClick={() => {
+                          setShowAvatarMenu(false);
+                          fileInputRef.current?.click();
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-(--fg) hover:bg-(--muted)/50 transition-colors"
+                      >
+                        <Upload size={16} className="text-(--brand)" />
+                        Cambiar foto
+                      </button>
+                      <div className="h-px bg-(--border)" />
+                      <button
+                        onClick={() => deleteAvatarMutation.mutate()}
+                        disabled={deleteAvatarMutation.isPending}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 size={16} />
+                        Eliminar foto
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="text-center sm:text-left flex-1 pb-2">
+                <h1 className="text-2xl font-bold text-(--fg)">
+                  {profile.firstName} {profile.lastName}
+                </h1>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 text-sm text-(--muted-fg)">
+                  <span className="flex items-center gap-1">
+                    <Mail size={14} />
+                    {profile.email}
+                  </span>
+                  {profile.phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone size={14} />
+                      {profile.phone}
+                    </span>
+                  )}
+                </div>
+                {/* Badges */}
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-3">
+                  {profile.isPlatformAdmin && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-3 py-1 text-xs font-medium text-purple-500">
+                      <Shield size={12} />
+                      Admin Plataforma
+                    </span>
+                  )}
+                  {driverRecord && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500">
+                      <Car size={12} />
+                      Conductor
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium",
+                      profile.status === "ACTIVE"
+                        ? "bg-green-500/10 text-green-500"
+                        : "bg-amber-500/10 text-amber-500"
+                    )}
+                  >
+                    {profile.status || "ACTIVE"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
+        </Card>
+
+        {/* Tabs Navigation */}
+        <div className="border-b border-(--border)">
+          <nav className="flex gap-1" aria-label="Tabs">
+            {availableTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all rounded-t-lg",
+                    isActive
+                      ? "text-(--brand) bg-(--brand)/5"
+                      : "text-(--muted-fg) hover:text-(--fg) hover:bg-(--muted)/20"
+                  )}
+                >
+                  <Icon size={18} />
+                  {tab.label}
+                  {isActive && (
+                    <motion.div
+                      layoutId="profileActiveTab"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-(--brand)"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
         </div>
-      </Card>
 
-      {/* Tabs Navigation */}
-      <div className="border-b border-(--border)">
-        <nav className="flex gap-1" aria-label="Tabs">
-          {availableTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all rounded-t-lg",
-                  isActive
-                    ? "text-(--brand) bg-(--brand)/5"
-                    : "text-(--muted-fg) hover:text-(--fg) hover:bg-(--muted)/20"
-                )}
-              >
-                <Icon size={18} />
-                {tab.label}
-                {isActive && (
-                  <motion.div
-                    layoutId="profileActiveTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-(--brand)"
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
+        {/* Tab Content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === "info" && (
+              <ProfileInfoTab
+                profile={profile}
+                user={user}
+                onUpdate={refresh}
+              />
+            )}
+            {activeTab === "security" && (
+              <ProfileSecurityTab
+                profile={profile}
+                user={user}
+                onUpdate={refresh}
+              />
+            )}
+            {activeTab === "driver" && driverRecord && (
+              <ProfileDriverTab
+                profile={profile}
+                driverRecord={driverRecord}
+                onUpdate={refresh}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
-
-      {/* Tab Content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
-        >
-          {activeTab === "info" && (
-            <ProfileInfoTab profile={profile} user={user} onUpdate={refresh} />
-          )}
-          {activeTab === "security" && (
-            <ProfileSecurityTab
-              profile={profile}
-              user={user}
-              onUpdate={refresh}
-            />
-          )}
-          {activeTab === "driver" && driverRecord && (
-            <ProfileDriverTab
-              profile={profile}
-              driverRecord={driverRecord}
-              onUpdate={refresh}
-            />
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </div>
+    </PageLayout>
   );
 }

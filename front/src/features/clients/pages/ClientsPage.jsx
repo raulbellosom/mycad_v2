@@ -8,8 +8,6 @@ import {
   LayoutGrid,
   List,
   Users,
-  Mail,
-  Phone,
   SortAsc,
   SortDesc,
   RefreshCw,
@@ -23,7 +21,7 @@ import {
 } from "../hooks/useClients";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 
-import { SectionHeader } from "../../../shared/ui/SectionHeader";
+import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Card } from "../../../shared/ui/Card";
 import { Button } from "../../../shared/ui/Button";
 import { EmptyState } from "../../../shared/ui/EmptyState";
@@ -155,28 +153,24 @@ export function ClientsPage() {
   // Sin grupo seleccionado
   if (!activeGroupId) {
     return (
-      <div className="grid h-[60dvh] place-items-center px-4">
-        <EmptyState
-          icon={Building2}
-          title="Selecciona un grupo"
-          description="Para gestionar clientes, primero debes seleccionar un grupo en el menú superior."
-        />
-      </div>
+      <PageLayout.Empty
+        icon={Building2}
+        title="Selecciona un grupo"
+        description="Para gestionar clientes, primero debes seleccionar un grupo en el menú superior."
+      />
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <SectionHeader
-        title="Clientes"
-        subtitle="Gestiona la información de tus clientes"
-      >
+    <PageLayout
+      title="Clientes"
+      subtitle="Gestiona la información de tus clientes"
+      actions={
         <Button onClick={handleOpenCreate}>
           <Plus size={18} className="mr-2" /> Nuevo Cliente
         </Button>
-      </SectionHeader>
-
+      }
+    >
       {/* Toolbar */}
       <Card className="p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -396,6 +390,6 @@ export function ClientsPage() {
           onClick={() => setShowSortDropdown(false)}
         />
       )}
-    </div>
+    </PageLayout>
   );
 }
