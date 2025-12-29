@@ -91,7 +91,7 @@ export function ServiceReportEditPage() {
       
       // 2. Upload new files if they exist
       if (stagedFiles && stagedFiles.length > 0) {
-        await Promise.all(
+        const uploadResults = await Promise.allSettled(
           stagedFiles.map(file => 
             uploadFileMutation.mutateAsync({
               serviceHistoryId: id,
@@ -100,6 +100,12 @@ export function ServiceReportEditPage() {
             })
           )
         );
+        
+        // Check if any uploads failed
+        const failedUploads = uploadResults.filter(r => r.status === 'rejected');
+        if (failedUploads.length > 0) {
+          toast.warning(`Reporte actualizado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+        }
       }
       
       toast.success("Reporte actualizado exitosamente");
@@ -124,7 +130,7 @@ export function ServiceReportEditPage() {
       
       // 2. Upload new files if they exist
       if (stagedFiles && stagedFiles.length > 0) {
-        await Promise.all(
+        const uploadResults = await Promise.allSettled(
           stagedFiles.map(file => 
             uploadFileMutation.mutateAsync({
               serviceHistoryId: id,
@@ -133,6 +139,12 @@ export function ServiceReportEditPage() {
             })
           )
         );
+        
+        // Check if any uploads failed
+        const failedUploads = uploadResults.filter(r => r.status === 'rejected');
+        if (failedUploads.length > 0) {
+          toast.warning(`Reporte actualizado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+        }
       }
       
       // 3. Finalize the report
