@@ -166,7 +166,7 @@ export function DatePicker({
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
           className={clsx(
-            "flex h-10 w-full items-center justify-between rounded-lg border bg-(--card) px-3 py-2 text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+            "flex h-10 w-full items-center justify-between rounded-lg border bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
             error ? "border-red-500" : "border-(--border)",
             !displayValue ? "text-(--muted-fg)" : "text-(--fg)"
           )}
@@ -224,7 +224,7 @@ export function DatePicker({
                   <select
                     value={getMonth(viewDate)}
                     onChange={handleMonthChange}
-                    className="rounded-md border border-(--border) bg-(--card) px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                    className="rounded-md border border-(--border) bg-(--card) px-2 py-1 text-base md:text-sm focus:outline-none focus:ring-1 focus:ring-(--brand)"
                   >
                     {MONTHS.map((month, index) => (
                       <option key={month} value={index}>
@@ -235,7 +235,7 @@ export function DatePicker({
                   <select
                     value={getYear(viewDate)}
                     onChange={handleYearChange}
-                    className="rounded-md border border-(--border) bg-(--card) px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                    className="rounded-md border border-(--border) bg-(--card) px-2 py-1 text-base md:text-sm focus:outline-none focus:ring-1 focus:ring-(--brand)"
                   >
                     {generateYears().map((year) => (
                       <option key={year} value={year}>

@@ -22,7 +22,7 @@ export function Select({
       <select
         className={twMerge(
           clsx(
-            "flex h-10 w-full rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-sm text-(--fg) ring-offset-(--bg) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+            "flex h-10 w-full rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-base md:text-sm text-(--fg) ring-offset-(--bg) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
             error && "border-red-500 focus-visible:ring-red-500",
             className
           )

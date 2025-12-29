@@ -130,7 +130,7 @@ export function Combobox({
                 placeholder={placeholder}
                 value={search}
                 onValueChange={setSearch}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-(--muted-fg)"
+                className="flex-1 bg-transparent text-base md:text-sm outline-none placeholder:text-(--muted-fg)"
                 autoFocus
               />
             </div>
@@ -193,7 +193,7 @@ export function Combobox({
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
         className={clsx(
-          "flex h-10 w-full items-center justify-between rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-10 w-full items-center justify-between rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
           !selected ? "text-(--muted-fg)" : "text-(--fg)"
         )}
       >

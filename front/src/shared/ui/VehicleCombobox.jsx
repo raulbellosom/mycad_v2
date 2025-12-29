@@ -255,7 +255,7 @@ export function VehicleCombobox({
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
         className={clsx(
-          "flex h-auto min-h-10 w-full items-center justify-between rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-auto min-h-10 w-full items-center justify-between rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
           !selected ? "text-(--muted-fg)" : "text-(--fg)"
         )}
       >
@@ -326,7 +326,7 @@ export function VehicleCombobox({
                         placeholder="Buscar por placa, N° económico, marca, modelo..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="flex-1 bg-transparent text-sm outline-none placeholder:text-(--muted-fg) text-(--fg)"
+                        className="flex-1 bg-transparent text-base md:text-sm outline-none placeholder:text-(--muted-fg) text-(--fg)"
                         autoFocus
                       />
                       <button
@@ -363,7 +363,7 @@ export function VehicleCombobox({
                               <select
                                 value={filterType}
                                 onChange={(e) => setFilterType(e.target.value)}
-                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
                               >
                                 <option value="">Todos los tipos</option>
                                 {types.map((t) => (
@@ -377,7 +377,7 @@ export function VehicleCombobox({
                               <select
                                 value={filterBrand}
                                 onChange={(e) => setFilterBrand(e.target.value)}
-                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
                               >
                                 <option value="">Todas las marcas</option>
                                 {brands.map((b) => (
@@ -391,7 +391,7 @@ export function VehicleCombobox({
                               <select
                                 value={filterModel}
                                 onChange={(e) => setFilterModel(e.target.value)}
-                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
                               >
                                 <option value="">Todos los modelos</option>
                                 {models.map((m) => (
@@ -407,7 +407,7 @@ export function VehicleCombobox({
                                 onChange={(e) =>
                                   setFilterEconomicGroup(e.target.value)
                                 }
-                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
                               >
                                 <option value="">Grupo Económico</option>
                                 {economicGroups.map((g) => (

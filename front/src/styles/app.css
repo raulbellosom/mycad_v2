@@ -152,6 +152,35 @@ body {
   font-family: var(--font-sans);
   transition: background-color 0.3s ease, color 0.3s ease;
   overflow-x: hidden; /* Prevent horizontal scroll globally */
+  -webkit-text-size-adjust: 100%; /* Prevent text size adjustment on orientation change */
+}
+
+/* Prevent iOS auto-zoom on input focus - inputs must be at least 16px */
+@media screen and (max-width: 768px) {
+  input,
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents iOS Safari auto-zoom */
+  }
+
+  /* Also apply to common UI component classes */
+  .input,
+  [class*="input"],
+  [role="combobox"],
+  [role="listbox"],
+  [role="searchbox"] {
+    font-size: 16px !important;
+  }
 }
 
 /* Typography Enhancements */
