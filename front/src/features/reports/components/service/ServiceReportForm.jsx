@@ -152,7 +152,7 @@ export function ServiceReportForm({
       ...data,
       parts,
       partsCost,
-      stagedFiles,
+      stagedFiles, // Keep for parent component to handle file uploads
     });
   };
 
@@ -162,7 +162,7 @@ export function ServiceReportForm({
         ...data,
         parts,
         partsCost,
-        stagedFiles,
+        stagedFiles, // Keep for parent component to handle file uploads
       });
     })();
   };

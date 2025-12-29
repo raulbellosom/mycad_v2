@@ -10,6 +10,7 @@ import { ServiceReportForm } from "../components/service/ServiceReportForm";
 import {
   useCreateServiceReport,
   useFinalizeServiceReport,
+  useUploadServiceReportFile,
 } from "../hooks/useServiceReports";
 import { listVehicles } from "../../vehicles/services/vehicles.service";
 import {
@@ -58,6 +59,7 @@ export function ServiceReportCreatePage() {
   // Mutations
   const createMutation = useCreateServiceReport();
   const finalizeMutation = useFinalizeServiceReport();
+  const uploadFileMutation = useUploadServiceReportFile();
 
   const vehiclesList = vehicles || [];
 
@@ -80,13 +82,37 @@ export function ServiceReportCreatePage() {
     );
   }
 
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (formData) => {
     try {
+      // Separate stagedFiles from the report data
+      const { stagedFiles, ...reportData } = formData;
+      
+      // 1. Create the report without files
       const result = await createMutation.mutateAsync({
-        ...data,
+        ...reportData,
         groupId: activeGroupId,
         createdByProfileId: profile?.$id,
       });
+      
+      // 2. Upload files if they exist
+      if (stagedFiles && stagedFiles.length > 0) {
+        const uploadResults = await Promise.allSettled(
+          stagedFiles.map(file => 
+            uploadFileMutation.mutateAsync({
+              serviceHistoryId: result.$id,
+              groupId: activeGroupId,
+              file
+            })
+          )
+        );
+        
+        // Check if any uploads failed
+        const failedUploads = uploadResults.filter(r => r.status === 'rejected');
+        if (failedUploads.length > 0) {
+          toast.warning(`Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+        }
+      }
+      
       toast.success("Reporte de servicio creado exitosamente");
       navigate(`/reports/service/${result.$id}`);
     } catch (error) {
@@ -94,17 +120,43 @@ export function ServiceReportCreatePage() {
     }
   };
 
-  const handleFinalize = async (data) => {
+  const handleFinalize = async (formData) => {
     try {
+      // Separate stagedFiles from the report data
+      const { stagedFiles, ...reportData } = formData;
+      
+      // 1. Create the report without files
       const result = await createMutation.mutateAsync({
-        ...data,
+        ...reportData,
         groupId: activeGroupId,
         createdByProfileId: profile?.$id,
       });
+      
+      // 2. Upload files if they exist
+      if (stagedFiles && stagedFiles.length > 0) {
+        const uploadResults = await Promise.allSettled(
+          stagedFiles.map(file => 
+            uploadFileMutation.mutateAsync({
+              serviceHistoryId: result.$id,
+              groupId: activeGroupId,
+              file
+            })
+          )
+        );
+        
+        // Check if any uploads failed
+        const failedUploads = uploadResults.filter(r => r.status === 'rejected');
+        if (failedUploads.length > 0) {
+          toast.warning(`Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+        }
+      }
+      
+      // 3. Finalize the report
       await finalizeMutation.mutateAsync({
         reportId: result.$id,
         profileId: profile?.$id,
       });
+      
       toast.success("Reporte creado y finalizado exitosamente");
       navigate(`/reports/service/${result.$id}`);
     } catch (error) {
@@ -140,7 +192,7 @@ export function ServiceReportCreatePage() {
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           onFinalize={handleFinalize}
-          isLoading={createMutation.isPending || finalizeMutation.isPending}
+          isLoading={createMutation.isPending || finalizeMutation.isPending || uploadFileMutation.isPending}
         />
       </div>
     </PageLayout>

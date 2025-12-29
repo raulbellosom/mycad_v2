@@ -12,6 +12,7 @@ import {
   useFinalizeServiceReport,
   useServiceReportParts,
   useServiceReportFiles,
+  useUploadServiceReportFile,
 } from "../hooks/useServiceReports";
 import { listVehicles } from "../../vehicles/services/vehicles.service";
 import {
@@ -69,19 +70,44 @@ export function ServiceReportEditPage() {
   // Mutations
   const updateMutation = useUpdateServiceReport();
   const finalizeMutation = useFinalizeServiceReport();
+  const uploadFileMutation = useUploadServiceReportFile();
 
   const vehiclesList = vehicles || [];
   const parts = partsData?.documents || [];
   const files = filesData?.documents || [];
 
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (formData) => {
     try {
+      // Separate stagedFiles from the report data
+      const { stagedFiles, ...reportData } = formData;
+      
+      // 1. Update the report without files
       await updateMutation.mutateAsync({
-        reportId: id,
+        id: id,
         data: {
-          ...data,
+          ...reportData,
         },
       });
+      
+      // 2. Upload new files if they exist
+      if (stagedFiles && stagedFiles.length > 0) {
+        const uploadResults = await Promise.allSettled(
+          stagedFiles.map(file => 
+            uploadFileMutation.mutateAsync({
+              serviceHistoryId: id,
+              groupId: activeGroupId,
+              file
+            })
+          )
+        );
+        
+        // Check if any uploads failed
+        const failedUploads = uploadResults.filter(r => r.status === 'rejected');
+        if (failedUploads.length > 0) {
+          toast.warning(`Reporte actualizado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+        }
+      }
+      
       toast.success("Reporte actualizado exitosamente");
       navigate(`/reports/service/${id}`);
     } catch (error) {
@@ -89,18 +115,44 @@ export function ServiceReportEditPage() {
     }
   };
 
-  const handleFinalize = async (data) => {
+  const handleFinalize = async (formData) => {
     try {
+      // Separate stagedFiles from the report data
+      const { stagedFiles, ...reportData } = formData;
+      
+      // 1. Update the report without files
       await updateMutation.mutateAsync({
-        reportId: id,
+        id: id,
         data: {
-          ...data,
+          ...reportData,
         },
       });
+      
+      // 2. Upload new files if they exist
+      if (stagedFiles && stagedFiles.length > 0) {
+        const uploadResults = await Promise.allSettled(
+          stagedFiles.map(file => 
+            uploadFileMutation.mutateAsync({
+              serviceHistoryId: id,
+              groupId: activeGroupId,
+              file
+            })
+          )
+        );
+        
+        // Check if any uploads failed
+        const failedUploads = uploadResults.filter(r => r.status === 'rejected');
+        if (failedUploads.length > 0) {
+          toast.warning(`Reporte actualizado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+        }
+      }
+      
+      // 3. Finalize the report
       await finalizeMutation.mutateAsync({
         reportId: id,
         profileId: profile?.$id,
       });
+      
       toast.success("Reporte finalizado exitosamente");
       navigate(`/reports/service/${id}`);
     } catch (error) {
@@ -177,7 +229,7 @@ export function ServiceReportEditPage() {
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           onFinalize={handleFinalize}
-          isLoading={updateMutation.isPending || finalizeMutation.isPending}
+          isLoading={updateMutation.isPending || finalizeMutation.isPending || uploadFileMutation.isPending}
           isEditing
         />
       </div>
