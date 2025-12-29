@@ -139,7 +139,7 @@ export function UsersList({
                     <div className="h-10 w-10 rounded-full bg-(--muted) flex items-center justify-center overflow-hidden">
                       {user.avatarFileId ? (
                         <img
-                          src={`${env.endpoint}/storage/buckets/${env.bucketAvatarsId}/files/${user.avatarFileId}/preview?width=80&height=80`}
+                          src={getAvatarUrl(user.avatarFileId, 80)}
                           alt={user.firstName}
                           className="h-10 w-10 object-cover"
                         />

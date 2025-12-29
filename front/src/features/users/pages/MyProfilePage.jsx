@@ -18,6 +18,8 @@ import {
 import { Card } from "../../../shared/ui/Card";
 import { PageLayout } from "../../../shared/ui/PageLayout";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
+import { ImageViewerModal } from "../../../shared/ui/ImageViewerModal";
+import { env } from "../../../shared/appwrite/env";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {
   getMyDriverRecord,
@@ -43,6 +45,7 @@ export function MyProfilePage() {
   const [activeTab, setActiveTab] = useState("info");
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showAvatarViewer, setShowAvatarViewer] = useState(false);
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
 
@@ -170,8 +173,14 @@ export function MyProfilePage() {
                 <div
                   className={cn(
                     "h-28 w-28 rounded-2xl border-4 border-(--card) bg-(--card) shadow-xl overflow-hidden",
-                    isUploadingAvatar && "opacity-50"
+                    isUploadingAvatar && "opacity-50",
+                    avatarUrl && "cursor-pointer"
                   )}
+                  onClick={() => {
+                    if (avatarUrl && profile.avatarFileId) {
+                      setShowAvatarViewer(true);
+                    }
+                  }}
                 >
                   {avatarUrl ? (
                     <img
@@ -221,6 +230,17 @@ export function MyProfilePage() {
                       exit={{ opacity: 0, scale: 0.9, y: 4 }}
                       className="absolute top-full left-0 mt-2 w-44 rounded-xl border border-(--border) bg-(--card) shadow-xl z-50 overflow-hidden"
                     >
+                      <button
+                        onClick={() => {
+                          setShowAvatarMenu(false);
+                          setShowAvatarViewer(true);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-(--fg) hover:bg-(--muted)/50 transition-colors"
+                      >
+                        <User size={16} className="text-(--brand)" />
+                        Ver foto
+                      </button>
+                      <div className="h-px bg-(--border)" />
                       <button
                         onClick={() => {
                           setShowAvatarMenu(false);
@@ -355,6 +375,17 @@ export function MyProfilePage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Avatar Viewer Modal */}
+      {profile?.avatarFileId && (
+        <ImageViewerModal
+          isOpen={showAvatarViewer}
+          onClose={() => setShowAvatarViewer(false)}
+          currentImageId={profile.avatarFileId}
+          images={[profile.avatarFileId]}
+          bucketId={env.bucketAvatarsId}
+        />
+      )}
     </PageLayout>
   );
 }
