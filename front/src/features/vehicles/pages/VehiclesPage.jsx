@@ -6,6 +6,7 @@ import {
   Car,
   Search,
   ChevronRight,
+  ChevronLeft,
   Gauge,
   LayoutGrid,
   List,
@@ -63,12 +64,15 @@ const STATUS_LABELS = {
   RENTED: "Rentado",
 };
 
+const ITEMS_PER_PAGE = 12;
+
 export function VehiclesPage() {
   const { activeGroupId } = useActiveGroup();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("grid"); // grid | list
+  const [currentPage, setCurrentPage] = useState(1);
   const [vehicleToDelete, setVehicleToDelete] = useState(null);
   const [imageViewerData, setImageViewerData] = useState({
     isOpen: false,
@@ -135,6 +139,9 @@ export function VehiclesPage() {
 
   // Filter vehicles
   const filteredVehicles = useMemo(() => {
+    // Reset to first page when filters change
+    setCurrentPage(1);
+
     return vehicles.filter((vehicle) => {
       // Search filter
       const term = searchTerm.toLowerCase().trim();
@@ -181,6 +188,13 @@ export function VehiclesPage() {
     brandMap,
     typeMap,
   ]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE);
+  const paginatedVehicles = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredVehicles.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredVehicles, currentPage]);
 
   // Stats
   const stats = useMemo(() => {
@@ -367,84 +381,149 @@ export function VehiclesPage() {
       {isLoading ? (
         <LoadingScreen label="Cargando vehículos..." />
       ) : filteredVehicles.length > 0 ? (
-        viewMode === "grid" ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredVehicles.map((vehicle) => (
-              <VehicleCard
-                key={vehicle.$id}
-                vehicle={vehicle}
-                brandMap={brandMap}
-                modelMap={modelMap}
-                typeMap={typeMap}
-                canEdit={canEdit}
-                canDelete={canDelete}
-                onEdit={() => nav(`/vehicles/${vehicle.$id}/edit`)}
-                onDelete={() => setVehicleToDelete(vehicle)}
-                onOpenImages={(images, currentId) =>
-                  setImageViewerData({
-                    isOpen: true,
-                    images,
-                    currentImageId: currentId,
-                  })
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-(--border) bg-(--muted)/30">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
-                      Vehículo
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
-                      N° Económico
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
-                      Placa
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
-                      Tipo
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
-                      Kilometraje
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-(--border)">
-                  {filteredVehicles.map((vehicle) => (
-                    <VehicleRow
-                      key={vehicle.$id}
-                      vehicle={vehicle}
-                      brandMap={brandMap}
-                      modelMap={modelMap}
-                      typeMap={typeMap}
-                      canEdit={canEdit}
-                      canDelete={canDelete}
-                      onEdit={() => nav(`/vehicles/${vehicle.$id}/edit`)}
-                      onDelete={() => setVehicleToDelete(vehicle)}
-                      onOpenImages={(images, currentId) =>
-                        setImageViewerData({
-                          isOpen: true,
-                          images,
-                          currentImageId: currentId,
-                        })
-                      }
-                    />
-                  ))}
-                </tbody>
-              </table>
+        <>
+          {viewMode === "grid" ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {paginatedVehicles.map((vehicle) => (
+                <VehicleCard
+                  key={vehicle.$id}
+                  vehicle={vehicle}
+                  brandMap={brandMap}
+                  modelMap={modelMap}
+                  typeMap={typeMap}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
+                  onEdit={() => nav(`/vehicles/${vehicle.$id}/edit`)}
+                  onDelete={() => setVehicleToDelete(vehicle)}
+                  onOpenImages={(images, currentId) =>
+                    setImageViewerData({
+                      isOpen: true,
+                      images,
+                      currentImageId: currentId,
+                    })
+                  }
+                />
+              ))}
             </div>
-          </Card>
-        )
+          ) : (
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-(--border) bg-(--muted)/30">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                        Vehículo
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                        N° Económico
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                        Placa
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                        Tipo
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                        Kilometraje
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                        Estado
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-(--muted-fg) uppercase tracking-wider">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-(--border)">
+                    {paginatedVehicles.map((vehicle) => (
+                      <VehicleRow
+                        key={vehicle.$id}
+                        vehicle={vehicle}
+                        brandMap={brandMap}
+                        modelMap={modelMap}
+                        typeMap={typeMap}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        onEdit={() => nav(`/vehicles/${vehicle.$id}/edit`)}
+                        onDelete={() => setVehicleToDelete(vehicle)}
+                        onOpenImages={(images, currentId) =>
+                          setImageViewerData({
+                            isOpen: true,
+                            images,
+                            currentImageId: currentId,
+                          })
+                        }
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} />
+              </Button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((page) => {
+                    // Show first, last, current and adjacent pages
+                    if (page === 1 || page === totalPages) return true;
+                    if (Math.abs(page - currentPage) <= 1) return true;
+                    return false;
+                  })
+                  .map((page, idx, arr) => {
+                    // Add ellipsis if there's a gap
+                    const showEllipsisBefore =
+                      idx > 0 && page - arr[idx - 1] > 1;
+                    return (
+                      <span key={page} className="flex items-center">
+                        {showEllipsisBefore && (
+                          <span className="px-2 text-(--muted-fg)">...</span>
+                        )}
+                        <button
+                          onClick={() => setCurrentPage(page)}
+                          className={cn(
+                            "h-8 min-w-8 px-2 rounded-lg text-sm font-medium transition-colors",
+                            page === currentPage
+                              ? "bg-(--brand) text-white"
+                              : "hover:bg-(--muted) text-(--fg)"
+                          )}
+                        >
+                          {page}
+                        </button>
+                      </span>
+                    );
+                  })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight size={16} />
+              </Button>
+
+              <span className="ml-2 text-sm text-(--muted-fg)">
+                {filteredVehicles.length} vehículo
+                {filteredVehicles.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
+        </>
       ) : (
         <EmptyState
           icon={Car}
@@ -557,11 +636,11 @@ function VehicleCard({
 
   return (
     <Link to={`/vehicles/${vehicle.$id}`}>
-      <Card className="group h-full overflow-hidden transition-all hover:border-(--brand)/40 hover:shadow-lg">
-        {/* Image / Thumbnail Area */}
+      <Card className="group h-full overflow-hidden transition-all hover:border-(--brand)/40 hover:shadow-md">
+        {/* Image / Thumbnail Area - Más compacto */}
         <div
           className={cn(
-            "relative h-36 w-full overflow-hidden bg-(--muted)/30",
+            "relative h-28 w-full overflow-hidden bg-(--muted)/30",
             hasImages && "cursor-zoom-in"
           )}
           onClick={hasImages ? handleImageClick : undefined}
@@ -575,22 +654,22 @@ function VehicleCard({
               />
               {/* Image count badge */}
               {imageFiles.length > 1 && (
-                <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-medium text-white">
-                  <ImageIcon size={12} />
+                <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white">
+                  <ImageIcon size={10} />
                   {imageFiles.length}
                 </div>
               )}
             </>
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Car size={48} className="text-(--muted-fg)/30" />
+              <Car size={36} className="text-(--muted-fg)/30" />
             </div>
           )}
 
           {/* Status Badge - overlayed on image */}
           <span
             className={cn(
-              "absolute top-2 left-2 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm",
+              "absolute top-1.5 left-1.5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-sm",
               STATUS_COLORS[vehicle.status] || STATUS_COLORS.INACTIVE
             )}
           >
@@ -598,46 +677,46 @@ function VehicleCard({
           </span>
         </div>
 
-        {/* Content */}
-        <div className="p-4">
+        {/* Content - Más compacto */}
+        <div className="p-3">
           {/* Economic Number & Plate */}
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-lg font-bold text-(--fg) group-hover:text-(--brand) transition-colors">
+            <div className="min-w-0">
+              <p className="text-base font-bold text-(--fg) group-hover:text-(--brand) transition-colors truncate">
                 {displayEconomicNumber || "Sin N°"}
               </p>
-              <p className="text-sm text-(--muted-fg)">
+              <p className="text-xs text-(--muted-fg) truncate">
                 {vehicle.plate || "Sin placa"}
               </p>
             </div>
           </div>
 
           {/* Model & Brand */}
-          <div className="mt-2">
-            <p className="text-sm font-medium text-(--fg) truncate">
+          <div className="mt-1.5">
+            <p className="text-xs font-medium text-(--fg) truncate">
               {brand?.name || ""} {model?.name || ""}
               {model?.year ? ` (${model.year})` : ""}
             </p>
             {type && (
-              <p className="text-xs text-(--muted-fg) flex items-center gap-1 mt-0.5">
-                <Tag size={11} className="shrink-0" />
+              <p className="text-[11px] text-(--muted-fg) flex items-center gap-1 mt-0.5">
+                <Tag size={10} className="shrink-0" />
                 <span className="truncate">{type.name}</span>
               </p>
             )}
           </div>
 
-          {/* Info Row */}
-          <div className="mt-3 flex items-center gap-4 text-xs text-(--muted-fg)">
+          {/* Info Row - Compacto */}
+          <div className="mt-2 flex items-center gap-3 text-[11px] text-(--muted-fg)">
             {vehicle.mileage > 0 && (
               <span className="flex items-center gap-1">
-                <Gauge size={12} />
+                <Gauge size={11} />
                 {vehicle.mileage.toLocaleString()} {vehicle.mileageUnit || "KM"}
               </span>
             )}
             {vehicle.color && (
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1">
                 <div
-                  className="h-3 w-3 rounded-full border border-(--border)"
+                  className="h-2.5 w-2.5 rounded-full border border-(--border)"
                   style={{ backgroundColor: vehicle.color.toLowerCase() }}
                 />
                 {vehicle.color}
@@ -646,29 +725,31 @@ function VehicleCard({
           </div>
 
           {/* Actions */}
-          <div className="mt-3 flex items-center justify-between border-t border-(--border) pt-3">
-            <div className="flex items-center gap-1">
+          <div className="mt-2 flex items-center justify-between border-t border-(--border) pt-2">
+            <div className="flex items-center gap-0.5">
               {canEdit && (
                 <button
+                  type="button"
                   onClick={handleEdit}
-                  className="p-1.5 rounded-lg hover:bg-(--muted) transition-colors text-(--muted-fg) hover:text-(--brand)"
+                  className="p-1 rounded hover:bg-(--muted) transition-colors text-(--muted-fg) hover:text-(--brand)"
                   title="Editar"
                 >
-                  <Edit size={15} />
+                  <Edit size={14} />
                 </button>
               )}
               {canDelete && (
                 <button
+                  type="button"
                   onClick={handleDelete}
-                  className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-(--muted-fg) hover:text-red-600"
+                  className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-(--muted-fg) hover:text-red-600"
                   title="Eliminar"
                 >
-                  <Trash2 size={15} />
+                  <Trash2 size={14} />
                 </button>
               )}
             </div>
-            <span className="flex items-center gap-0.5 text-xs font-semibold text-(--brand) group-hover:underline">
-              Ver detalles <ChevronRight size={14} />
+            <span className="flex items-center gap-0.5 text-[11px] font-semibold text-(--brand) group-hover:underline">
+              Ver detalles <ChevronRight size={12} />
             </span>
           </div>
         </div>
@@ -801,7 +882,12 @@ function VehicleRow({
           </Link>
           {canEdit && (
             <button
-              onClick={onEdit}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onEdit();
+              }}
               className="p-1.5 rounded-lg hover:bg-(--muted) transition-colors text-(--muted-fg) hover:text-(--brand)"
               title="Editar"
             >
@@ -810,7 +896,12 @@ function VehicleRow({
           )}
           {canDelete && (
             <button
-              onClick={onDelete}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete();
+              }}
               className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-(--muted-fg) hover:text-red-600"
               title="Eliminar"
             >

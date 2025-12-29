@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Card } from "../../../../shared/ui/Card";
 import { Button } from "../../../../shared/ui/Button";
+import { formatServerDate } from "../../../../shared/utils/dateUtils";
 import { VehicleInfoCard } from "../common/VehicleInfoCard";
 import { PartsTable } from "../common/PartsTable";
 import { ReportFilesSection } from "../common/ReportFilesSection";
@@ -64,16 +65,7 @@ export function RepairReportView({
   const finalCost = parseFloat(report?.finalCost) || 0;
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return "-";
-    try {
-      return new Date(dateStr).toLocaleDateString("es-MX", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
+    return formatServerDate(dateStr, { format: "medium", fallback: "-" });
   };
 
   const formatCurrency = (amount) => {

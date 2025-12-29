@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Card } from "../../../../shared/ui/Card";
 import { Button } from "../../../../shared/ui/Button";
+import { formatServerDate } from "../../../../shared/utils/dateUtils";
 import {
   ReportStatusBadge,
   RepairStatusBadge,
@@ -59,12 +60,7 @@ export function ReportCard({
 
   // Format date
   const formatDate = (date) => {
-    if (!date) return "—";
-    return new Date(date).toLocaleDateString("es-MX", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatServerDate(date, { format: "short" });
   };
 
   // Vehicle info

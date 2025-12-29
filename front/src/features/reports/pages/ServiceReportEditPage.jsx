@@ -14,6 +14,11 @@ import {
   useServiceReportFiles,
 } from "../hooks/useServiceReports";
 import { listVehicles } from "../../vehicles/services/vehicles.service";
+import {
+  listVehicleTypes,
+  listVehicleBrands,
+  listVehicleModels,
+} from "../../catalogs/services/catalogs.service";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { useAuth } from "../../auth/hooks/useAuth";
 import toast from "react-hot-toast";
@@ -41,6 +46,25 @@ export function ServiceReportEditPage() {
   });
   const { data: partsData } = useServiceReportParts(id);
   const { data: filesData } = useServiceReportFiles(id);
+
+  // Queries - Catalogs for VehicleCombobox
+  const { data: vehicleTypes = [] } = useQuery({
+    queryKey: ["vehicleTypes", activeGroupId],
+    queryFn: () => listVehicleTypes(activeGroupId),
+    enabled: !!activeGroupId,
+  });
+
+  const { data: vehicleBrands = [] } = useQuery({
+    queryKey: ["vehicleBrands", activeGroupId],
+    queryFn: () => listVehicleBrands(activeGroupId),
+    enabled: !!activeGroupId,
+  });
+
+  const { data: vehicleModels = [] } = useQuery({
+    queryKey: ["vehicleModels", activeGroupId],
+    queryFn: () => listVehicleModels(activeGroupId, null),
+    enabled: !!activeGroupId,
+  });
 
   // Mutations
   const updateMutation = useUpdateServiceReport();
@@ -147,6 +171,9 @@ export function ServiceReportEditPage() {
             parts,
           }}
           vehicles={vehiclesList}
+          types={vehicleTypes}
+          brands={vehicleBrands}
+          models={vehicleModels}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           onFinalize={handleFinalize}

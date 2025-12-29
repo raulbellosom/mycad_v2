@@ -22,6 +22,7 @@ import { Select } from "../../../shared/ui/Select";
 import { DatePicker } from "../../../shared/ui/DatePicker";
 import { ModelCombobox } from "../../../shared/ui/ModelCombobox";
 import { CurrencyInput } from "../../../shared/ui/CurrencyInput";
+import { normalizeServerDate } from "../../../shared/utils/dateUtils";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {
@@ -63,11 +64,16 @@ const CURRENCY_OPTIONS = [
 
 export function VehicleFormPage() {
   const { id } = useParams();
-  const isEdit = Boolean(id) && id !== "new";
+  // Validación más estricta: isEdit solo si hay un ID válido (no vacío, no "new", no "undefined")
+  const isEdit =
+    Boolean(id) && id !== "new" && id !== "undefined" && id.length > 5;
   const nav = useNavigate();
   const queryClient = useQueryClient();
   const { activeGroupId } = useActiveGroup();
   const { profile } = useAuth();
+
+  // Debug log para rastrear el problema de duplicación
+  console.log("[VehicleFormPage] Mounted - id:", id, "isEdit:", isEdit);
 
   const [formData, setFormData] = useState({
     plate: "",
@@ -141,7 +147,7 @@ export function VehicleFormPage() {
         economicNumber: vehicle.economicNumber || "",
         brandId: vehicle.brandId || "",
         modelId: vehicle.modelId || "",
-        acquisitionDate: vehicle.acquisitionDate || "",
+        acquisitionDate: normalizeServerDate(vehicle.acquisitionDate),
         color: vehicle.color || "",
         typeId: vehicle.typeId || "",
         status: vehicle.status || "ACTIVE",
@@ -191,9 +197,23 @@ export function VehicleFormPage() {
   const mutation = useMutation({
     mutationFn: async (data) => {
       let vehicleRes;
+
+      // Doble validación: si estamos en modo edición, DEBE existir el ID
+      // Esto previene crear duplicados accidentalmente
       if (isEdit) {
+        if (!id || id === "new") {
+          throw new Error("Error: ID de vehículo inválido para actualización");
+        }
+        // Verificar que el vehículo existe antes de actualizar
+        if (!vehicle) {
+          throw new Error(
+            "Error: No se pudo cargar el vehículo para actualizar"
+          );
+        }
+        console.log("[VehicleFormPage] Actualizando vehículo:", id);
         vehicleRes = await updateVehicle(id, data);
       } else {
+        console.log("[VehicleFormPage] Creando nuevo vehículo");
         vehicleRes = await createVehicle({
           ...data,
           groupId: activeGroupId,
@@ -219,13 +239,22 @@ export function VehicleFormPage() {
 
       return vehicleRes;
     },
-    onSuccess: () => {
+    onSuccess: (vehicleRes) => {
       queryClient.invalidateQueries(["vehicles"]);
       queryClient.invalidateQueries(["vehicleFiles", id]);
-      toast.success(
-        isEdit ? "Vehículo actualizado" : "Vehículo creado con éxito"
-      );
-      nav("/vehicles");
+
+      if (isEdit) {
+        // En modo edición: quedarse en el formulario y actualizar el estado original
+        toast.success("Vehículo actualizado");
+        // Limpiar archivos staged ya registrados
+        setStagedFiles([]);
+        // Actualizar el estado original para bloquear el botón guardar
+        setOriginalFormData({ ...formData });
+      } else {
+        // En modo creación: navegar a la lista
+        toast.success("Vehículo creado con éxito");
+        nav("/vehicles");
+      }
     },
     onError: (err) => {
       // Handle specific Appwrite errors
@@ -245,6 +274,10 @@ export function VehicleFormPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Evitar doble submit
+    if (mutation.isPending) {
+      return;
+    }
     if (isUploading) {
       toast.error("Espera a que terminen de subirse los archivos");
       return;
@@ -257,6 +290,13 @@ export function VehicleFormPage() {
       toast.error("El Número Económico es obligatorio");
       return;
     }
+    // Validación crítica: en modo edición, asegurar que tenemos el vehículo cargado
+    if (isEdit && !vehicle) {
+      toast.error("Error: No se ha cargado el vehículo. Recarga la página.");
+      return;
+    }
+
+    console.log("[VehicleFormPage] Submit - isEdit:", isEdit, "id:", id);
     mutation.mutate(formData);
   };
 

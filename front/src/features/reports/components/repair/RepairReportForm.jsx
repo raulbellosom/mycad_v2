@@ -25,7 +25,8 @@ import { Card } from "../../../../shared/ui/Card";
 import { Input } from "../../../../shared/ui/Input";
 import { Button } from "../../../../shared/ui/Button";
 import { Select } from "../../../../shared/ui/Select";
-import { VehicleSelector } from "../common/VehicleInfoCard";
+import { VehicleCombobox } from "../../../../shared/ui/VehicleCombobox";
+import { VehicleInfoCard } from "../common/VehicleInfoCard";
 import { PartsTableLocal } from "../common/PartsTable";
 import { ReportSummary } from "../common/ReportSummary";
 import { ReportFilesStagingSection } from "../common/ReportFilesSection";
@@ -73,6 +74,10 @@ const repairReportSchema = z.object({
 export function RepairReportForm({
   initialData = {},
   vehicles = [],
+  // Catalog data for VehicleCombobox
+  types = [],
+  brands = [],
+  models = [],
   onSubmit,
   onCancel,
   onFinalize,
@@ -211,18 +216,35 @@ export function RepairReportForm({
         onToggle={() => toggleSection("vehicle")}
         hasError={!!errors.vehicleId}
       >
-        <Controller
-          name="vehicleId"
-          control={control}
-          render={({ field }) => (
-            <VehicleSelector
-              vehicles={vehicles}
-              selectedId={field.value}
-              onSelect={field.onChange}
-              disabled={!canEdit}
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-(--fg)">
+            Seleccionar vehículo *
+          </label>
+          <Controller
+            name="vehicleId"
+            control={control}
+            render={({ field }) => (
+              <VehicleCombobox
+                value={field.value}
+                onChange={field.onChange}
+                vehicles={vehicles}
+                types={types}
+                brands={brands}
+                models={models}
+                placeholder="Buscar por placa, N° económico, marca, modelo..."
+                emptyText="No se encontraron vehículos"
+                disabled={!canEdit}
+              />
+            )}
+          />
+          {/* Show selected vehicle preview */}
+          {watchedValues.vehicleId && (
+            <VehicleInfoCard
+              vehicle={vehicles.find((v) => v.$id === watchedValues.vehicleId)}
+              compact
             />
           )}
-        />
+        </div>
         {errors.vehicleId && (
           <p className="text-sm text-red-500 mt-1">
             {errors.vehicleId.message}

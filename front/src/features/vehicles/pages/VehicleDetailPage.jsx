@@ -51,6 +51,7 @@ import { cn } from "../../../shared/utils/cn";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { usePermissions } from "../../groups/hooks/usePermissions";
 import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
+import { formatServerDate } from "../../../shared/utils/dateUtils";
 import {
   getVehicleById,
   deleteVehicle,
@@ -130,12 +131,7 @@ function formatCurrency(value, currency = "MXN") {
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return "—";
-  try {
-    return format(new Date(dateStr), "dd 'de' MMMM, yyyy", { locale: es });
-  } catch {
-    return "—";
-  }
+  return formatServerDate(dateStr, { format: "medium" });
 }
 
 function formatMileage(mileage, unit = "KM") {

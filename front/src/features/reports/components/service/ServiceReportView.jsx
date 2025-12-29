@@ -17,6 +17,7 @@ import {
 import { Card } from "../../../../shared/ui/Card";
 import { Button } from "../../../../shared/ui/Button";
 import { Badge } from "../../../../shared/ui/Badge";
+import { formatServerDate } from "../../../../shared/utils/dateUtils";
 import { VehicleInfoCard } from "../common/VehicleInfoCard";
 import { PartsTable } from "../common/PartsTable";
 import { ReportSummary } from "../common/ReportSummary";
@@ -54,18 +55,15 @@ export function ServiceReportView({
 
   // Format helpers
   const formatDate = (date) => {
-    if (!date) return "—";
-    return new Date(date).toLocaleDateString("es-MX", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    return formatServerDate(date, { format: "long" });
   };
 
   const formatDateTime = (date) => {
     if (!date) return "—";
-    return new Date(date).toLocaleString("es-MX", {
+    // Para datetime completos con hora, usamos la fecha local
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleString("es-MX", {
       year: "numeric",
       month: "short",
       day: "numeric",
