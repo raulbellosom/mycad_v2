@@ -58,6 +58,34 @@ export function VehicleMediaManager({
   const MAX_FILE_SIZE_MB = 50;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+  // Max file name length (Appwrite has a limit, we use 75 to be safe)
+  const MAX_FILENAME_LENGTH = 75;
+
+  /**
+   * Truncates a filename if it exceeds the max length.
+   * Preserves the file extension.
+   * Example: "very_long_name.pdf" -> "very_lon...name.pdf"
+   */
+  const truncateFileName = (fileName) => {
+    if (fileName.length <= MAX_FILENAME_LENGTH) return fileName;
+
+    const lastDotIndex = fileName.lastIndexOf(".");
+    const extension = lastDotIndex > 0 ? fileName.slice(lastDotIndex) : "";
+    const nameWithoutExt =
+      lastDotIndex > 0 ? fileName.slice(0, lastDotIndex) : fileName;
+
+    // Reserve space for extension and ellipsis
+    const maxNameLength = MAX_FILENAME_LENGTH - extension.length - 3; // -3 for "..."
+
+    if (maxNameLength <= 0) {
+      // Edge case: extension alone is too long
+      return fileName.slice(0, MAX_FILENAME_LENGTH);
+    }
+
+    const truncatedName = nameWithoutExt.slice(0, maxNameLength) + "...";
+    return truncatedName + extension;
+  };
+
   const onDrop = useCallback(
     async (acceptedFiles) => {
       setIsUploading(true);
@@ -75,10 +103,18 @@ export function VehicleMediaManager({
             continue;
           }
 
+          // Truncate filename if too long
+          const safeName = truncateFileName(file.name);
+          if (safeName !== file.name) {
+            console.log(
+              `[VehicleMediaManager] Filename truncated: "${file.name}" -> "${safeName}"`
+            );
+          }
+
           const res = await uploadFileToStorage(file);
           onAddStaged({
             fileId: res.$id,
-            name: file.name,
+            name: safeName, // Use truncated name for display/storage
             type: file.type,
             size: file.size,
             isImage: file.type.startsWith("image/"),
