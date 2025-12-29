@@ -154,7 +154,7 @@ export function DatePicker({
     : "";
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full min-w-0 max-w-full ${className}`}>
       {label && (
         <label className="mb-1.5 block text-sm font-medium text-(--fg)">
           {label}
@@ -166,13 +166,13 @@ export function DatePicker({
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
           className={clsx(
-            "flex h-10 w-full items-center justify-between rounded-lg border bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+            "flex h-10 w-full min-w-0 max-w-full items-center justify-between rounded-lg border bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
             error ? "border-red-500" : "border-(--border)",
             !displayValue ? "text-(--muted-fg)" : "text-(--fg)"
           )}
         >
           <span className="truncate flex items-center gap-2">
-            <CalendarIcon size={16} className="text-(--muted-fg)" />
+            <CalendarIcon size={16} className="text-(--muted-fg) shrink-0" />
             {displayValue || placeholder}
           </span>
           {displayValue && !disabled && (

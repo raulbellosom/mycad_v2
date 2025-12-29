@@ -131,7 +131,7 @@ export const CurrencyInput = forwardRef(
     };
 
     return (
-      <div className="w-full">
+      <div className="w-full min-w-0 max-w-full">
         {label && (
           <label className="mb-1.5 block text-sm font-medium text-(--fg)">
             {label}
@@ -149,7 +149,7 @@ export const CurrencyInput = forwardRef(
           placeholder={placeholder || `${symbol}0.00`}
           className={twMerge(
             clsx(
-              "flex h-10 w-full rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) placeholder:text-(--muted-fg) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-(--fg) transition-colors",
+              "flex h-10 w-full min-w-0 max-w-full rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) placeholder:text-(--muted-fg) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-(--fg) transition-colors",
               error && "border-red-500 focus-visible:ring-red-500",
               className
             )

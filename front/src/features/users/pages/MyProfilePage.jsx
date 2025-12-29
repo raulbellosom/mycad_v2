@@ -163,7 +163,6 @@ export function MyProfilePage() {
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  capture="user"
                   onChange={handleAvatarUpload}
                   className="hidden"
                 />

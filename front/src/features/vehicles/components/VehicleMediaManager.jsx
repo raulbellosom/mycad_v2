@@ -200,12 +200,12 @@ export function VehicleMediaManager({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Dropzone */}
       <div
         {...getRootProps()}
         className={cn(
-          "relative cursor-pointer rounded-xl border-2 border-dashed p-6 transition-all hover:bg-(--muted)/50",
+          "relative cursor-pointer rounded-xl border-2 border-dashed p-4 sm:p-6 transition-all hover:bg-(--muted)/50",
           isDragActive
             ? "border-(--brand) bg-(--brand)/5"
             : "border-(--border)",
@@ -225,13 +225,13 @@ export function VehicleMediaManager({
             <p className="text-sm font-medium text-(--fg)">
               {isDragActive
                 ? "Suelta para subir"
-                : "Arrastra o haz clic para subir fotos y documentos"}
+                : "Arrastra o haz clic para subir"}
             </p>
             <p className="text-xs text-(--muted-fg)">
-              Fotos (JPG, PNG, SVG) o Documentos (PDF, MD, DOCX, XLSX)
+              Fotos o Documentos (PDF, DOCX, XLSX)
             </p>
             <p className="text-xs text-(--muted-fg)/70 mt-1">
-              Máximo {MAX_FILE_SIZE_MB}MB por archivo
+              Máx. {MAX_FILE_SIZE_MB}MB por archivo
             </p>
           </div>
         </div>
@@ -245,14 +245,14 @@ export function VehicleMediaManager({
             <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--fg)">
               <ImageIcon size={16} className="text-(--brand)" /> Fotos
             </h4>
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
               {allPhotos.map((file) => {
                 const storageId = getStorageId(file);
                 return (
                   <div key={storageId} className="group relative aspect-square">
                     <div
                       onClick={() => setSelectedImageId(storageId)}
-                      className="h-full w-full cursor-pointer overflow-hidden rounded-xl border border-(--border) bg-(--card) shadow-sm transition-all hover:border-(--brand)/50"
+                      className="h-full w-full cursor-pointer overflow-hidden rounded-lg sm:rounded-xl border border-(--border) bg-(--card) shadow-sm transition-all hover:border-(--brand)/50"
                     >
                       <img
                         src={getFilePreview(storageId)}
@@ -340,17 +340,17 @@ export function VehicleMediaManager({
             <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--fg)">
               <FileText size={16} className="text-(--brand)" /> Documentos
             </h4>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
               {allDocs.map((file) => {
                 const storageId = getStorageId(file);
                 return (
                   <div
                     key={storageId}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-(--border) bg-(--muted)/20 p-3"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-(--border) bg-(--muted)/20 p-2 sm:p-3"
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <FileText
-                        size={18}
+                        size={16}
                         className="shrink-0 text-(--muted-fg)"
                       />
                       <span

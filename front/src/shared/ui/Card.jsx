@@ -23,7 +23,7 @@ export function Card({ className, children, padding = "md", ...props }) {
       transition={{ duration: 0.2 }}
       className={twMerge(
         clsx(
-          "rounded-2xl border border-(--border) bg-(--card) text-(--card-fg) shadow-sm dark:shadow-none",
+          "rounded-2xl border border-(--border) bg-(--card) text-(--card-fg) shadow-sm dark:shadow-none box-border w-full min-w-0 max-w-full",
           isInteractive && "cursor-pointer",
           paddings[padding],
           className

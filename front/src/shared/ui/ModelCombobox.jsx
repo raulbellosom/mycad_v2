@@ -129,9 +129,15 @@ export function ModelCombobox({
     // Determine if dropdown should appear above or below
     const showAbove = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
 
+    // On mobile (< 640px), use full width minus padding
+    // On larger screens, use minimum 350px or button width
+    const isMobile = viewportWidth < 640;
+    const minWidth = isMobile
+      ? Math.min(rect.width, viewportWidth - 32)
+      : Math.max(rect.width, 350);
+
     // Calculate left position, ensuring it doesn't overflow viewport
     let left = rect.left;
-    const minWidth = Math.max(rect.width, 350);
     if (left + minWidth > viewportWidth - 16) {
       left = viewportWidth - minWidth - 16;
     }
@@ -142,7 +148,7 @@ export function ModelCombobox({
       top: showAbove ? "auto" : rect.bottom + 4,
       bottom: showAbove ? viewportHeight - rect.top + 4 : "auto",
       left,
-      width: rect.width,
+      width: isMobile ? viewportWidth - 32 : rect.width,
       minWidth,
       maxWidth: viewportWidth - 32,
     });
@@ -192,39 +198,46 @@ export function ModelCombobox({
     : placeholder;
 
   return (
-    <div className={`relative ${className}`} ref={buttonRef}>
+    <div
+      className={`relative w-full min-w-0 max-w-full ${className}`}
+      ref={buttonRef}
+    >
       <button
         type="button"
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
         className={clsx(
-          "flex h-auto min-h-10 w-full items-center justify-between rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-auto min-h-10 w-full min-w-0 max-w-full items-center justify-between rounded-lg border border-(--border) bg-(--card) px-3 py-2 text-base md:text-sm ring-offset-(--bg) transition-colors focus:outline-none focus:ring-2 focus:ring-(--brand) focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
           !selected ? "text-(--muted-fg)" : "text-(--fg)"
         )}
       >
-        <div className="flex-1 text-left">
+        <div className="flex-1 text-left min-w-0 overflow-hidden">
           {selected ? (
-            <div className="space-y-0.5">
-              <div className="font-medium flex items-center gap-2">
+            <div className="space-y-0.5 min-w-0">
+              <div className="font-medium flex items-center gap-2 min-w-0">
                 {selectedType?.economicGroup && (
-                  <span className="inline-flex items-center rounded bg-(--brand)/10 px-1.5 py-0.5 text-xs font-semibold text-(--brand)">
+                  <span className="inline-flex items-center rounded bg-(--brand)/10 px-1.5 py-0.5 text-xs font-semibold text-(--brand) shrink-0">
                     {selectedType.economicGroup}
                   </span>
                 )}
-                {selected.label}
+                <span className="truncate">{selected.label}</span>
               </div>
               <div className="text-xs text-(--muted-fg) flex flex-wrap gap-x-2">
-                {selectedBrand && <span>{selectedBrand.name}</span>}
+                {selectedBrand && (
+                  <span className="truncate">{selectedBrand.name}</span>
+                )}
                 {selectedType && (
-                  <span className="opacity-70">• {selectedType.name}</span>
+                  <span className="opacity-70 truncate">
+                    • {selectedType.name}
+                  </span>
                 )}
                 {selected.year && (
-                  <span className="opacity-70">• {selected.year}</span>
+                  <span className="opacity-70 shrink-0">• {selected.year}</span>
                 )}
               </div>
             </div>
           ) : (
-            <span className="truncate">{placeholder}</span>
+            <span className="truncate block">{placeholder}</span>
           )}
         </div>
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -286,12 +299,12 @@ export function ModelCombobox({
                           className="overflow-hidden"
                         >
                           <div className="pt-2 space-y-2 border-t border-(--border)">
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               {/* Type filter */}
                               <select
                                 value={filterType}
                                 onChange={(e) => setFilterType(e.target.value)}
-                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                                className="w-full rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0"
                               >
                                 <option value="">Todos los tipos</option>
                                 {types.map((t) => (
@@ -305,7 +318,7 @@ export function ModelCombobox({
                               <select
                                 value={filterBrand}
                                 onChange={(e) => setFilterBrand(e.target.value)}
-                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                                className="w-full rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0"
                               >
                                 <option value="">Todas las marcas</option>
                                 {brands.map((b) => (
@@ -321,9 +334,9 @@ export function ModelCombobox({
                                 onChange={(e) =>
                                   setFilterEconomicGroup(e.target.value)
                                 }
-                                className="rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                                className="w-full rounded-md border border-(--border) bg-(--card) px-2 py-1.5 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0"
                               >
-                                <option value="">Grupo Económico</option>
+                                <option value="">Grupo Econ.</option>
                                 {economicGroups.map((g) => (
                                   <option key={g} value={g}>
                                     {g}

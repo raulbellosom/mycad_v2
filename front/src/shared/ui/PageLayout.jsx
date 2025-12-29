@@ -18,13 +18,13 @@ import clsx from "clsx";
  */
 export function PageLayout({ title, subtitle, actions, children, className }) {
   return (
-    <div className={twMerge(clsx("space-y-6", className))}>
+    <div className={twMerge(clsx("space-y-6 w-full max-w-full", className))}>
       {/* Header Section */}
       {(title || actions) && (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {title && (
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
                 {title}
               </h1>
               {subtitle && (
@@ -34,7 +34,9 @@ export function PageLayout({ title, subtitle, actions, children, className }) {
               )}
             </div>
           )}
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          {actions && (
+            <div className="flex items-center gap-2 shrink-0">{actions}</div>
+          )}
         </div>
       )}
 

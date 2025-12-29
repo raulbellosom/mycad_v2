@@ -401,22 +401,22 @@ export function VehicleFormPage() {
         </Button>
       }
     >
-      <div className="mx-auto max-w-6xl">
-        <div className="grid gap-6 lg:grid-cols-3">
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left Col: Main Form */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="p-6">
-              <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
-                <Info size={20} className="text-(--brand)" />
+          <div className="lg:col-span-2 space-y-6 min-w-0">
+            <Card className="p-4 sm:p-6">
+              <h3 className="mb-5 flex items-center gap-2 text-base sm:text-lg font-semibold text-(--fg)">
+                <Info size={20} className="text-(--brand) shrink-0" />
                 Información del Vehículo
               </h3>
               <form
                 onSubmit={handleSubmit}
                 id="vehicle-form"
-                className="space-y-6"
+                className="space-y-5 sm:space-y-6"
               >
                 {/* Model selector - FIRST and most important */}
-                <div>
+                <div className="min-w-0">
                   <label className="mb-1.5 block text-sm font-medium text-(--fg)">
                     Modelo del Vehículo *
                   </label>
@@ -438,7 +438,7 @@ export function VehicleFormPage() {
 
                 {/* Auto-filled info from model */}
                 {formData.modelId && (
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
                     <Input
                       label="Marca"
                       value={brandMap[formData.brandId] || ""}
@@ -461,14 +461,14 @@ export function VehicleFormPage() {
                 )}
 
                 {/* Economic Number with prefix */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <div>
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="min-w-0">
                     <label className="mb-1.5 block text-sm font-medium text-(--fg)">
                       N° Económico *
                     </label>
                     <div className="flex items-center gap-1">
                       {currentEconomicGroup && (
-                        <div className="flex h-10 items-center rounded-l-lg border border-r-0 border-(--border) bg-(--muted)/50 px-3 text-sm font-semibold text-(--brand)">
+                        <div className="flex h-10 items-center rounded-l-lg border border-r-0 border-(--border) bg-(--muted)/50 px-2 sm:px-3 text-sm font-semibold text-(--brand) shrink-0">
                           {currentEconomicGroup}-
                         </div>
                       )}
@@ -481,7 +481,11 @@ export function VehicleFormPage() {
                           )
                         }
                         placeholder="8291"
-                        className={currentEconomicGroup ? "rounded-l-none" : ""}
+                        className={
+                          currentEconomicGroup
+                            ? "rounded-l-none min-w-0"
+                            : "min-w-0"
+                        }
                       />
                     </div>
                     {compositeEconomicNumber && (
@@ -509,7 +513,7 @@ export function VehicleFormPage() {
                   />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                   <DatePicker
                     label="Fecha de Adquisición"
                     value={formData.acquisitionDate}
@@ -524,16 +528,16 @@ export function VehicleFormPage() {
                   />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                   <Select
                     label="Estado"
                     value={formData.status}
                     onChange={(v) => handleChange("status", v)}
                     options={VEHICLE_STATUS_OPTIONS}
                   />
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 min-w-0">
                     <Input
-                      label="Kilometraje actual"
+                      label="Kilometraje"
                       type="number"
                       min="0"
                       value={formData.mileage || ""}
@@ -558,15 +562,15 @@ export function VehicleFormPage() {
             </Card>
 
             {/* Accounting/Financial Section */}
-            <Card className="p-6">
-              <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
-                <DollarSign size={20} className="text-(--brand)" />
+            <Card className="p-4 sm:p-6">
+              <h3 className="mb-5 flex items-center gap-2 text-base sm:text-lg font-semibold text-(--fg)">
+                <DollarSign size={20} className="text-(--brand) shrink-0" />
                 Datos Contables
               </h3>
               <div className="space-y-4">
                 {/* Acquisition Cost */}
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="sm:col-span-2">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
+                  <div className="sm:col-span-2 min-w-0">
                     <CurrencyInput
                       label="Costo de Adquisición"
                       value={formData.acquisitionCost}
@@ -584,8 +588,8 @@ export function VehicleFormPage() {
                 </div>
 
                 {/* Book Value */}
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="sm:col-span-2">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
+                  <div className="sm:col-span-2 min-w-0">
                     <CurrencyInput
                       label="Valor en Libros"
                       value={formData.bookValue}
@@ -603,8 +607,8 @@ export function VehicleFormPage() {
                 </div>
 
                 {/* Market Value */}
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="sm:col-span-2">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
+                  <div className="sm:col-span-2 min-w-0">
                     <CurrencyInput
                       label="Valor de Mercado"
                       value={formData.marketValue}
@@ -630,9 +634,9 @@ export function VehicleFormPage() {
 
             {/* Media Section Integrated Below Main Form (Large Screens) */}
             <div className="hidden lg:block">
-              <Card className="p-6">
-                <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
-                  <ImageIcon size={20} className="text-(--brand)" />
+              <Card className="p-4 sm:p-6">
+                <h3 className="mb-5 flex items-center gap-2 text-base sm:text-lg font-semibold text-(--fg)">
+                  <ImageIcon size={20} className="text-(--brand) shrink-0" />
                   Fotos y Archivos
                 </h3>
                 <VehicleMediaManager
@@ -665,12 +669,12 @@ export function VehicleFormPage() {
           </div>
 
           {/* Right Col: Media & Actions (Small/Med screens) / Sidebar (Large Screens) */}
-          <div className="space-y-6 flex flex-col">
+          <div className="space-y-6 flex flex-col min-w-0">
             {/* Media Section (Responsive version) - Order 1 on mobile */}
             <div className="lg:hidden order-1">
-              <Card className="p-6">
-                <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
-                  <ImageIcon size={20} className="text-(--brand)" />
+              <Card className="p-4 sm:p-6">
+                <h3 className="mb-5 flex items-center gap-2 text-base sm:text-lg font-semibold text-(--fg)">
+                  <ImageIcon size={20} className="text-(--brand) shrink-0" />
                   Fotos y Archivos
                 </h3>
                 <VehicleMediaManager
@@ -702,7 +706,7 @@ export function VehicleFormPage() {
             </div>
 
             {/* Action Sidebar - Order 2 on mobile */}
-            <Card className="p-6 sticky top-24 order-2 mt-6 lg:mt-0">
+            <Card className="p-4 sm:p-6 sticky top-20 sm:top-24 order-2 mt-4 lg:mt-0">
               <div className="space-y-4">
                 <div className="flex flex-col gap-2">
                   <Button
@@ -710,7 +714,7 @@ export function VehicleFormPage() {
                     form="vehicle-form"
                     loading={mutation.isPending}
                     disabled={mutation.isPending || isUploading || !hasChanges}
-                    className="w-full justify-center py-6 text-lg"
+                    className="w-full justify-center py-4 sm:py-6 text-base sm:text-lg"
                   >
                     {mutation.isPending ? (
                       <>Guardando...</>
@@ -742,7 +746,7 @@ export function VehicleFormPage() {
                   </div>
                 )}
 
-                <div className="rounded-lg bg-(--muted)/30 p-4 border border-(--border)">
+                <div className="rounded-lg bg-(--muted)/30 p-3 sm:p-4 border border-(--border)">
                   <h4 className="text-sm font-medium text-(--fg) mb-3 pb-2 border-b border-(--border)">
                     Resumen del Vehículo
                   </h4>
@@ -765,9 +769,11 @@ export function VehicleFormPage() {
 
                     {/* Model */}
                     {formData.modelId && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-(--muted-fg)">Modelo:</span>
-                        <span className="font-semibold text-(--fg) text-right max-w-[140px] truncate">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-(--muted-fg) shrink-0">
+                          Modelo:
+                        </span>
+                        <span className="font-semibold text-(--fg) text-right truncate">
                           {modelOptions.find(
                             (m) => m.value === formData.modelId
                           )?.label || "—"}
