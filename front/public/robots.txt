@@ -1,0 +1,14 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Bloquear rutas privadas/internas de la aplicación
+Disallow: /api/
+Disallow: /admin/
+Disallow: /*.json$
+
+# Sitemap
+Sitemap: https://admin.mycad.mx/sitemap.xml
+
+# Crawl-delay (opcional, para ser amable con los bots)
+Crawl-delay: 1

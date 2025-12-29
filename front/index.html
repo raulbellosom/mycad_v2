@@ -1,15 +1,110 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-MX">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+
+    <!-- SEO Meta Tags -->
+    <title>MyCAD Admin - Sistema de Gestión de Flotillas</title>
+    <meta
+      name="description"
+      content="MyCAD Admin es un sistema integral de administración de flotillas y control vehicular. Gestiona vehículos, conductores, clientes, reportes y más de manera eficiente."
+    />
+    <meta
+      name="keywords"
+      content="gestión de flotillas, control vehicular, administración de vehículos, conductores, GPS, rastreo, MyCAD, flotillas México"
+    />
+    <meta name="author" content="MyCAD" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <link rel="canonical" href="https://admin.mycad.mx/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://admin.mycad.mx/" />
+    <meta
+      property="og:title"
+      content="MyCAD Admin - Sistema de Gestión de Flotillas"
+    />
+    <meta
+      property="og:description"
+      content="Sistema integral de administración de flotillas y control vehicular. Gestiona vehículos, conductores, clientes y reportes de manera eficiente."
+    />
+    <meta property="og:image" content="https://admin.mycad.mx/icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="MyCAD Logo" />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:site_name" content="MyCAD Admin" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://admin.mycad.mx/" />
+    <meta
+      name="twitter:title"
+      content="MyCAD Admin - Sistema de Gestión de Flotillas"
+    />
+    <meta
+      name="twitter:description"
+      content="Sistema integral de administración de flotillas y control vehicular. Gestiona vehículos, conductores, clientes y reportes."
+    />
+    <meta name="twitter:image" content="https://admin.mycad.mx/icon-512.png" />
+    <meta name="twitter:image:alt" content="MyCAD Logo" />
+
+    <!-- PWA & Mobile -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#f97316" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MyCAD" />
+    <meta name="application-name" content="MyCAD Admin" />
+    <meta name="msapplication-TileColor" content="#f97316" />
+    <meta name="msapplication-TileImage" content="/icon-192.png" />
+    <meta name="msapplication-config" content="none" />
+
+    <!-- Favicons & Icons -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+
+    <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+
+    <!-- Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <title>MyCAD Admin</title>
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "MyCAD Admin",
+        "description": "Sistema integral de administración de flotillas y control vehicular",
+        "url": "https://admin.mycad.mx",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web, Android, iOS",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "MXN"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "MyCAD"
+        }
+      }
+    </script>
   </head>
   <body
     class="min-h-dvh bg-(--bg) text-(--fg) font-sans antialiased selection:bg-(--brand) selection:text-white"

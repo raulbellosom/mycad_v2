@@ -38,8 +38,8 @@ export function ActiveGroupProvider({ children }) {
   // Auto-select first group if none selected and groups exist
   useEffect(() => {
     if (!isLoading && groups?.length > 0 && !activeGroupId) {
-      // Optional: Auto-select. For now we leave it empty to force user selection or explicitly select the first.
-      // handleSetActiveGroupId(groups[0].$id)
+      // Auto-select first group when user logs in and has groups
+      handleSetActiveGroupId(groups[0].$id);
     }
   }, [groups, activeGroupId, isLoading]);
 

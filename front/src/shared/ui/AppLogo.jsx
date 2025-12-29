@@ -1,7 +1,18 @@
-export function AppLogo() {
+import { cn } from "../utils/cn";
+
+export function AppLogo({ size = "md", className }) {
+  const sizes = {
+    sm: "h-8 w-8",
+    md: "h-10 w-10",
+    lg: "h-14 w-14",
+    xl: "h-20 w-20",
+  };
+
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand text-white shadow-sm">
-      <span className="text-sm font-black">MC</span>
-    </div>
+    <img
+      src="/logo_mycad.png"
+      alt="MyCAD Logo"
+      className={cn(sizes[size], "object-contain", className)}
+    />
   );
 }
