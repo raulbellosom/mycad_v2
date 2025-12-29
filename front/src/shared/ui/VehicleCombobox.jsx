@@ -314,7 +314,7 @@ export function VehicleCombobox({
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
                 style={dropdownStyle}
-                className="z-[9999] rounded-lg border border-(--border) bg-(--card) shadow-lg"
+                className="z-9999 rounded-lg border border-(--border) bg-(--card) shadow-lg"
               >
                 <Command className="w-full" shouldFilter={false}>
                   <div className="border-b border-(--border) p-2 space-y-2">

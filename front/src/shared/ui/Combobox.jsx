@@ -121,7 +121,7 @@ export function Combobox({
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.15 }}
           style={dropdownStyle}
-          className="z-[9999] rounded-lg border border-(--border) bg-(--card) shadow-lg"
+          className="z-9999 rounded-lg border border-(--border) bg-(--card) shadow-lg"
         >
           <Command className="w-full" shouldFilter={false}>
             <div className="flex items-center gap-2 border-b border-(--border) px-3 py-2">
@@ -134,7 +134,7 @@ export function Combobox({
               />
             </div>
 
-            <Command.List className="max-h-[300px] overflow-y-auto p-1">
+            <Command.List className="max-h-75 overflow-y-auto p-1">
               {filtered.length === 0 ? (
                 <Command.Empty className="py-6 text-center text-sm text-(--muted-fg)">
                   {emptyText}

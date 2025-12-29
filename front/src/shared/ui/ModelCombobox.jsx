@@ -242,7 +242,7 @@ export function ModelCombobox({
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
                 style={dropdownStyle}
-                className="z-[9999] rounded-lg border border-(--border) bg-(--card) shadow-lg"
+                className="z-9999 rounded-lg border border-(--border) bg-(--card) shadow-lg"
               >
                 <Command className="w-full" shouldFilter={false}>
                   <div className="border-b border-(--border) p-2 space-y-2">
@@ -254,7 +254,7 @@ export function ModelCombobox({
                         placeholder="Buscar modelo, marca, tipo..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="flex-1 bg-transparent text-sm outline-none placeholder:text-(--muted-fg) text-(--fg)"
+                        className="flex-1 bg-transparent text-base md:text-sm outline-none placeholder:text-(--muted-fg) text-(--fg)"
                         autoFocus
                       />
                       <button
@@ -348,7 +348,7 @@ export function ModelCombobox({
                     </AnimatePresence>
                   </div>
 
-                  <Command.List className="max-h-[300px] overflow-y-auto p-1">
+                  <Command.List className="max-h-75 overflow-y-auto p-1">
                     {filtered.length === 0 ? (
                       <Command.Empty className="py-6 text-center text-sm text-(--muted-fg)">
                         {emptyText}
