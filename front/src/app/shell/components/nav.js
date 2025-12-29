@@ -31,6 +31,12 @@ export const nav = [
     requiredPermission: "vehicles.view",
   },
   {
+    to: "/catalogs",
+    label: "Catálogos",
+    icon: FolderKanban,
+    requiredPermission: "catalogs.view",
+  },
+  {
     to: "/drivers",
     label: "Conductores",
     icon: Users,
@@ -41,12 +47,6 @@ export const nav = [
     label: "Clientes",
     icon: Building2,
     requiredPermission: "clients.view",
-  },
-  {
-    to: "/catalogs",
-    label: "Catálogos",
-    icon: FolderKanban,
-    requiredPermission: "catalogs.view",
   },
   {
     to: "/groups",

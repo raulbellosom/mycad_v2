@@ -123,7 +123,7 @@ export function Combobox({
           style={dropdownStyle}
           className="z-[9999] rounded-lg border border-(--border) bg-(--card) shadow-lg"
         >
-          <Command className="w-full">
+          <Command className="w-full" shouldFilter={false}>
             <div className="flex items-center gap-2 border-b border-(--border) px-3 py-2">
               <Search size={16} className="text-(--muted-fg)" />
               <Command.Input
@@ -131,7 +131,6 @@ export function Combobox({
                 value={search}
                 onValueChange={setSearch}
                 className="flex-1 bg-transparent text-base md:text-sm outline-none placeholder:text-(--muted-fg)"
-                autoFocus
               />
             </div>
 
