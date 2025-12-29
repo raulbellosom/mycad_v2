@@ -4,7 +4,7 @@ import { Menu, LogOut, User, Settings, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeToggle } from "../../../shared/theme/ThemeToggle";
 import { Button } from "../../../shared/ui/Button";
-import { Select } from "../../../shared/ui/Select";
+import { Combobox } from "../../../shared/ui/Combobox";
 import { useAuth } from "../../../features/auth/hooks/useAuth";
 import { useActiveGroup } from "../../../features/groups/hooks/useActiveGroup";
 import { AppLogo } from "../../../shared/ui/AppLogo";
@@ -53,10 +53,11 @@ export function AppTopbar({ onMenuClick }) {
 
           {/* Group Selector */}
           <div className="hidden sm:block sm:w-[240px]">
-            <Select
+            <Combobox
               value={activeGroupId || ""}
               onChange={(v) => setActiveGroupId(v || null)}
               placeholder="Selecciona un grupo"
+              emptyText="No hay grupos disponibles"
               options={(groups || []).map((g) => ({
                 value: g.$id,
                 label: g.name,

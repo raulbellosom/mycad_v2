@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
-import { X } from "lucide-react";
+import { X, Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../../shared/utils/cn";
 import { AppLogo } from "../../../shared/ui/AppLogo";
+import { Combobox } from "../../../shared/ui/Combobox";
 import { nav } from "./nav";
 import { useAuth } from "../../../features/auth/hooks/useAuth";
 import { useActiveGroup } from "../../../features/groups/hooks/useActiveGroup";
@@ -11,7 +12,8 @@ import { usePermissions } from "../../../features/groups/hooks/usePermissions";
 
 export function AppSidebar({ mobileOpen, onMobileClose }) {
   const { profile } = useAuth();
-  const { activeGroup } = useActiveGroup();
+  const { activeGroup, groups, activeGroupId, setActiveGroupId } =
+    useActiveGroup();
   const permissions = usePermissions();
 
   // Extraer funciones del contexto con valores por defecto seguros
@@ -36,10 +38,10 @@ export function AppSidebar({ mobileOpen, onMobileClose }) {
     });
   }, [can, isPlatformAdmin]);
 
-  const sidebarContent = (
+  const sidebarContent = (showGroupSelector = false) => (
     <div className="flex h-full flex-col p-4">
       {/* Logo & Group Info */}
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-4 flex items-center gap-3">
         <AppLogo />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-(--fg)">
@@ -50,6 +52,26 @@ export function AppSidebar({ mobileOpen, onMobileClose }) {
           </div>
         </div>
       </div>
+
+      {/* Group Selector - Only shown in mobile sidebar */}
+      {showGroupSelector && groups && groups.length > 0 && (
+        <div className="mb-4">
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-(--muted-fg)">
+            <Building2 size={12} />
+            Cambiar grupo
+          </label>
+          <Combobox
+            value={activeGroupId || ""}
+            onChange={(v) => setActiveGroupId(v || null)}
+            placeholder="Selecciona un grupo"
+            emptyText="No hay grupos disponibles"
+            options={(groups || []).map((g) => ({
+              value: g.$id,
+              label: g.name,
+            }))}
+          />
+        </div>
+      )}
 
       {/* Navigation Links */}
       <nav className="flex flex-1 flex-col gap-1.5">
@@ -95,7 +117,7 @@ export function AppSidebar({ mobileOpen, onMobileClose }) {
     <>
       {/* Desktop Sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-[280px] shrink-0 border-r border-(--sidebar-border) bg-(--sidebar-bg) lg:block">
-        {sidebarContent}
+        {sidebarContent(false)}
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -128,7 +150,7 @@ export function AppSidebar({ mobileOpen, onMobileClose }) {
                 <X size={20} />
               </button>
 
-              {sidebarContent}
+              {sidebarContent(true)}
             </motion.aside>
           </>
         )}
