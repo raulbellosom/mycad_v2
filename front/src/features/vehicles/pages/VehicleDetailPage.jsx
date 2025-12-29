@@ -179,8 +179,11 @@ function DetailCard({ title, icon: Icon, children, className = "" }) {
 
 /** File Card - Individual file display */
 function FileCard({ file, onView, onDownload }) {
-  const isImage = file.isImage || file.type?.startsWith("image/");
-  const previewUrl = isImage ? getFilePreview(file.fileId)?.href : null;
+  const isImage = file.isImage || file.mimeType?.startsWith("image/");
+  // Use storageFileId for preview (from enriched data)
+  const storageId = file.storageFileId || file.fileId;
+  const previewUrl =
+    isImage && storageId ? getFilePreview(storageId)?.href : null;
 
   return (
     <motion.div
@@ -234,7 +237,11 @@ function FileCard({ file, onView, onDownload }) {
           {file.name}
         </p>
         <p className="text-xs text-(--muted-fg)">
-          {file.size ? `${(file.size / 1024).toFixed(1)} KB` : "—"}
+          {file.sizeBytes
+            ? file.sizeBytes >= 1024 * 1024
+              ? `${(file.sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+              : `${(file.sizeBytes / 1024).toFixed(1)} KB`
+            : "—"}
         </p>
       </div>
     </motion.div>
@@ -325,12 +332,13 @@ export function VehicleDetailPage() {
 
   // Separate images and documents
   const imageFiles = files.filter(
-    (f) => f.isImage || f.type?.startsWith("image/")
+    (f) => f.isImage || f.mimeType?.startsWith("image/")
   );
   const documentFiles = files.filter(
-    (f) => !f.isImage && !f.type?.startsWith("image/")
+    (f) => !f.isImage && !f.mimeType?.startsWith("image/")
   );
-  const imageIds = imageFiles.map((f) => f.fileId);
+  // Use storageFileId for image viewer
+  const imageIds = imageFiles.map((f) => f.storageFileId || f.fileId);
 
   // Build display title
   const vehicleTitle = useMemo(() => {
@@ -352,12 +360,14 @@ export function VehicleDetailPage() {
 
   // Handlers
   const handleViewImage = (file) => {
-    setSelectedImageId(file.fileId);
+    // Use storageFileId for the image viewer
+    setSelectedImageId(file.storageFileId || file.fileId);
     setViewerOpen(true);
   };
 
   const handleDownload = (file) => {
-    const url = getFileDownload(file.fileId);
+    // Use storageFileId for download
+    const url = getFileDownload(file.storageFileId || file.fileId);
     window.open(url, "_blank");
   };
 
@@ -424,7 +434,11 @@ export function VehicleDetailPage() {
                 >
                   {imageFiles.length > 0 ? (
                     <img
-                      src={getFilePreview(imageFiles[0].fileId)?.href}
+                      src={
+                        getFilePreview(
+                          imageFiles[0].storageFileId || imageFiles[0].fileId
+                        )?.href
+                      }
                       alt={vehicleTitle}
                       className="h-full w-full rounded-2xl object-cover"
                     />

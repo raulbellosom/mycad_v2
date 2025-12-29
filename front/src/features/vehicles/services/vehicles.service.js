@@ -101,6 +101,7 @@ export async function registerFileInDb(
   });
 
   // 1. Create record in 'files' collection with metadata
+  // Note: 'ownerProfile' is the two-way relationship, 'ownerProfileId' is the scalar for indexing
   const fileDoc = await databases.createDocument(
     env.databaseId,
     FILES_COLLECTION_ID,
@@ -108,7 +109,8 @@ export async function registerFileInDb(
     {
       groupId,
       storageFileId,
-      ownerProfileId,
+      ownerProfileId, // Scalar field for indexing
+      ownerProfile: ownerProfileId, // Two-way relationship (same value)
       name: fileName,
       mimeType: fileType,
       sizeBytes: fileSize,
@@ -119,6 +121,7 @@ export async function registerFileInDb(
   console.log("[registerFileInDb] File record created:", fileDoc.$id);
 
   // 2. Create record in 'vehicle_files' collection (join table)
+  // Note: 'file' is the two-way relationship, 'fileId' is the scalar for indexing
   const vehicleFileDoc = await databases.createDocument(
     env.databaseId,
     VEHICLE_FILES_COLLECTION_ID,
@@ -126,7 +129,8 @@ export async function registerFileInDb(
     {
       groupId,
       vehicleId,
-      fileId: fileDoc.$id, // Reference to files.$id
+      fileId: fileDoc.$id, // Scalar field for indexing
+      file: fileDoc.$id, // Two-way relationship (same value)
       kind: isImage ? "IMAGE" : "DOCUMENT",
       name: fileName,
       enabled: true,
@@ -188,6 +192,7 @@ export async function listVehicleFiles(vehicleId) {
             ...vf,
             storageFileId: vf.file.storageFileId,
             mimeType: vf.file.mimeType,
+            sizeBytes: vf.file.sizeBytes,
             isImage:
               vf.file.mimeType?.startsWith("image/") || vf.kind === "IMAGE",
           };
@@ -203,6 +208,7 @@ export async function listVehicleFiles(vehicleId) {
           ...vf,
           storageFileId: fileDoc.storageFileId,
           mimeType: fileDoc.mimeType,
+          sizeBytes: fileDoc.sizeBytes,
           isImage:
             fileDoc.mimeType?.startsWith("image/") || vf.kind === "IMAGE",
         };
