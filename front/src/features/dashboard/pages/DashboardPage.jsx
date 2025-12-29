@@ -9,11 +9,14 @@ import {
   DollarSign,
   Activity,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 
 import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Button } from "../../../shared/ui/Button";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+import { usePermissions } from "../../groups/hooks/usePermissions";
+import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
 
 // Dashboard hooks
 import {
@@ -45,9 +48,14 @@ import {
   ExpiringLicensesList,
   VehiclesInMaintenanceList,
 } from "../components/ActivityLists";
+import { SimpleDashboard } from "../components/SimpleDashboard";
 
 export function DashboardPage() {
   const { activeGroup, activeGroupId } = useActiveGroup();
+  const { can, isLoading: permissionsLoading } = usePermissions();
+
+  // Check if user has permission to view full dashboard
+  const canViewFullDashboard = can(SYSTEM_PERMISSIONS.DASHBOARD_VIEW);
 
   // Main summary data
   const {
@@ -115,6 +123,27 @@ export function DashboardPage() {
             y reportes, primero selecciona un grupo desde el menú lateral.
           </p>
         </div>
+      </PageLayout>
+    );
+  }
+
+  // Show loading state while permissions are being loaded
+  if (permissionsLoading) {
+    return (
+      <PageLayout title="Dashboard">
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Loader2 className="h-10 w-10 text-(--brand) animate-spin mb-4" />
+          <p className="text-stone-500 dark:text-stone-400">Cargando...</p>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Show simple dashboard if user doesn't have permission to view full dashboard
+  if (!canViewFullDashboard) {
+    return (
+      <PageLayout title="Inicio">
+        <SimpleDashboard />
       </PageLayout>
     );
   }

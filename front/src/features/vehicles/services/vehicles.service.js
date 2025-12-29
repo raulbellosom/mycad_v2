@@ -1,6 +1,11 @@
 import { ID, Query } from "appwrite";
 import { databases, storage } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
+import {
+  getFilePreviewUrl,
+  getFileViewUrl,
+  getFileDownloadUrl,
+} from "../../../shared/utils/storage";
 
 const COLLECTION_ID = env.collectionVehiclesId;
 const VEHICLE_FILES_COLLECTION_ID = env.collectionVehicleFilesId;
@@ -320,14 +325,14 @@ export async function deleteVehicleFile(
   }
 }
 
-export function getFilePreview(fileId) {
-  return storage.getFilePreview(BUCKET_ID, fileId);
+export function getFilePreview(fileId, width, height) {
+  return getFilePreviewUrl(BUCKET_ID, fileId, { width, height });
 }
 
 export function getFileView(fileId) {
-  return storage.getFileView(BUCKET_ID, fileId);
+  return getFileViewUrl(BUCKET_ID, fileId);
 }
 
 export function getFileDownload(fileId) {
-  return storage.getFileDownload(BUCKET_ID, fileId);
+  return getFileDownloadUrl(BUCKET_ID, fileId);
 }

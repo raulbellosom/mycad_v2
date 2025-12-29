@@ -205,7 +205,7 @@ export async function searchUsers(term, excludeIds = []) {
 }
 
 /**
- * Obtiene estadísticas de usuarios
+ * Obtiene estadísticas de usuarios (todos - para platform admins)
  */
 export async function getUserStats() {
   const [total, active, suspended, admins] = await Promise.all([
@@ -229,5 +229,116 @@ export async function getUserStats() {
     active: active.total,
     suspended: suspended.total,
     platformAdmins: admins.total,
+  };
+}
+
+// ============================================
+// USUARIOS POR GRUPO (para group owners/admins)
+// ============================================
+
+const GROUP_MEMBERS = env.collectionGroupMembersId;
+
+/**
+ * Lista los usuarios miembros de un grupo específico
+ * @param {string} groupId - ID del grupo
+ * @param {Object} filters - Filtros opcionales
+ */
+export async function listGroupUsers(groupId, filters = {}) {
+  if (!groupId) return [];
+
+  // 1. Obtener membresías del grupo
+  const memberQueries = [
+    Query.equal("groupId", groupId),
+    Query.equal("enabled", true),
+    Query.limit(200),
+  ];
+
+  const membersRes = await databases.listDocuments(
+    DB,
+    GROUP_MEMBERS,
+    memberQueries
+  );
+
+  if (membersRes.documents.length === 0) return [];
+
+  // 2. Obtener los profileIds de los miembros
+  const profileIds = membersRes.documents.map((m) => m.profileId);
+
+  // 3. Obtener los perfiles de esos usuarios
+  const profileQueries = [
+    Query.equal("$id", profileIds),
+    Query.orderDesc("$createdAt"),
+  ];
+
+  if (filters.status) {
+    profileQueries.push(Query.equal("status", filters.status));
+  }
+
+  if (typeof filters.enabled === "boolean") {
+    profileQueries.push(Query.equal("enabled", filters.enabled));
+  }
+
+  const profilesRes = await databases.listDocuments(
+    DB,
+    USERS_PROFILE,
+    profileQueries
+  );
+
+  // 4. Enriquecer con info de membresía
+  const membershipMap = new Map(
+    membersRes.documents.map((m) => [m.profileId, m])
+  );
+
+  return profilesRes.documents.map((profile) => ({
+    ...profile,
+    membership: membershipMap.get(profile.$id),
+  }));
+}
+
+/**
+ * Obtiene estadísticas de usuarios de un grupo específico
+ * @param {string} groupId - ID del grupo
+ */
+export async function getGroupUserStats(groupId) {
+  if (!groupId) {
+    return { total: 0, active: 0, suspended: 0, admins: 0 };
+  }
+
+  // 1. Obtener membresías del grupo
+  const membersRes = await databases.listDocuments(DB, GROUP_MEMBERS, [
+    Query.equal("groupId", groupId),
+    Query.equal("enabled", true),
+    Query.limit(500),
+  ]);
+
+  if (membersRes.documents.length === 0) {
+    return { total: 0, active: 0, suspended: 0, admins: 0 };
+  }
+
+  const profileIds = membersRes.documents.map((m) => m.profileId);
+  const membershipMap = new Map(
+    membersRes.documents.map((m) => [m.profileId, m])
+  );
+
+  // 2. Obtener perfiles
+  const profilesRes = await databases.listDocuments(DB, USERS_PROFILE, [
+    Query.equal("$id", profileIds),
+  ]);
+
+  const profiles = profilesRes.documents;
+
+  // 3. Calcular estadísticas
+  const active = profiles.filter((p) => p.status === "ACTIVE").length;
+  const suspended = profiles.filter((p) => p.status === "SUSPENDED").length;
+  const admins = profiles.filter((p) => {
+    const membership = membershipMap.get(p.$id);
+    return membership?.role === "OWNER" || membership?.role === "ADMIN";
+  }).length;
+
+  return {
+    total: profiles.length,
+    active,
+    suspended,
+    admins, // Admins del grupo (no de plataforma)
   };
 }

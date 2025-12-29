@@ -4,8 +4,8 @@ import { Command } from "cmdk";
 import { Check, ChevronsUpDown, Search, Filter, X, Car } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
-import { storage } from "../appwrite/client";
 import { env } from "../appwrite/env";
+import { getFilePreviewUrl } from "../utils/storage";
 
 /**
  * VehicleCombobox - A specialized combobox for vehicle selection
@@ -237,12 +237,10 @@ export function VehicleCombobox({
     if (vehicle?.files && vehicle.files.length > 0) {
       const imageFile = vehicle.files.find((f) => f.isImage);
       if (imageFile) {
-        return storage.getFilePreview(
-          env.bucketVehiclesId,
-          imageFile.fileId,
-          size,
-          size
-        );
+        return getFilePreviewUrl(env.bucketVehiclesId, imageFile.fileId, {
+          width: size,
+          height: size,
+        });
       }
     }
     return null;

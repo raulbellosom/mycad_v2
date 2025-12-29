@@ -1,6 +1,10 @@
 import { ID, Query } from "appwrite";
 import { databases, storage } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
+import {
+  getFilePreviewUrl,
+  getFileDownloadUrl,
+} from "../../../shared/utils/storage";
 
 const COLLECTION_ID = env.collectionServiceHistoriesId;
 const PARTS_COLLECTION_ID = env.collectionReplacedPartsId;
@@ -60,10 +64,74 @@ export async function getServiceReportById(id) {
 }
 
 /**
+ * Limpia los datos del reporte de servicio para enviar solo campos válidos a Appwrite
+ * Basado en: service_histories de db_mycad.md
+ */
+function cleanServiceReportData(data) {
+  const cleanedData = {};
+
+  // Campos requeridos
+  if (data.groupId) cleanedData.groupId = data.groupId;
+  if (data.vehicleId) cleanedData.vehicleId = data.vehicleId;
+  if (data.createdByProfileId)
+    cleanedData.createdByProfileId = data.createdByProfileId;
+  if (data.serviceDate) cleanedData.serviceDate = data.serviceDate;
+  if (data.title) cleanedData.title = data.title;
+
+  // Campos opcionales - solo incluir si tienen valor
+  if (data.description) cleanedData.description = data.description;
+  if (data.vendorName) cleanedData.vendorName = data.vendorName;
+  if (data.serviceType) cleanedData.serviceType = data.serviceType;
+  if (data.invoiceNumber) cleanedData.invoiceNumber = data.invoiceNumber;
+  if (data.workshopAddress) cleanedData.workshopAddress = data.workshopAddress;
+  if (data.workshopPhone) cleanedData.workshopPhone = data.workshopPhone;
+  if (data.nextServiceDate) cleanedData.nextServiceDate = data.nextServiceDate;
+
+  // Campos numéricos opcionales - convertir a número o null
+  if (
+    data.odometer !== undefined &&
+    data.odometer !== "" &&
+    data.odometer !== null
+  ) {
+    cleanedData.odometer = parseInt(data.odometer) || null;
+  }
+  if (data.cost !== undefined && data.cost !== "" && data.cost !== null) {
+    cleanedData.cost = parseFloat(data.cost) || null;
+  }
+  if (
+    data.laborCost !== undefined &&
+    data.laborCost !== "" &&
+    data.laborCost !== null
+  ) {
+    cleanedData.laborCost = parseFloat(data.laborCost) || null;
+  }
+  if (
+    data.partsCost !== undefined &&
+    data.partsCost !== "" &&
+    data.partsCost !== null
+  ) {
+    cleanedData.partsCost = parseFloat(data.partsCost) || null;
+  }
+  if (
+    data.nextServiceOdometer !== undefined &&
+    data.nextServiceOdometer !== "" &&
+    data.nextServiceOdometer !== null
+  ) {
+    cleanedData.nextServiceOdometer =
+      parseInt(data.nextServiceOdometer) || null;
+  }
+
+  return cleanedData;
+}
+
+/**
  * Crea un nuevo reporte de servicio
  */
 export async function createServiceReport(data) {
-  const { parts, ...reportData } = data;
+  const { parts, stagedFiles, ...reportData } = data;
+
+  // Limpiar datos para Appwrite
+  const cleanedData = cleanServiceReportData(reportData);
 
   // Crear el reporte principal
   const doc = await databases.createDocument(
@@ -71,12 +139,12 @@ export async function createServiceReport(data) {
     COLLECTION_ID,
     ID.unique(),
     {
-      ...reportData,
+      ...cleanedData,
       status: "DRAFT",
       enabled: true,
       // Relaciones two-way
-      vehicle: reportData.vehicleId, // relación → vehicles
-      createdByProfile: reportData.createdByProfileId, // relación → users_profile
+      vehicle: cleanedData.vehicleId, // relación → vehicles
+      createdByProfile: cleanedData.createdByProfileId, // relación → users_profile
     }
   );
 
@@ -89,8 +157,11 @@ export async function createServiceReport(data) {
           PARTS_COLLECTION_ID,
           ID.unique(),
           {
-            ...part,
-            groupId: reportData.groupId,
+            name: part.name,
+            quantity: parseInt(part.quantity) || 1,
+            unitCost: parseFloat(part.unitCost) || 0,
+            notes: part.notes || null,
+            groupId: cleanedData.groupId,
             serviceHistoryId: doc.$id,
             enabled: true,
             // Relaciones two-way
@@ -108,14 +179,52 @@ export async function createServiceReport(data) {
  * Actualiza un reporte de servicio existente
  */
 export async function updateServiceReport(id, data) {
-  const { parts, ...reportData } = data;
+  const { parts, stagedFiles, ...reportData } = data;
+
+  // Limpiar datos para Appwrite (sin campos requeridos para update)
+  const cleanedData = {};
+
+  // Solo incluir campos que tienen valor
+  if (reportData.title) cleanedData.title = reportData.title;
+  if (reportData.serviceDate) cleanedData.serviceDate = reportData.serviceDate;
+  if (reportData.description !== undefined)
+    cleanedData.description = reportData.description || null;
+  if (reportData.vendorName !== undefined)
+    cleanedData.vendorName = reportData.vendorName || null;
+  if (reportData.serviceType) cleanedData.serviceType = reportData.serviceType;
+  if (reportData.invoiceNumber !== undefined)
+    cleanedData.invoiceNumber = reportData.invoiceNumber || null;
+  if (reportData.workshopAddress !== undefined)
+    cleanedData.workshopAddress = reportData.workshopAddress || null;
+  if (reportData.workshopPhone !== undefined)
+    cleanedData.workshopPhone = reportData.workshopPhone || null;
+  if (reportData.nextServiceDate !== undefined)
+    cleanedData.nextServiceDate = reportData.nextServiceDate || null;
+
+  // Campos numéricos
+  if (reportData.odometer !== undefined && reportData.odometer !== "") {
+    cleanedData.odometer = parseInt(reportData.odometer) || null;
+  }
+  if (reportData.laborCost !== undefined && reportData.laborCost !== "") {
+    cleanedData.laborCost = parseFloat(reportData.laborCost) || null;
+  }
+  if (reportData.partsCost !== undefined && reportData.partsCost !== "") {
+    cleanedData.partsCost = parseFloat(reportData.partsCost) || null;
+  }
+  if (
+    reportData.nextServiceOdometer !== undefined &&
+    reportData.nextServiceOdometer !== ""
+  ) {
+    cleanedData.nextServiceOdometer =
+      parseInt(reportData.nextServiceOdometer) || null;
+  }
 
   // Actualizar el reporte principal
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
     id,
-    reportData
+    cleanedData
   );
 
   return doc;
@@ -310,12 +419,12 @@ export async function deleteServiceReportFile(fileDocId, storageFileId) {
  * Obtiene la URL de preview de un archivo
  */
 export function getServiceFilePreviewUrl(fileId) {
-  return storage.getFilePreview(BUCKET_ID, fileId, 400, 400);
+  return getFilePreviewUrl(BUCKET_ID, fileId, { width: 400, height: 400 });
 }
 
 /**
  * Obtiene la URL de descarga de un archivo
  */
 export function getServiceFileDownloadUrl(fileId) {
-  return storage.getFileDownload(BUCKET_ID, fileId);
+  return getFileDownloadUrl(BUCKET_ID, fileId);
 }

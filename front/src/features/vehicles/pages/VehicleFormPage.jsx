@@ -26,6 +26,12 @@ import { normalizeServerDate } from "../../../shared/utils/dateUtils";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {
+  auditLog,
+  getVehicleDisplayName,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/hooks/useAuditHelpers";
+import {
   getVehicleById,
   createVehicle,
   updateVehicle,
@@ -237,6 +243,18 @@ export function VehicleFormPage() {
     onSuccess: (vehicleRes) => {
       queryClient.invalidateQueries(["vehicles"]);
       queryClient.invalidateQueries(["vehicleFiles", id]);
+      queryClient.invalidateQueries(["audit-logs"]);
+
+      // Registrar auditoría
+      auditLog({
+        groupId: activeGroupId,
+        profileId: profile?.$id,
+        action: isEdit ? AUDIT_ACTIONS.UPDATE : AUDIT_ACTIONS.CREATE,
+        entityType: ENTITY_TYPES.VEHICLE,
+        entityId: vehicleRes.$id,
+        entityName: getVehicleDisplayName(vehicleRes),
+        details: isEdit ? { updated: true } : { created: true },
+      });
 
       if (isEdit) {
         // En modo edición: quedarse en el formulario y actualizar el estado original

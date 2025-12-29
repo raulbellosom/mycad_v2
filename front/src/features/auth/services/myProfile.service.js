@@ -1,6 +1,7 @@
 import { ID, Query } from "appwrite";
 import { account, databases, storage } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
+import { getFilePreviewUrl } from "../../../shared/utils/storage";
 
 const DB = env.databaseId;
 const USERS_PROFILE = env.collectionUsersProfileId;
@@ -85,7 +86,10 @@ export async function deleteAvatar(fileId) {
  */
 export function getAvatarPreviewUrl(avatarFileId, size = 200) {
   if (!avatarFileId || !BUCKET_AVATARS) return null;
-  return storage.getFilePreview(BUCKET_AVATARS, avatarFileId, size, size);
+  return getFilePreviewUrl(BUCKET_AVATARS, avatarFileId, {
+    width: size,
+    height: size,
+  });
 }
 
 // ==========================================
@@ -264,7 +268,7 @@ export async function deleteDriverFile(docId, fileId) {
  */
 export function getDriverFilePreviewUrl(fileId, width = 200, height = 200) {
   if (!fileId) return null;
-  return storage.getFilePreview(BUCKET_VEHICLES, fileId, width, height);
+  return getFilePreviewUrl(BUCKET_VEHICLES, fileId, { width, height });
 }
 
 // ==========================================

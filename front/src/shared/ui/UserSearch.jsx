@@ -5,6 +5,7 @@ import { Search, User, X, Loader2, UserPlus } from "lucide-react";
 import { Query } from "appwrite";
 
 import { databases } from "../appwrite/client";
+import { env } from "../appwrite/env";
 import { getAvatarUrl } from "../utils/storage";
 import { Input } from "./Input";
 
@@ -102,7 +103,7 @@ export function UserSearch({
         <div className="h-10 w-10 rounded-full bg-(--muted) flex items-center justify-center flex-shrink-0">
           {selectedUser.avatarFileId ? (
             <img
-              src={`${env.endpoint}/storage/buckets/${env.bucketAvatarsId}/files/${selectedUser.avatarFileId}/preview?width=80&height=80`}
+              src={getAvatarUrl(selectedUser.avatarFileId, 80)}
               alt={selectedUser.firstName}
               className="h-10 w-10 rounded-full object-cover"
             />
@@ -188,7 +189,7 @@ export function UserSearch({
                     <div className="h-10 w-10 rounded-full bg-(--muted) flex items-center justify-center flex-shrink-0">
                       {user.avatarFileId ? (
                         <img
-                          src={`${env.endpoint}/storage/buckets/${env.bucketAvatarsId}/files/${user.avatarFileId}/preview?width=80&height=80`}
+                          src={getAvatarUrl(user.avatarFileId, 80)}
                           alt={user.firstName}
                           className="h-10 w-10 rounded-full object-cover"
                         />

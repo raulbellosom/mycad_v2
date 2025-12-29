@@ -35,6 +35,7 @@ import {
 } from "../services/permissions.service";
 import { SYSTEM_PERMISSIONS } from "../context/PermissionsProvider";
 import { usePermissions } from "../hooks/usePermissions";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { getAvatarUrl } from "../../../shared/utils/storage";
 
 // Tipos de membresía básicos (OWNER es especial, MEMBER es el default)
@@ -81,6 +82,7 @@ export function MembersTab({ groupId }) {
   const [selectedUserForAdd, setSelectedUserForAdd] = useState(null);
   const queryClient = useQueryClient();
   const { isGroupAdmin, isGroupOwner, hasPermission } = usePermissions();
+  const { profile: currentProfile } = useAuth();
 
   const canManageMembers =
     isGroupAdmin || hasPermission(SYSTEM_PERMISSIONS.GROUPS_MEMBERS_MANAGE);
@@ -135,11 +137,22 @@ export function MembersTab({ groupId }) {
     onError: (err) => toast.error(err.message || "Error al remover"),
   });
 
+  // Crear un mapa de roles para tener nombres
+  const rolesMap = rbacRoles.reduce((acc, role) => {
+    acc[role.$id] = role.name;
+    return acc;
+  }, {});
+
   const updateMemberRolesMutation = useMutation({
-    mutationFn: ({ profileId, roleIds }) =>
-      updateUserRoles(groupId, profileId, roleIds),
+    mutationFn: ({ profileId, roleIds, userName }) =>
+      updateUserRoles(groupId, profileId, roleIds, {
+        actorProfileId: currentProfile?.$id,
+        userName,
+        rolesMap,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries(["user-roles", groupId, selectedMemberId]);
+      queryClient.invalidateQueries(["audit-logs"]);
       toast.success("Roles actualizados");
     },
     onError: (err) => toast.error(err.message || "Error al actualizar roles"),
@@ -160,9 +173,17 @@ export function MembersTab({ groupId }) {
       newRoleIds = [...currentRoleIds, roleId];
     }
 
+    // Obtener el nombre del usuario para el log
+    const userName = member.profile
+      ? `${member.profile.firstName || ""} ${
+          member.profile.lastName || ""
+        }`.trim() || member.profile.email
+      : "Usuario";
+
     updateMemberRolesMutation.mutate({
       profileId: member.profileId,
       roleIds: newRoleIds,
+      userName,
     });
   };
 
@@ -273,7 +294,7 @@ export function MembersTab({ groupId }) {
                         <div className="h-10 w-10 rounded-full bg-(--muted) flex items-center justify-center overflow-hidden">
                           {profile.avatarFileId ? (
                             <img
-                              src={`${env.endpoint}/storage/buckets/${env.bucketAvatarsId}/files/${profile.avatarFileId}/preview?width=80&height=80`}
+                              src={getAvatarUrl(profile.avatarFileId, 80)}
                               alt={profile.firstName}
                               className="h-10 w-10 object-cover"
                             />
@@ -347,7 +368,10 @@ export function MembersTab({ groupId }) {
                     <div className="h-16 w-16 rounded-xl bg-(--muted) flex items-center justify-center overflow-hidden shadow-md">
                       {selectedMember.profile?.avatarFileId ? (
                         <img
-                          src={`${env.endpoint}/storage/buckets/${env.bucketAvatarsId}/files/${selectedMember.profile.avatarFileId}/preview?width=128&height=128`}
+                          src={getAvatarUrl(
+                            selectedMember.profile.avatarFileId,
+                            128
+                          )}
                           alt={selectedMember.profile?.firstName}
                           className="h-16 w-16 object-cover"
                         />

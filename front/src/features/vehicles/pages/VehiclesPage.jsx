@@ -25,6 +25,13 @@ import { ConfirmModal } from "../../../shared/ui/ConfirmModal";
 import { ImageViewerModal } from "../../../shared/ui/ImageViewerModal";
 import { cn } from "../../../shared/utils/cn";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+import { useAuth } from "../../auth/hooks/useAuth";
+import {
+  auditLog,
+  getVehicleDisplayName,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/hooks/useAuditHelpers";
 import {
   listVehicles,
   deleteVehicle,
@@ -69,6 +76,7 @@ const DEFAULT_ITEMS_PER_PAGE = 10;
 
 export function VehiclesPage() {
   const { activeGroupId } = useActiveGroup();
+  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
@@ -95,6 +103,20 @@ export function VehiclesPage() {
     mutationFn: (vehicleId) => deleteVehicle(vehicleId),
     onSuccess: () => {
       queryClient.invalidateQueries(["vehicles", activeGroupId]);
+      queryClient.invalidateQueries(["audit-logs"]);
+
+      // Registrar auditoría
+      if (vehicleToDelete) {
+        auditLog({
+          groupId: activeGroupId,
+          profileId: profile?.$id,
+          action: AUDIT_ACTIONS.DELETE,
+          entityType: ENTITY_TYPES.VEHICLE,
+          entityId: vehicleToDelete.$id,
+          entityName: getVehicleDisplayName(vehicleToDelete),
+        });
+      }
+
       setVehicleToDelete(null);
     },
   });
@@ -785,7 +807,7 @@ function VehicleCard({
   // Use storageFileId for preview (fallback to fileId for old data)
   const getStorageId = (file) => file.storageFileId || file.fileId;
   const thumbnailUrl = hasImages
-    ? getFilePreview(getStorageId(imageFiles[0]))?.href
+    ? getFilePreview(getStorageId(imageFiles[0]))
     : null;
 
   const handleEdit = (e) => {
@@ -967,7 +989,7 @@ function VehicleRow({
   // Use storageFileId for preview (fallback to fileId for old data)
   const getStorageId = (file) => file.storageFileId || file.fileId;
   const thumbnailUrl = hasImages
-    ? getFilePreview(getStorageId(imageFiles[0]))?.href
+    ? getFilePreview(getStorageId(imageFiles[0]))
     : null;
 
   const handleImageClick = (e) => {

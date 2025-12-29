@@ -1,6 +1,10 @@
 import { ID, Query } from "appwrite";
 import { databases, storage } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
+import {
+  getFilePreviewUrl,
+  getFileDownloadUrl,
+} from "../../../shared/utils/storage";
 
 const DRIVERS_COLLECTION_ID = env.collectionDriversId;
 const LICENSES_COLLECTION_ID = env.collectionDriverLicensesId;
@@ -154,10 +158,10 @@ export async function deleteDriverFile(docId, fileId) {
   }
 }
 
-export function getDriverFilePreview(fileId) {
-  return storage.getFilePreview(BUCKET_ID, fileId);
+export function getDriverFilePreview(fileId, width, height) {
+  return getFilePreviewUrl(BUCKET_ID, fileId, { width, height });
 }
 
 export function getDriverFileDownload(fileId) {
-  return storage.getFileDownload(BUCKET_ID, fileId);
+  return getFileDownloadUrl(BUCKET_ID, fileId);
 }

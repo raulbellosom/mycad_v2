@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { Car, Gauge, Calendar, Hash, Palette } from "lucide-react";
 import { Card } from "../../../../shared/ui/Card";
-import { storage } from "../../../../shared/appwrite/client";
 import { env } from "../../../../shared/appwrite/env";
+import { getFilePreviewUrl } from "../../../../shared/utils/storage";
 
 /**
  * Card que muestra la información del vehículo en reportes
@@ -16,12 +16,10 @@ export function VehicleInfoCard({ vehicle, onClick, compact = false }) {
     if (vehicle.files && vehicle.files.length > 0) {
       const imageFile = vehicle.files.find((f) => f.isImage);
       if (imageFile) {
-        return storage.getFilePreview(
-          env.bucketVehiclesId,
-          imageFile.fileId,
-          200,
-          200
-        );
+        return getFilePreviewUrl(env.bucketVehiclesId, imageFile.fileId, {
+          width: 200,
+          height: 200,
+        });
       }
     }
     return null;

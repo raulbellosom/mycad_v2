@@ -10,6 +10,7 @@ import {
   Shield,
   UserCheck,
   Clock,
+  Users,
 } from "lucide-react";
 
 import { Card } from "../../../shared/ui/Card";
@@ -37,6 +38,30 @@ const STATUS_CONFIG = {
   },
 };
 
+// Membership role config
+const MEMBERSHIP_ROLE_CONFIG = {
+  OWNER: {
+    label: "Dueño",
+    variant: "warning",
+    icon: Crown,
+  },
+  ADMIN: {
+    label: "Admin",
+    variant: "primary",
+    icon: Shield,
+  },
+  MEMBER: {
+    label: "Miembro",
+    variant: "default",
+    icon: Users,
+  },
+  VIEWER: {
+    label: "Visor",
+    variant: "secondary",
+    icon: User,
+  },
+};
+
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
@@ -57,6 +82,7 @@ export function UsersList({
   searchTerm,
   onSearchChange,
   isLoading,
+  showMembershipRole = false, // Nuevo: mostrar rol de membresía en lugar de admin plataforma
 }) {
   const filteredUsers = users.filter((user) => {
     if (!searchTerm) return true;
@@ -122,6 +148,8 @@ export function UsersList({
               const statusConfig =
                 STATUS_CONFIG[user.status] || STATUS_CONFIG.ACTIVE;
               const isSelected = selectedUserId === user.$id;
+              const membershipRole = user.membership?.role;
+              const roleConfig = MEMBERSHIP_ROLE_CONFIG[membershipRole];
 
               return (
                 <motion.div
@@ -147,12 +175,29 @@ export function UsersList({
                         <User size={18} className="text-(--muted-fg)" />
                       )}
                     </div>
-                    {/* Badge indicador */}
-                    {user.isPlatformAdmin && (
-                      <div className="absolute -bottom-0.5 -right-0.5 p-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30">
-                        <Crown size={10} className="text-amber-500" />
-                      </div>
-                    )}
+                    {/* Badge indicador - contextual */}
+                    {showMembershipRole && roleConfig
+                      ? (membershipRole === "OWNER" ||
+                          membershipRole === "ADMIN") && (
+                          <div
+                            className={`absolute -bottom-0.5 -right-0.5 p-0.5 rounded-full ${
+                              membershipRole === "OWNER"
+                                ? "bg-amber-100 dark:bg-amber-900/30"
+                                : "bg-blue-100 dark:bg-blue-900/30"
+                            }`}
+                          >
+                            {membershipRole === "OWNER" ? (
+                              <Crown size={10} className="text-amber-500" />
+                            ) : (
+                              <Shield size={10} className="text-blue-500" />
+                            )}
+                          </div>
+                        )
+                      : user.isPlatformAdmin && (
+                          <div className="absolute -bottom-0.5 -right-0.5 p-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                            <Crown size={10} className="text-amber-500" />
+                          </div>
+                        )}
                   </div>
 
                   {/* Info */}
@@ -161,10 +206,17 @@ export function UsersList({
                       <span className="font-medium truncate text-sm">
                         {user.firstName} {user.lastName}
                       </span>
-                      {user.isPlatformAdmin && (
-                        <Badge variant="warning" size="sm">
-                          Admin
+                      {/* Badge contextual */}
+                      {showMembershipRole && roleConfig ? (
+                        <Badge variant={roleConfig.variant} size="sm">
+                          {roleConfig.label}
                         </Badge>
+                      ) : (
+                        user.isPlatformAdmin && (
+                          <Badge variant="warning" size="sm">
+                            Admin
+                          </Badge>
+                        )
                       )}
                     </div>
                     <p className="text-xs text-(--muted-fg) truncate flex items-center gap-1">

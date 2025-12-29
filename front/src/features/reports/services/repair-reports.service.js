@@ -1,6 +1,10 @@
 import { ID, Query } from "appwrite";
 import { databases, storage } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
+import {
+  getFilePreviewUrl,
+  getFileDownloadUrl,
+} from "../../../shared/utils/storage";
 
 const COLLECTION_ID = env.collectionRepairReportsId;
 const PARTS_COLLECTION_ID = env.collectionRepairedPartsId;
@@ -65,10 +69,87 @@ export async function getRepairReportById(id) {
 }
 
 /**
+ * Limpia los datos del reporte de reparación para enviar solo campos válidos a Appwrite
+ * Basado en: repair_reports de db_mycad.md
+ */
+function cleanRepairReportData(data) {
+  const cleanedData = {};
+
+  // Campos requeridos
+  if (data.groupId) cleanedData.groupId = data.groupId;
+  if (data.vehicleId) cleanedData.vehicleId = data.vehicleId;
+  if (data.createdByProfileId)
+    cleanedData.createdByProfileId = data.createdByProfileId;
+  if (data.reportDate) cleanedData.reportDate = data.reportDate;
+  if (data.title) cleanedData.title = data.title;
+
+  // Campos opcionales - solo incluir si tienen valor
+  if (data.description) cleanedData.description = data.description;
+  if (data.status) cleanedData.status = data.status;
+  if (data.priority) cleanedData.priority = data.priority;
+  if (data.damageType) cleanedData.damageType = data.damageType;
+  if (data.workshopName) cleanedData.workshopName = data.workshopName;
+  if (data.workshopAddress) cleanedData.workshopAddress = data.workshopAddress;
+  if (data.workshopPhone) cleanedData.workshopPhone = data.workshopPhone;
+  if (data.startDate) cleanedData.startDate = data.startDate;
+  if (data.completionDate) cleanedData.completionDate = data.completionDate;
+  if (data.warrantyNotes) cleanedData.warrantyNotes = data.warrantyNotes;
+
+  // Campos numéricos opcionales - convertir a número o null
+  if (
+    data.odometer !== undefined &&
+    data.odometer !== "" &&
+    data.odometer !== null
+  ) {
+    cleanedData.odometer = parseInt(data.odometer) || null;
+  }
+  if (
+    data.costEstimate !== undefined &&
+    data.costEstimate !== "" &&
+    data.costEstimate !== null
+  ) {
+    cleanedData.costEstimate = parseFloat(data.costEstimate) || null;
+  }
+  if (
+    data.finalCost !== undefined &&
+    data.finalCost !== "" &&
+    data.finalCost !== null
+  ) {
+    cleanedData.finalCost = parseFloat(data.finalCost) || null;
+  }
+  if (
+    data.laborCost !== undefined &&
+    data.laborCost !== "" &&
+    data.laborCost !== null
+  ) {
+    cleanedData.laborCost = parseFloat(data.laborCost) || null;
+  }
+  if (
+    data.partsCost !== undefined &&
+    data.partsCost !== "" &&
+    data.partsCost !== null
+  ) {
+    cleanedData.partsCost = parseFloat(data.partsCost) || null;
+  }
+  if (
+    data.warrantyDays !== undefined &&
+    data.warrantyDays !== "" &&
+    data.warrantyDays !== null
+  ) {
+    cleanedData.warrantyDays = parseInt(data.warrantyDays) || null;
+  }
+
+  return cleanedData;
+}
+
+/**
  * Crea un nuevo reporte de reparación
  */
 export async function createRepairReport(data) {
-  const { parts, ...reportData } = data;
+  const { parts, stagedFiles, ...reportData } = data;
+
+  // Limpiar datos para Appwrite
+  const cleanedData = cleanRepairReportData(reportData);
 
   // Generar número de reporte
   const reportNumber = `REP-${Date.now().toString(36).toUpperCase()}`;
@@ -79,13 +160,13 @@ export async function createRepairReport(data) {
     COLLECTION_ID,
     ID.unique(),
     {
-      ...reportData,
+      ...cleanedData,
       reportNumber,
-      status: reportData.status || "OPEN",
+      status: cleanedData.status || "OPEN",
       enabled: true,
       // Relaciones two-way
-      vehicle: reportData.vehicleId, // relación → vehicles
-      createdByProfile: reportData.createdByProfileId, // relación → users_profile
+      vehicle: cleanedData.vehicleId, // relación → vehicles
+      createdByProfile: cleanedData.createdByProfileId, // relación → users_profile
     }
   );
 
@@ -98,8 +179,11 @@ export async function createRepairReport(data) {
           PARTS_COLLECTION_ID,
           ID.unique(),
           {
-            ...part,
-            groupId: reportData.groupId,
+            name: part.name,
+            quantity: parseInt(part.quantity) || 1,
+            unitCost: parseFloat(part.unitCost) || 0,
+            notes: part.notes || null,
+            groupId: cleanedData.groupId,
             repairReportId: doc.$id,
             enabled: true,
             // Relaciones two-way
@@ -117,13 +201,57 @@ export async function createRepairReport(data) {
  * Actualiza un reporte de reparación existente
  */
 export async function updateRepairReport(id, data) {
-  const { parts, ...reportData } = data;
+  const { parts, stagedFiles, ...reportData } = data;
+
+  // Limpiar datos para Appwrite (sin campos requeridos para update)
+  const cleanedData = {};
+
+  // Solo incluir campos que tienen valor
+  if (reportData.title) cleanedData.title = reportData.title;
+  if (reportData.reportDate) cleanedData.reportDate = reportData.reportDate;
+  if (reportData.description !== undefined)
+    cleanedData.description = reportData.description || null;
+  if (reportData.status) cleanedData.status = reportData.status;
+  if (reportData.priority) cleanedData.priority = reportData.priority;
+  if (reportData.damageType) cleanedData.damageType = reportData.damageType;
+  if (reportData.workshopName !== undefined)
+    cleanedData.workshopName = reportData.workshopName || null;
+  if (reportData.workshopAddress !== undefined)
+    cleanedData.workshopAddress = reportData.workshopAddress || null;
+  if (reportData.workshopPhone !== undefined)
+    cleanedData.workshopPhone = reportData.workshopPhone || null;
+  if (reportData.startDate !== undefined)
+    cleanedData.startDate = reportData.startDate || null;
+  if (reportData.completionDate !== undefined)
+    cleanedData.completionDate = reportData.completionDate || null;
+  if (reportData.warrantyNotes !== undefined)
+    cleanedData.warrantyNotes = reportData.warrantyNotes || null;
+
+  // Campos numéricos
+  if (reportData.odometer !== undefined && reportData.odometer !== "") {
+    cleanedData.odometer = parseInt(reportData.odometer) || null;
+  }
+  if (reportData.costEstimate !== undefined && reportData.costEstimate !== "") {
+    cleanedData.costEstimate = parseFloat(reportData.costEstimate) || null;
+  }
+  if (reportData.finalCost !== undefined && reportData.finalCost !== "") {
+    cleanedData.finalCost = parseFloat(reportData.finalCost) || null;
+  }
+  if (reportData.laborCost !== undefined && reportData.laborCost !== "") {
+    cleanedData.laborCost = parseFloat(reportData.laborCost) || null;
+  }
+  if (reportData.partsCost !== undefined && reportData.partsCost !== "") {
+    cleanedData.partsCost = parseFloat(reportData.partsCost) || null;
+  }
+  if (reportData.warrantyDays !== undefined && reportData.warrantyDays !== "") {
+    cleanedData.warrantyDays = parseInt(reportData.warrantyDays) || null;
+  }
 
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
     id,
-    reportData
+    cleanedData
   );
 
   return doc;
@@ -312,12 +440,12 @@ export async function deleteRepairReportFile(fileDocId, storageFileId) {
  * Obtiene la URL de preview de un archivo
  */
 export function getRepairFilePreviewUrl(fileId) {
-  return storage.getFilePreview(BUCKET_ID, fileId, 400, 400);
+  return getFilePreviewUrl(BUCKET_ID, fileId, { width: 400, height: 400 });
 }
 
 /**
  * Obtiene la URL de descarga de un archivo
  */
 export function getRepairFileDownloadUrl(fileId) {
-  return storage.getFileDownload(BUCKET_ID, fileId);
+  return getFileDownloadUrl(BUCKET_ID, fileId);
 }

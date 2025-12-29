@@ -9,6 +9,7 @@ export const env = {
   fnEnsureProfileId: import.meta.env.VITE_APPWRITE_FN_ENSURE_PROFILE_ID || "",
   fnCreateUserWithProfileId:
     import.meta.env.VITE_APPWRITE_FN_CREATE_USER_WITH_PROFILE_ID || "",
+  fnEmailServiceId: import.meta.env.VITE_APPWRITE_FN_EMAIL_SERVICE_ID || "",
 
   //Collections
   collectionUsersProfileId: import.meta.env
@@ -56,6 +57,7 @@ export const env = {
     .VITE_APPWRITE_COLLECTION_DRIVER_LICENSES_ID,
   collectionDriverFilesId: import.meta.env
     .VITE_APPWRITE_COLLECTION_DRIVER_FILES_ID,
+  collectionAuditLogsId: import.meta.env.VITE_APPWRITE_COLLECTION_AUDIT_LOGS_ID,
 
   appName: import.meta.env.VITE_APP_NAME || "MyCAD Admin",
 };

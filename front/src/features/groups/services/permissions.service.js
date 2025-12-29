@@ -1,6 +1,11 @@
 import { Query } from "appwrite";
 import { databases } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/services/audit.service";
 
 const PERMISSIONS_COLLECTION = env.collectionPermissionsId;
 const ROLES_COLLECTION = env.collectionRolesId;
@@ -281,8 +286,17 @@ export async function listGroupUserRoles(groupId) {
 
 /**
  * Asigna un rol a un usuario en un grupo
+ * @param {string} groupId - ID del grupo
+ * @param {string} profileId - ID del perfil del usuario que recibe el rol
+ * @param {string} roleId - ID del rol a asignar
+ * @param {object} auditInfo - Info para auditoría { actorProfileId, roleName, userName }
  */
-export async function assignRoleToUser(groupId, profileId, roleId) {
+export async function assignRoleToUser(
+  groupId,
+  profileId,
+  roleId,
+  auditInfo = {}
+) {
   // Verificar si ya existe
   const existing = await databases.listDocuments(
     env.databaseId,
@@ -298,17 +312,34 @@ export async function assignRoleToUser(groupId, profileId, roleId) {
   if (existing.documents.length > 0) {
     const doc = existing.documents[0];
     if (!doc.enabled) {
-      return databases.updateDocument(
+      const result = await databases.updateDocument(
         env.databaseId,
         USER_ROLES_COLLECTION,
         doc.$id,
         { enabled: true, assignedAt: new Date().toISOString() }
       );
+
+      // Log de auditoría para reactivación
+      if (auditInfo.actorProfileId) {
+        logAuditEvent({
+          groupId,
+          profileId: auditInfo.actorProfileId,
+          action: AUDIT_ACTIONS.ASSIGN,
+          entityType: ENTITY_TYPES.ROLE,
+          entityId: roleId,
+          entityName: `Rol "${auditInfo.roleName || roleId}" asignado a ${
+            auditInfo.userName || profileId
+          }`,
+          details: { targetProfileId: profileId, roleId, reactivated: true },
+        }).catch(console.error);
+      }
+
+      return result;
     }
     return doc;
   }
 
-  return databases.createDocument(
+  const result = await databases.createDocument(
     env.databaseId,
     USER_ROLES_COLLECTION,
     "unique()",
@@ -324,24 +355,73 @@ export async function assignRoleToUser(groupId, profileId, roleId) {
       role: roleId, // relación → roles
     }
   );
+
+  // Log de auditoría para nueva asignación
+  if (auditInfo.actorProfileId) {
+    logAuditEvent({
+      groupId,
+      profileId: auditInfo.actorProfileId,
+      action: AUDIT_ACTIONS.ASSIGN,
+      entityType: ENTITY_TYPES.ROLE,
+      entityId: roleId,
+      entityName: `Rol "${auditInfo.roleName || roleId}" asignado a ${
+        auditInfo.userName || profileId
+      }`,
+      details: { targetProfileId: profileId, roleId },
+    }).catch(console.error);
+  }
+
+  return result;
 }
 
 /**
  * Remueve un rol de un usuario (soft delete)
+ * @param {string} userRoleId - ID del documento user_role
+ * @param {object} auditInfo - Info para auditoría { groupId, actorProfileId, roleName, userName, roleId, targetProfileId }
  */
-export async function removeRoleFromUser(userRoleId) {
-  return databases.updateDocument(
+export async function removeRoleFromUser(userRoleId, auditInfo = {}) {
+  const result = await databases.updateDocument(
     env.databaseId,
     USER_ROLES_COLLECTION,
     userRoleId,
     { enabled: false }
   );
+
+  // Log de auditoría
+  if (auditInfo.actorProfileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.actorProfileId,
+      action: AUDIT_ACTIONS.UNASSIGN,
+      entityType: ENTITY_TYPES.ROLE,
+      entityId: auditInfo.roleId || userRoleId,
+      entityName: `Rol "${auditInfo.roleName || "desconocido"}" removido de ${
+        auditInfo.userName || auditInfo.targetProfileId || "usuario"
+      }`,
+      details: {
+        userRoleId,
+        targetProfileId: auditInfo.targetProfileId,
+        roleId: auditInfo.roleId,
+      },
+    }).catch(console.error);
+  }
+
+  return result;
 }
 
 /**
  * Actualiza todos los roles de un usuario en un grupo (batch)
+ * @param {string} groupId - ID del grupo
+ * @param {string} profileId - ID del perfil del usuario
+ * @param {string[]} roleIds - Array de IDs de roles a asignar
+ * @param {object} auditInfo - Info para auditoría { actorProfileId, userName, rolesMap }
  */
-export async function updateUserRoles(groupId, profileId, roleIds) {
+export async function updateUserRoles(
+  groupId,
+  profileId,
+  roleIds,
+  auditInfo = {}
+) {
   const currentAssignments = await listUserRoles(groupId, profileId);
   const currentRoleIds = currentAssignments.map((ur) => ur.roleId);
 
@@ -350,10 +430,26 @@ export async function updateUserRoles(groupId, profileId, roleIds) {
     (ur) => !roleIds.includes(ur.roleId)
   );
 
+  // Obtener nombres de roles del mapa si existe
+  const getRoleName = (roleId) => auditInfo.rolesMap?.[roleId] || roleId;
+
   const addPromises = toAdd.map((roleId) =>
-    assignRoleToUser(groupId, profileId, roleId)
+    assignRoleToUser(groupId, profileId, roleId, {
+      actorProfileId: auditInfo.actorProfileId,
+      roleName: getRoleName(roleId),
+      userName: auditInfo.userName,
+    })
   );
-  const removePromises = toRemove.map((ur) => removeRoleFromUser(ur.$id));
+  const removePromises = toRemove.map((ur) =>
+    removeRoleFromUser(ur.$id, {
+      groupId,
+      actorProfileId: auditInfo.actorProfileId,
+      roleName: getRoleName(ur.roleId),
+      userName: auditInfo.userName,
+      roleId: ur.roleId,
+      targetProfileId: profileId,
+    })
+  );
 
   await Promise.all([...addPromises, ...removePromises]);
 

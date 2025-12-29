@@ -543,6 +543,57 @@ export async function getExpiringLicenses(groupId, daysAhead = 30) {
 }
 
 // ============================================
+// ESTADÍSTICAS DE USUARIOS DEL GRUPO
+// ============================================
+
+/**
+ * Obtiene el conteo de usuarios miembros del grupo
+ */
+export async function getGroupUsersCount(groupId) {
+  if (!groupId) return { total: 0, active: 0, admins: 0 };
+
+  // Obtener membresías del grupo
+  const membersRes = await databases.listDocuments(
+    env.databaseId,
+    env.collectionGroupMembersId,
+    [
+      Query.equal("groupId", groupId),
+      Query.equal("enabled", true),
+      Query.limit(500),
+    ]
+  );
+
+  if (membersRes.documents.length === 0) {
+    return { total: 0, active: 0, admins: 0 };
+  }
+
+  const profileIds = membersRes.documents.map((m) => m.profileId);
+  const membershipMap = new Map(
+    membersRes.documents.map((m) => [m.profileId, m])
+  );
+
+  // Obtener perfiles
+  const profilesRes = await databases.listDocuments(
+    env.databaseId,
+    env.collectionUsersProfileId,
+    [Query.equal("$id", profileIds)]
+  );
+
+  const profiles = profilesRes.documents;
+  const active = profiles.filter((p) => p.status === "ACTIVE").length;
+  const admins = profiles.filter((p) => {
+    const membership = membershipMap.get(p.$id);
+    return membership?.role === "OWNER" || membership?.role === "ADMIN";
+  }).length;
+
+  return {
+    total: profiles.length,
+    active,
+    admins,
+  };
+}
+
+// ============================================
 // RESUMEN COMPLETO
 // ============================================
 
@@ -555,6 +606,7 @@ export async function getDashboardSummary(groupId) {
       vehicles: { total: 0, active: 0, maintenance: 0, inactive: 0 },
       drivers: { total: 0, active: 0, inactive: 0 },
       clients: { total: 0 },
+      users: { total: 0, active: 0, admins: 0 },
       serviceReports: {
         total: 0,
         draft: 0,
@@ -574,11 +626,12 @@ export async function getDashboardSummary(groupId) {
   }
 
   // Ejecutar todas las consultas en paralelo
-  const [vehicles, drivers, clients, serviceReports, repairReports] =
+  const [vehicles, drivers, clients, users, serviceReports, repairReports] =
     await Promise.all([
       getVehiclesCount(groupId),
       getDriversCount(groupId),
       getClientsCount(groupId),
+      getGroupUsersCount(groupId),
       getServiceReportsStats(groupId),
       getRepairReportsStats(groupId),
     ]);
@@ -587,6 +640,7 @@ export async function getDashboardSummary(groupId) {
     vehicles,
     drivers,
     clients,
+    users,
     serviceReports,
     repairReports,
   };

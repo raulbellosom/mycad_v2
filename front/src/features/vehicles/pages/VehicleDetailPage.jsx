@@ -178,8 +178,7 @@ function FileCard({ file, onView, onDownload }) {
   const isImage = file.isImage || file.mimeType?.startsWith("image/");
   // Use storageFileId for preview (from enriched data)
   const storageId = file.storageFileId || file.fileId;
-  const previewUrl =
-    isImage && storageId ? getFilePreview(storageId)?.href : null;
+  const previewUrl = isImage && storageId ? getFilePreview(storageId) : null;
 
   return (
     <motion.div
@@ -430,11 +429,9 @@ export function VehicleDetailPage() {
                 >
                   {imageFiles.length > 0 ? (
                     <img
-                      src={
-                        getFilePreview(
-                          imageFiles[0].storageFileId || imageFiles[0].fileId
-                        )?.href
-                      }
+                      src={getFilePreview(
+                        imageFiles[0].storageFileId || imageFiles[0].fileId
+                      )}
                       alt={vehicleTitle}
                       className="h-full w-full rounded-2xl object-cover"
                     />

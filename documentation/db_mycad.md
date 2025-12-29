@@ -636,7 +636,7 @@
 | vendorName             | String(120)                |       ❌ |             |                                   |
 | enabled                | Boolean                    |       ❌ | true        |                                   |
 | `status`               | Enum                       |       ❌ | DRAFT       | DRAFT/FINALIZED                   |
-| `serviceType`          | Enum                       |       ❌ | MAINTENANCE | MAINTENANCE/INSPECTION/OTHER      |
+| `serviceType`          | Enum                       |       ❌ | MAINTENANCE | MAINTENANCE/SERVICE/OTHER         |
 | `invoiceNumber`        | String(50)                 |       ❌ |             | Número de factura                 |
 | `laborCost`            | Float(min=0)               |       ❌ |             | Costo de mano de obra             |
 | `partsCost`            | Float(min=0)               |       ❌ |             | Costo de refacciones (calculado)  |
@@ -1022,6 +1022,37 @@
 
 - `assignment`: Two-way ↔ `vehicle_driver_assignments.files` (Many-to-one) On delete Cascade
 - `file`: Two-way ↔ `files.vehicleDriverAssignmentsFiles` (Many-to-one) On delete Cascade
+
+# AE) audit_logs
+
+## AE.1 Attributes
+
+| Field      | Type         | Required | Default | Notes                                                    |
+| ---------- | ------------ | -------: | ------- | -------------------------------------------------------- |
+| groupId    | String(64)   |       ✅ |         | `groups.$id` (puede ser null para logs globales)         |
+| profileId  | String(64)   |       ✅ |         | `users_profile.$id` - quien ejecutó la acción            |
+| action     | Enum         |       ✅ |         | CREATE / UPDATE / DELETE / LOGIN / LOGOUT / VIEW / OTHER |
+| entityType | String(80)   |       ✅ |         | vehicles / service_histories / repair_reports / etc      |
+| entityId   | String(64)   |       ❌ |         | `$id` del documento afectado                             |
+| entityName | String(200)  |       ❌ |         | nombre/identificador legible (ej: placa del vehículo)    |
+| details    | String(2000) |       ❌ |         | JSON con cambios o metadata adicional                    |
+| ipAddress  | String(45)   |       ❌ |         | IPv4 o IPv6                                              |
+| userAgent  | String(500)  |       ❌ |         | navegador/dispositivo                                    |
+| createdAt  | Datetime     |       ✅ |         | timestamp de la acción (set en Function/API)             |
+| enabled    | Boolean      |       ❌ | true    |                                                          |
+
+## AE.2 Indexes
+
+- `idx_audit_logs_groupId` → `groupId`
+- `idx_audit_logs_profileId` → `profileId`
+- `idx_audit_logs_group_action` → (`groupId`, `action`)
+- `idx_audit_logs_group_entityType` → (`groupId`, `entityType`)
+- `idx_audit_logs_group_createdAt` → (`groupId`, `createdAt`)
+- `idx_audit_logs_enabled` → `enabled`
+
+## AE.3 Relationships
+
+- `profile`: Two-way ↔ `users_profile.auditLogs` (Many-to-one) On delete Restrict
 
 ---
 

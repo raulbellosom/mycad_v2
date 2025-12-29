@@ -47,6 +47,14 @@ const STATUS_CONFIG = {
   DELETED: { label: "Eliminado", variant: "danger", icon: UserX },
 };
 
+// Membership role config
+const MEMBERSHIP_ROLE_CONFIG = {
+  OWNER: { label: "Dueño del grupo", variant: "warning", icon: Crown },
+  ADMIN: { label: "Administrador", variant: "primary", icon: Shield },
+  MEMBER: { label: "Miembro", variant: "default", icon: User },
+  VIEWER: { label: "Visor", variant: "secondary", icon: User },
+};
+
 function formatDate(dateString) {
   if (!dateString) return "-";
   return new Date(dateString).toLocaleDateString("es-MX", {
@@ -58,7 +66,7 @@ function formatDate(dateString) {
   });
 }
 
-export function UserDetail({ user, onClose }) {
+export function UserDetail({ user, onClose, showMembershipRole = false }) {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
@@ -149,6 +157,10 @@ export function UserDetail({ user, onClose }) {
   const statusConfig = STATUS_CONFIG[user.status] || STATUS_CONFIG.ACTIVE;
   const StatusIcon = statusConfig.icon;
 
+  // Membership info (si está en modo grupo)
+  const membershipRole = user.membership?.role;
+  const roleConfig = MEMBERSHIP_ROLE_CONFIG[membershipRole];
+
   return (
     <>
       <Card padding="none" className="h-full flex flex-col">
@@ -173,15 +185,34 @@ export function UserDetail({ user, onClose }) {
                 <h2 className="text-lg sm:text-xl font-bold truncate max-w-full">
                   {user.firstName} {user.lastName}
                 </h2>
-                {user.isPlatformAdmin && (
+                {/* Badge contextual: membresía de grupo o admin de plataforma */}
+                {showMembershipRole && roleConfig ? (
                   <Badge
-                    variant="warning"
+                    variant={roleConfig.variant}
                     className="flex items-center gap-1 shrink-0"
                   >
-                    <Crown size={12} />
-                    <span className="hidden sm:inline">Admin Plataforma</span>
-                    <span className="sm:hidden">Admin</span>
+                    {membershipRole === "OWNER" && <Crown size={12} />}
+                    {membershipRole === "ADMIN" && <Shield size={12} />}
+                    <span className="hidden sm:inline">{roleConfig.label}</span>
+                    <span className="sm:hidden">
+                      {membershipRole === "OWNER"
+                        ? "Dueño"
+                        : membershipRole === "ADMIN"
+                        ? "Admin"
+                        : roleConfig.label}
+                    </span>
                   </Badge>
+                ) : (
+                  user.isPlatformAdmin && (
+                    <Badge
+                      variant="warning"
+                      className="flex items-center gap-1 shrink-0"
+                    >
+                      <Crown size={12} />
+                      <span className="hidden sm:inline">Admin Plataforma</span>
+                      <span className="sm:hidden">Admin</span>
+                    </Badge>
+                  )
                 )}
               </div>
               <p className="text-sm text-(--muted-fg) truncate mt-1 max-w-full">

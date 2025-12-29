@@ -12,8 +12,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import clsx from "clsx";
-import { storage } from "../appwrite/client";
 import { env } from "../appwrite/env";
+import { getFileViewUrl, getFileDownloadUrl } from "../utils/storage";
 
 export function ImageViewerModal({
   isOpen,
@@ -102,7 +102,7 @@ export function ImageViewerModal({
     e.stopPropagation();
     if (!activeFileId) return;
     try {
-      const downloadUrl = storage.getFileDownload(bucketId, activeFileId);
+      const downloadUrl = getFileDownloadUrl(bucketId, activeFileId);
       const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = `image-${activeFileId}.png`;
@@ -120,9 +120,7 @@ export function ImageViewerModal({
     setIsTweaking(false);
   };
 
-  const imageUrl = activeFileId
-    ? storage.getFileView(bucketId, activeFileId)
-    : null;
+  const imageUrl = activeFileId ? getFileViewUrl(bucketId, activeFileId) : null;
 
   return (
     <AnimatePresence>

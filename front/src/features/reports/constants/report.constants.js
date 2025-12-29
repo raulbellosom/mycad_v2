@@ -27,13 +27,13 @@ export const REPORT_STATUS_COLORS = {
 
 export const SERVICE_TYPE = {
   MAINTENANCE: "MAINTENANCE",
-  INSPECTION: "INSPECTION",
+  SERVICE: "SERVICE",
   OTHER: "OTHER",
 };
 
 export const SERVICE_TYPE_LABELS = {
   [SERVICE_TYPE.MAINTENANCE]: "Mantenimiento",
-  [SERVICE_TYPE.INSPECTION]: "Inspección",
+  [SERVICE_TYPE.SERVICE]: "Servicio",
   [SERVICE_TYPE.OTHER]: "Otro",
 };
 

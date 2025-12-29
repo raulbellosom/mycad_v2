@@ -9,6 +9,7 @@ import {
   Shield,
   Filter,
   RefreshCw,
+  Crown,
 } from "lucide-react";
 
 import { PageLayout } from "../../../shared/ui/PageLayout";
@@ -20,7 +21,12 @@ import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { UsersList } from "../components/UsersList";
 import { UserDetail } from "../components/UserDetail";
 import { CreateUserModal } from "../components/CreateUserModal";
-import { listAllUsers, getUserStats } from "../services/usersAdmin.service";
+import {
+  listAllUsers,
+  getUserStats,
+  listGroupUsers,
+  getGroupUserStats,
+} from "../services/usersAdmin.service";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { usePermissions } from "../../groups/hooks/usePermissions";
 import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
@@ -40,74 +46,123 @@ export function UsersPage() {
   const [statusFilter, setStatusFilter] = useState("");
 
   // Obtener grupo activo para crear conductores
-  const { activeGroupId } = useActiveGroup();
-  const { can } = usePermissions();
+  const { activeGroupId, activeGroup } = useActiveGroup();
+  const { can, isPlatformAdmin, isGroupOwner, isGroupAdmin } = usePermissions();
 
   // Permisos
   const canCreate = can(SYSTEM_PERMISSIONS.USERS_CREATE);
 
-  // Query: Lista de usuarios
+  // Determinar el modo de vista:
+  // - isPlatformAdmin: Ve TODOS los usuarios del sistema
+  // - isGroupOwner/isGroupAdmin: Ve solo usuarios de su grupo
+  const showAllUsers = isPlatformAdmin;
+
+  // Query: Lista de usuarios (contextual)
   const {
     data: users = [],
     isLoading,
     refetch,
     isRefetching,
   } = useQuery({
-    queryKey: ["users", statusFilter],
+    queryKey: showAllUsers
+      ? ["users", "all", statusFilter]
+      : ["users", "group", activeGroupId, statusFilter],
     queryFn: () =>
-      listAllUsers({
-        status: statusFilter || undefined,
-      }),
+      showAllUsers
+        ? listAllUsers({ status: statusFilter || undefined })
+        : listGroupUsers(activeGroupId, { status: statusFilter || undefined }),
+    enabled: showAllUsers || !!activeGroupId,
   });
 
-  // Query: Estadísticas
+  // Query: Estadísticas (contextual)
   const { data: stats } = useQuery({
-    queryKey: ["user-stats"],
-    queryFn: getUserStats,
+    queryKey: showAllUsers
+      ? ["user-stats", "all"]
+      : ["user-stats", "group", activeGroupId],
+    queryFn: () =>
+      showAllUsers ? getUserStats() : getGroupUserStats(activeGroupId),
+    enabled: showAllUsers || !!activeGroupId,
   });
 
   const selectedUser = users.find((u) => u.$id === selectedUserId);
 
-  // Stats cards config
-  const statsCards = [
-    {
-      label: "Total usuarios",
-      value: stats?.total || 0,
-      icon: Users,
-      color: "text-blue-500",
-      bg: "bg-blue-100 dark:bg-blue-900/20",
-    },
-    {
-      label: "Activos",
-      value: stats?.active || 0,
-      icon: UserCheck,
-      color: "text-green-500",
-      bg: "bg-green-100 dark:bg-green-900/20",
-    },
-    {
-      label: "Suspendidos",
-      value: stats?.suspended || 0,
-      icon: UserX,
-      color: "text-amber-500",
-      bg: "bg-amber-100 dark:bg-amber-900/20",
-    },
-    {
-      label: "Admins plataforma",
-      value: stats?.platformAdmins || 0,
-      icon: Shield,
-      color: "text-purple-500",
-      bg: "bg-purple-100 dark:bg-purple-900/20",
-    },
-  ];
+  // Stats cards config - Contextual según el modo
+  const statsCards = showAllUsers
+    ? [
+        {
+          label: "Total usuarios",
+          value: stats?.total || 0,
+          icon: Users,
+          color: "text-blue-500",
+          bg: "bg-blue-100 dark:bg-blue-900/20",
+        },
+        {
+          label: "Activos",
+          value: stats?.active || 0,
+          icon: UserCheck,
+          color: "text-green-500",
+          bg: "bg-green-100 dark:bg-green-900/20",
+        },
+        {
+          label: "Suspendidos",
+          value: stats?.suspended || 0,
+          icon: UserX,
+          color: "text-amber-500",
+          bg: "bg-amber-100 dark:bg-amber-900/20",
+        },
+        {
+          label: "Admins plataforma",
+          value: stats?.platformAdmins || 0,
+          icon: Shield,
+          color: "text-purple-500",
+          bg: "bg-purple-100 dark:bg-purple-900/20",
+        },
+      ]
+    : [
+        {
+          label: "Miembros del grupo",
+          value: stats?.total || 0,
+          icon: Users,
+          color: "text-blue-500",
+          bg: "bg-blue-100 dark:bg-blue-900/20",
+        },
+        {
+          label: "Activos",
+          value: stats?.active || 0,
+          icon: UserCheck,
+          color: "text-green-500",
+          bg: "bg-green-100 dark:bg-green-900/20",
+        },
+        {
+          label: "Suspendidos",
+          value: stats?.suspended || 0,
+          icon: UserX,
+          color: "text-amber-500",
+          bg: "bg-amber-100 dark:bg-amber-900/20",
+        },
+        {
+          label: "Admins del grupo",
+          value: stats?.admins || 0,
+          icon: Crown,
+          color: "text-purple-500",
+          bg: "bg-purple-100 dark:bg-purple-900/20",
+        },
+      ];
 
   if (isLoading) {
     return <LoadingScreen label="Cargando usuarios..." />;
   }
 
+  // Títulos contextuales
+  const pageTitle = showAllUsers ? "Gestión de Usuarios" : "Usuarios del Grupo";
+  const pageSubtitle = showAllUsers
+    ? "Administra todos los usuarios del sistema"
+    : `Administra los miembros de ${activeGroup?.name || "tu grupo"}`;
+
   return (
     <PageLayout
-      title="Gestión de Usuarios"
-      subtitle="Administra los usuarios del sistema"
+      title={pageTitle}
+      subtitle={pageSubtitle}
       actions={
         <div className="flex gap-2">
           <Button
@@ -131,6 +186,30 @@ export function UsersPage() {
         </div>
       }
     >
+      {/* Banner contextual */}
+      {showAllUsers && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
+        >
+          <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+            <Shield
+              size={16}
+              className="text-purple-600 dark:text-purple-400"
+            />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
+              Vista de Administrador de Plataforma
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              Estás viendo todos los usuarios registrados en el sistema
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map((stat, index) => {
@@ -198,6 +277,7 @@ export function UsersPage() {
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             isLoading={isLoading}
+            showMembershipRole={!showAllUsers}
           />
         </div>
 
@@ -206,6 +286,7 @@ export function UsersPage() {
           <UserDetail
             user={selectedUser}
             onClose={() => setSelectedUserId(null)}
+            showMembershipRole={!showAllUsers}
           />
         </div>
       </div>

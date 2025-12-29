@@ -36,14 +36,14 @@ import {
   deleteDriverFile,
   getDriverFilePreviewUrl,
 } from "../../../auth/services/myProfile.service";
-import { storage } from "../../../../shared/appwrite/client";
 import { env } from "../../../../shared/appwrite/env";
+import { getFileDownloadUrl } from "../../../../shared/utils/storage";
 import { cn } from "../../../../shared/utils/cn";
 
 // Helper para obtener URL de descarga
 function getDriverFileDownloadUrl(fileId) {
   if (!fileId) return null;
-  return storage.getFileDownload(env.bucketVehiclesId, fileId);
+  return getFileDownloadUrl(env.bucketVehiclesId, fileId);
 }
 
 export function ProfileDriverTab({ profile, driverRecord, onUpdate }) {
