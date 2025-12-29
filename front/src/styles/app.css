@@ -217,6 +217,31 @@ label {
     font-size: 16px !important; /* Prevents iOS Safari auto-zoom */
   }
 
+  /* Fix date inputs on iOS/Safari - they have intrinsic min-width */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"] {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Fix webkit date picker button overflow */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    opacity: 0.6;
+    cursor: pointer;
+  }
+
   /* Also apply to common UI component classes */
   .input,
   [class*="input"],

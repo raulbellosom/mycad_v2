@@ -22,13 +22,49 @@ export async function getVehicleById(id) {
   return doc;
 }
 
+/**
+ * Limpia los datos del vehículo antes de enviar a Appwrite
+ * - Convierte strings vacíos de campos numéricos a null
+ * - Elimina campos de relación que se manejan separadamente
+ */
+function cleanVehicleData(data) {
+  const cleaned = { ...data };
+
+  // Campos numéricos opcionales - convertir "" a null
+  const numericFields = [
+    "acquisitionCost",
+    "bookValue",
+    "marketValue",
+    "mileage",
+  ];
+  numericFields.forEach((field) => {
+    if (cleaned[field] === "" || cleaned[field] === undefined) {
+      cleaned[field] = null;
+    } else if (typeof cleaned[field] === "string") {
+      const parsed = parseFloat(cleaned[field]);
+      cleaned[field] = isNaN(parsed) ? null : parsed;
+    }
+  });
+
+  // Eliminar campos internos que no deben ir a Appwrite
+  delete cleaned.groupId;
+  delete cleaned.ownerProfileId;
+  delete cleaned.typeId;
+  delete cleaned.brandId;
+  delete cleaned.modelId;
+
+  return cleaned;
+}
+
 export async function createVehicle(data) {
+  const cleanedData = cleanVehicleData(data);
+
   const doc = await databases.createDocument(
     env.databaseId,
     COLLECTION_ID,
     ID.unique(),
     {
-      ...data,
+      ...cleanedData,
       enabled: true,
       status: "ACTIVE",
       // Relaciones two-way
@@ -43,11 +79,13 @@ export async function createVehicle(data) {
 }
 
 export async function updateVehicle(id, data) {
+  const cleanedData = cleanVehicleData(data);
+
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
     id,
-    data
+    cleanedData
   );
   return doc;
 }

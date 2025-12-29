@@ -208,23 +208,23 @@ export function DatePicker({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute z-50 mt-2 w-full min-w-[280px] rounded-lg border border-(--border) bg-(--card) p-3 shadow-lg"
+              className="absolute z-50 mt-2 left-0 right-0 w-full max-w-full rounded-lg border border-(--border) bg-(--card) p-3 shadow-lg box-border"
             >
               {/* Header with Month/Year selectors */}
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3 gap-1">
                 <button
                   type="button"
                   onClick={handlePrevMonth}
-                  className="rounded-md p-1.5 hover:bg-(--muted) transition-colors"
+                  className="rounded-md p-1.5 hover:bg-(--muted) transition-colors shrink-0"
                 >
                   <ChevronLeft size={18} />
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-center">
                   <select
                     value={getMonth(viewDate)}
                     onChange={handleMonthChange}
-                    className="rounded-md border border-(--border) bg-(--card) px-2 py-1 text-base md:text-sm focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                    className="rounded-md border border-(--border) bg-(--card) px-1 sm:px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0 max-w-[90px] sm:max-w-none"
                   >
                     {MONTHS.map((month, index) => (
                       <option key={month} value={index}>
@@ -235,7 +235,7 @@ export function DatePicker({
                   <select
                     value={getYear(viewDate)}
                     onChange={handleYearChange}
-                    className="rounded-md border border-(--border) bg-(--card) px-2 py-1 text-base md:text-sm focus:outline-none focus:ring-1 focus:ring-(--brand)"
+                    className="rounded-md border border-(--border) bg-(--card) px-1 sm:px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0 w-[70px]"
                   >
                     {generateYears().map((year) => (
                       <option key={year} value={year}>
@@ -248,7 +248,7 @@ export function DatePicker({
                 <button
                   type="button"
                   onClick={handleNextMonth}
-                  className="rounded-md p-1.5 hover:bg-(--muted) transition-colors"
+                  className="rounded-md p-1.5 hover:bg-(--muted) transition-colors shrink-0"
                 >
                   <ChevronRight size={18} />
                 </button>

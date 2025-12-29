@@ -606,9 +606,7 @@ function FormSection({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="p-4 pt-0 border-t border-(--border)">
-              {children}
-            </div>
+            <div className="p-4 border-t border-(--border)">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
