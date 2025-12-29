@@ -256,9 +256,9 @@ export function RepairReportView({
       )}
 
       {/* Grid de dos columnas para costos y partes */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Partes Reemplazadas */}
-        <motion.div variants={fadeIn}>
+        <motion.div variants={fadeIn} className="min-w-0">
           <Card className="h-full">
             <Card.Header>
               <Card.Title icon={Wrench}>

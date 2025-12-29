@@ -270,9 +270,9 @@ export function PermissionsAdminPage() {
           </div>
         </Card>
       </div>
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Lista de permisos */}
-        <Card padding="none" className="lg:col-span-3 overflow-hidden">
+        <Card padding="none" className="lg:col-span-3 min-w-0">
           <div className="border-b border-(--border) p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">

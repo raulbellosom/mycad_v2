@@ -188,9 +188,9 @@ export function UsersPage() {
       </Card>
 
       {/* Main content: Lista + Detalle */}
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Lista de usuarios */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <UsersList
             users={users}
             selectedUserId={selectedUserId}
@@ -202,7 +202,7 @@ export function UsersPage() {
         </div>
 
         {/* Detalle del usuario */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 min-w-0">
           <UserDetail
             user={selectedUser}
             onClose={() => setSelectedUserId(null)}

@@ -155,6 +155,7 @@
 html {
   width: 100%;
   max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
@@ -164,7 +165,38 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   width: 100%;
   max-width: 100vw;
+  overflow-x: hidden;
   -webkit-text-size-adjust: 100%; /* Prevent text size adjustment on orientation change */
+}
+
+/* Global overflow prevention for long text */
+.break-words {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Utility for truncating text */
+.truncate-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ensure all text containers can shrink */
+p,
+span,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+label {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 /* Prevent iOS auto-zoom on input focus - inputs must be at least 16px */

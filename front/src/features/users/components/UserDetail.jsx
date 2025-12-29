@@ -151,44 +151,52 @@ export function UserDetail({ user, onClose }) {
 
   return (
     <>
-      <Card padding="none" className="overflow-hidden h-full flex flex-col">
+      <Card padding="none" className="h-full flex flex-col">
         {/* Header con avatar */}
-        <div className="border-b border-(--border) p-6 bg-linear-to-r from-(--brand)/5 to-transparent shrink-0">
-          <div className="flex items-start gap-4">
+        <div className="border-b border-(--border) p-4 sm:p-6 bg-linear-to-r from-(--brand)/5 to-transparent shrink-0">
+          <div className="flex items-start gap-3 sm:gap-4">
             {/* Avatar grande */}
-            <div className="h-20 w-20 rounded-2xl bg-(--muted) flex items-center justify-center overflow-hidden shadow-md shrink-0">
+            <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-(--muted) flex items-center justify-center overflow-hidden shadow-md shrink-0">
               {user.avatarFileId ? (
                 <img
                   src={getAvatarUrl(user.avatarFileId, 160)}
                   alt={user.firstName}
-                  className="h-20 w-20 object-cover"
+                  className="h-full w-full object-cover"
                 />
               ) : (
-                <User size={32} className="text-(--muted-fg)" />
+                <User size={28} className="text-(--muted-fg) sm:w-8 sm:h-8" />
               )}
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-bold truncate">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold truncate max-w-full">
                   {user.firstName} {user.lastName}
                 </h2>
                 {user.isPlatformAdmin && (
-                  <Badge variant="warning" className="flex items-center gap-1">
+                  <Badge
+                    variant="warning"
+                    className="flex items-center gap-1 shrink-0"
+                  >
                     <Crown size={12} />
-                    Admin Plataforma
+                    <span className="hidden sm:inline">Admin Plataforma</span>
+                    <span className="sm:hidden">Admin</span>
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-(--muted-fg) truncate mt-1">
+              <p className="text-sm text-(--muted-fg) truncate mt-1 max-w-full">
                 {user.email}
               </p>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <Badge variant={statusConfig.variant} dot>
                   {statusConfig.label}
                 </Badge>
                 {user.username && (
-                  <Badge variant="default" size="sm">
+                  <Badge
+                    variant="default"
+                    size="sm"
+                    className="truncate max-w-[120px]"
+                  >
                     @{user.username}
                   </Badge>
                 )}
@@ -206,7 +214,7 @@ export function UserDetail({ user, onClose }) {
                     disabled={updateMutation.isPending}
                   >
                     <X size={14} />
-                    Cancelar
+                    <span className="hidden sm:inline ml-1">Cancelar</span>
                   </Button>
                   <Button
                     size="sm"
@@ -214,7 +222,7 @@ export function UserDetail({ user, onClose }) {
                     disabled={updateMutation.isPending}
                   >
                     <Save size={14} />
-                    Guardar
+                    <span className="hidden sm:inline ml-1">Guardar</span>
                   </Button>
                 </>
               ) : (
@@ -224,7 +232,7 @@ export function UserDetail({ user, onClose }) {
                   onClick={() => setIsEditing(true)}
                 >
                   <Edit3 size={14} />
-                  Editar
+                  <span className="hidden sm:inline ml-1">Editar</span>
                 </Button>
               )}
             </div>

@@ -266,9 +266,9 @@ export function RolesTab({ groupId }) {
 
   return (
     <>
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Lista de Roles */}
-        <Card padding="none" className="lg:col-span-2 overflow-hidden">
+        <Card padding="none" className="lg:col-span-2 min-w-0">
           {/* Header */}
           <div className="border-b border-(--border) p-4">
             <div className="flex items-center gap-2 mb-4">

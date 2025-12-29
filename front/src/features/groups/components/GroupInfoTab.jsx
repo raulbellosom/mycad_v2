@@ -422,7 +422,7 @@ export function GroupInfoTab({ groupId }) {
       </motion.div>
 
       {/* Detalles técnicos e información del propietario */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Detalles técnicos */}
         <motion.div variants={itemVariants}>
           <Card className="p-6">
