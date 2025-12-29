@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -64,7 +64,8 @@ const STATUS_LABELS = {
   RENTED: "Rentado",
 };
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
+const DEFAULT_ITEMS_PER_PAGE = 10;
 
 export function VehiclesPage() {
   const { activeGroupId } = useActiveGroup();
@@ -73,6 +74,7 @@ export function VehiclesPage() {
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("grid"); // grid | list
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE);
   const [vehicleToDelete, setVehicleToDelete] = useState(null);
   const [imageViewerData, setImageViewerData] = useState({
     isOpen: false,
@@ -137,11 +139,13 @@ export function VehiclesPage() {
     [types]
   );
 
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, typeFilter]);
+
   // Filter vehicles
   const filteredVehicles = useMemo(() => {
-    // Reset to first page when filters change
-    setCurrentPage(1);
-
     return vehicles.filter((vehicle) => {
       // Search filter
       const term = searchTerm.toLowerCase().trim();
@@ -190,11 +194,24 @@ export function VehiclesPage() {
   ]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
   const paginatedVehicles = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredVehicles.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredVehicles, currentPage]);
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredVehicles.slice(start, start + itemsPerPage);
+  }, [filteredVehicles, currentPage, itemsPerPage]);
+
+  // Pagination info
+  const paginationInfo = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage + 1;
+    const end = Math.min(currentPage * itemsPerPage, filteredVehicles.length);
+    return { start, end, total: filteredVehicles.length };
+  }, [currentPage, itemsPerPage, filteredVehicles.length]);
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newValue) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1); // Reset to first page
+  };
 
   // Stats
   const stats = useMemo(() => {
@@ -462,65 +479,223 @@ export function VehiclesPage() {
           )}
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft size={16} />
-              </Button>
+          {filteredVehicles.length > 0 && (
+            <div className="flex flex-col gap-4">
+              {/* Main pagination controls */}
+              <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 bg-(--card) rounded-xl border border-(--border)">
+                {/* Left: Items per page */}
+                <div className="flex items-center gap-2 order-2 lg:order-1">
+                  <span className="text-sm text-(--muted-fg)">Mostrar</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) =>
+                      handleItemsPerPageChange(Number(e.target.value))
+                    }
+                    className="h-8 rounded-md border border-(--border) bg-(--bg) px-2 text-sm font-medium focus:border-(--brand) focus:ring-2 focus:ring-(--brand)/20 outline-none transition-all cursor-pointer"
+                  >
+                    {ITEMS_PER_PAGE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-sm text-(--muted-fg) hidden sm:inline">
+                    por página
+                  </span>
+                </div>
 
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter((page) => {
-                    // Show first, last, current and adjacent pages
-                    if (page === 1 || page === totalPages) return true;
-                    if (Math.abs(page - currentPage) <= 1) return true;
-                    return false;
-                  })
-                  .map((page, idx, arr) => {
-                    // Add ellipsis if there's a gap
-                    const showEllipsisBefore =
-                      idx > 0 && page - arr[idx - 1] > 1;
-                    return (
-                      <span key={page} className="flex items-center">
-                        {showEllipsisBefore && (
-                          <span className="px-2 text-(--muted-fg)">...</span>
-                        )}
-                        <button
-                          onClick={() => setCurrentPage(page)}
-                          className={cn(
-                            "h-8 min-w-8 px-2 rounded-lg text-sm font-medium transition-colors",
-                            page === currentPage
-                              ? "bg-(--brand) text-white"
-                              : "hover:bg-(--muted) text-(--fg)"
-                          )}
-                        >
-                          {page}
-                        </button>
-                      </span>
-                    );
-                  })}
+                {/* Center: Page navigation - Always show */}
+                <div className="flex items-center gap-1 order-1 lg:order-2">
+                  {/* First page button */}
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className={cn(
+                      "h-8 w-8 flex items-center justify-center rounded-md border text-sm font-medium transition-all",
+                      currentPage === 1
+                        ? "border-(--border) text-(--muted-fg) cursor-not-allowed opacity-40"
+                        : "border-(--border) hover:border-(--brand) hover:bg-(--brand)/5 text-(--fg)"
+                    )}
+                    title="Primera página"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="11 17 6 12 11 7"></polyline>
+                      <polyline points="18 17 13 12 18 7"></polyline>
+                    </svg>
+                  </button>
+
+                  {/* Previous page button */}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className={cn(
+                      "h-8 w-8 flex items-center justify-center rounded-md border text-sm font-medium transition-all",
+                      currentPage === 1
+                        ? "border-(--border) text-(--muted-fg) cursor-not-allowed opacity-40"
+                        : "border-(--border) hover:border-(--brand) hover:bg-(--brand)/5 text-(--fg)"
+                    )}
+                    title="Anterior"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-0.5 mx-1">
+                    {(() => {
+                      const pages = [];
+                      const showPages = 5;
+                      const effectiveTotalPages = Math.max(1, totalPages);
+                      let startPage = Math.max(
+                        1,
+                        currentPage - Math.floor(showPages / 2)
+                      );
+                      let endPage = Math.min(
+                        effectiveTotalPages,
+                        startPage + showPages - 1
+                      );
+
+                      if (endPage - startPage < showPages - 1) {
+                        startPage = Math.max(1, endPage - showPages + 1);
+                      }
+
+                      if (startPage > 1) {
+                        pages.push(
+                          <button
+                            key={1}
+                            onClick={() => setCurrentPage(1)}
+                            className="h-8 min-w-8 px-2 rounded-md text-sm font-medium transition-all hover:bg-(--muted) text-(--fg)"
+                          >
+                            1
+                          </button>
+                        );
+                        if (startPage > 2) {
+                          pages.push(
+                            <span
+                              key="ellipsis-start"
+                              className="px-1 text-(--muted-fg) select-none text-xs"
+                            >
+                              •••
+                            </span>
+                          );
+                        }
+                      }
+
+                      for (let i = startPage; i <= endPage; i++) {
+                        pages.push(
+                          <button
+                            key={i}
+                            onClick={() => setCurrentPage(i)}
+                            className={cn(
+                              "h-8 min-w-8 px-2 rounded-md text-sm font-medium transition-all",
+                              i === currentPage
+                                ? "bg-(--brand) text-white shadow-sm"
+                                : "hover:bg-(--muted) text-(--fg)"
+                            )}
+                          >
+                            {i}
+                          </button>
+                        );
+                      }
+
+                      if (endPage < effectiveTotalPages) {
+                        if (endPage < effectiveTotalPages - 1) {
+                          pages.push(
+                            <span
+                              key="ellipsis-end"
+                              className="px-1 text-(--muted-fg) select-none text-xs"
+                            >
+                              •••
+                            </span>
+                          );
+                        }
+                        pages.push(
+                          <button
+                            key={effectiveTotalPages}
+                            onClick={() => setCurrentPage(effectiveTotalPages)}
+                            className="h-8 min-w-8 px-2 rounded-md text-sm font-medium transition-all hover:bg-(--muted) text-(--fg)"
+                          >
+                            {effectiveTotalPages}
+                          </button>
+                        );
+                      }
+
+                      return pages;
+                    })()}
+                  </div>
+
+                  {/* Next page button */}
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages || totalPages <= 1}
+                    className={cn(
+                      "h-8 w-8 flex items-center justify-center rounded-md border text-sm font-medium transition-all",
+                      currentPage === totalPages || totalPages <= 1
+                        ? "border-(--border) text-(--muted-fg) cursor-not-allowed opacity-40"
+                        : "border-(--border) hover:border-(--brand) hover:bg-(--brand)/5 text-(--fg)"
+                    )}
+                    title="Siguiente"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+
+                  {/* Last page button */}
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages || totalPages <= 1}
+                    className={cn(
+                      "h-8 w-8 flex items-center justify-center rounded-md border text-sm font-medium transition-all",
+                      currentPage === totalPages || totalPages <= 1
+                        ? "border-(--border) text-(--muted-fg) cursor-not-allowed opacity-40"
+                        : "border-(--border) hover:border-(--brand) hover:bg-(--brand)/5 text-(--fg)"
+                    )}
+                    title="Última página"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="13 17 18 12 13 7"></polyline>
+                      <polyline points="6 17 11 12 6 7"></polyline>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Right: Info text */}
+                <div className="text-sm text-(--muted-fg) order-3">
+                  <span className="font-medium text-(--fg)">
+                    {paginationInfo.start}
+                  </span>
+                  <span> - </span>
+                  <span className="font-medium text-(--fg)">
+                    {paginationInfo.end}
+                  </span>
+                  <span> de </span>
+                  <span className="font-medium text-(--fg)">
+                    {paginationInfo.total}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {" "}
+                    vehículo{paginationInfo.total !== 1 ? "s" : ""}
+                  </span>
+                </div>
               </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight size={16} />
-              </Button>
-
-              <span className="ml-2 text-sm text-(--muted-fg)">
-                {filteredVehicles.length} vehículo
-                {filteredVehicles.length !== 1 ? "s" : ""}
-              </span>
             </div>
           )}
         </>
@@ -545,7 +720,7 @@ export function VehiclesPage() {
 
       {/* Modal de confirmación de eliminación */}
       <ConfirmModal
-        open={!!vehicleToDelete}
+        isOpen={!!vehicleToDelete}
         onClose={() => setVehicleToDelete(null)}
         onConfirm={() => deleteMutation.mutate(vehicleToDelete?.$id)}
         title="Eliminar vehículo"
@@ -554,7 +729,7 @@ export function VehiclesPage() {
           vehicleToDelete?.economicNumber ||
           "seleccionado"
         }"? Esta acción no se puede deshacer.`}
-        confirmLabel="Eliminar"
+        confirmText="Eliminar"
         variant="danger"
         loading={deleteMutation.isPending}
       />

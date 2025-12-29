@@ -64,16 +64,11 @@ const CURRENCY_OPTIONS = [
 
 export function VehicleFormPage() {
   const { id } = useParams();
-  // Validación más estricta: isEdit solo si hay un ID válido (no vacío, no "new", no "undefined")
-  const isEdit =
-    Boolean(id) && id !== "new" && id !== "undefined" && id.length > 5;
+  const isEdit = Boolean(id) && id !== "new";
   const nav = useNavigate();
   const queryClient = useQueryClient();
   const { activeGroupId } = useActiveGroup();
   const { profile } = useAuth();
-
-  // Debug log para rastrear el problema de duplicación
-  console.log("[VehicleFormPage] Mounted - id:", id, "isEdit:", isEdit);
 
   const [formData, setFormData] = useState({
     plate: "",
