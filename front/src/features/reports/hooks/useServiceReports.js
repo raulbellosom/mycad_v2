@@ -80,11 +80,7 @@ export function useCreateServiceReport() {
     mutationFn: createServiceReport,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
-      toast.success("Reporte de servicio creado exitosamente");
       return data;
-    },
-    onError: (error) => {
-      toast.error(error?.message || "Error al crear el reporte");
     },
   });
 }
@@ -100,11 +96,7 @@ export function useUpdateServiceReport() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
       queryClient.invalidateQueries({ queryKey: ["service-report", data.$id] });
-      toast.success("Reporte actualizado exitosamente");
       return data;
-    },
-    onError: (error) => {
-      toast.error(error?.message || "Error al actualizar el reporte");
     },
   });
 }
@@ -116,14 +108,10 @@ export function useFinalizeServiceReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, profileId }) => finalizeServiceReport(id, profileId),
+    mutationFn: ({ reportId, profileId }) => finalizeServiceReport(reportId, profileId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
       queryClient.invalidateQueries({ queryKey: ["service-report", data.$id] });
-      toast.success("Reporte finalizado. Ya no podrá ser modificado.");
-    },
-    onError: (error) => {
-      toast.error(error?.message || "Error al finalizar el reporte");
     },
   });
 }
@@ -249,10 +237,6 @@ export function useUploadServiceReportFile() {
       queryClient.invalidateQueries({
         queryKey: ["service-report-files", variables.serviceHistoryId],
       });
-      toast.success("Archivo subido");
-    },
-    onError: (error) => {
-      toast.error(error?.message || "Error al subir archivo");
     },
   });
 }
