@@ -83,7 +83,7 @@ export function ServiceReportEditPage() {
       
       // 1. Update the report without files
       await updateMutation.mutateAsync({
-        reportId: id,
+        id: id,
         data: {
           ...reportData,
         },
@@ -122,7 +122,7 @@ export function ServiceReportEditPage() {
       
       // 1. Update the report without files
       await updateMutation.mutateAsync({
-        reportId: id,
+        id: id,
         data: {
           ...reportData,
         },
