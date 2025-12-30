@@ -60,8 +60,8 @@ export function ReportsPage() {
   const deleteServiceMutation = useDeleteServiceReport();
   const deleteRepairMutation = useDeleteRepairReport();
 
-  const serviceReports = serviceReportsData?.documents || [];
-  const repairReports = repairReportsData?.documents || [];
+  const serviceReports = serviceReportsData || [];
+  const repairReports = repairReportsData || [];
   const vehiclesList = vehicles || [];
 
   // Si no hay grupo seleccionado

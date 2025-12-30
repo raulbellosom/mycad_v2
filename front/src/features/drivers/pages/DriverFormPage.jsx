@@ -14,6 +14,7 @@ import {
   Smartphone,
   Mail,
   StickyNote,
+  Car,
 } from "lucide-react";
 
 import { SectionHeader } from "../../../shared/ui/SectionHeader";
@@ -22,6 +23,7 @@ import { Card } from "../../../shared/ui/Card";
 import { Input } from "../../../shared/ui/Input";
 import { Button } from "../../../shared/ui/Button";
 import { Select } from "../../../shared/ui/Select";
+import { Tabs } from "../../../shared/ui/Tabs";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import {
   getDriverById,
@@ -36,6 +38,7 @@ import {
 } from "../services/drivers.service";
 import { DriverLicenseManager } from "../components/DriverLicenseManager";
 import { DriverMediaManager } from "../components/DriverMediaManager";
+import { DriverVehicleAssignments } from "../components/DriverVehicleAssignments";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { cn } from "../../../shared/utils/cn";
 
@@ -45,12 +48,21 @@ const DRIVER_STATUS_OPTIONS = [
   { value: "SUSPENDED", label: "Suspendido" },
 ];
 
+const TABS = [
+  { id: "info", label: "Información" },
+  { id: "vehicles", label: "Vehículos" },
+  { id: "licenses", label: "Licencias" },
+  { id: "files", label: "Archivos" },
+];
+
 export function DriverFormPage() {
   const { id } = useParams();
   const isEdit = Boolean(id) && id !== "new";
   const nav = useNavigate();
   const queryClient = useQueryClient();
   const { activeGroupId } = useActiveGroup();
+
+  const [activeTab, setActiveTab] = useState("info");
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -195,125 +207,163 @@ export function DriverFormPage() {
         </Button>
       }
     >
-      <div className="mx-auto max-w-4xl w-full">
+      <div className="mx-auto max-w-6xl w-full">
+        {/* Tabs Navigation */}
+        {isEdit && (
+          <div className="mb-6">
+            <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left Col: Driver Info */}
+          {/* Left Col: Content based on active tab */}
           <div className="lg:col-span-2 space-y-6 min-w-0">
-            <Card className="p-6">
-              <form
-                onSubmit={handleSubmit}
-                id="driver-form"
-                className="space-y-6"
-              >
-                <div className="flex items-center gap-2 text-lg font-semibold text-(--fg) mb-4">
-                  <User size={20} className="text-(--brand)" />
-                  Información Personal
-                </div>
+            {/* Info Tab */}
+            {activeTab === "info" && (
+              <>
+                <Card className="p-6">
+                  <form
+                    onSubmit={handleSubmit}
+                    id="driver-form"
+                    className="space-y-6"
+                  >
+                    <div className="flex items-center gap-2 text-lg font-semibold text-(--fg) mb-4">
+                      <User size={20} className="text-(--brand)" />
+                      Información Personal
+                    </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Nombre(s) *"
-                    value={formData.firstName}
-                    onChange={(e) => handleChange("firstName", e.target.value)}
-                    placeholder="Ej. Juan"
-                  />
-                  <Input
-                    label="Apellidos *"
-                    value={formData.lastName}
-                    onChange={(e) => handleChange("lastName", e.target.value)}
-                    placeholder="Ej. Pérez"
-                  />
-                </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Input
+                        label="Nombre(s) *"
+                        value={formData.firstName}
+                        onChange={(e) =>
+                          handleChange("firstName", e.target.value)
+                        }
+                        placeholder="Ej. Juan"
+                      />
+                      <Input
+                        label="Apellidos *"
+                        value={formData.lastName}
+                        onChange={(e) =>
+                          handleChange("lastName", e.target.value)
+                        }
+                        placeholder="Ej. Pérez"
+                      />
+                    </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="relative">
-                    <Input
-                      label="Teléfono"
-                      value={formData.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      placeholder="55-1234-5678"
-                    />
-                    <Smartphone
-                      className="absolute right-3 top-9 text-(--muted-fg)"
-                      size={16}
-                    />
-                  </div>
-                  <div className="relative">
-                    <Input
-                      label="Correo electrónico"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      placeholder="juan@ejemplo.com"
-                    />
-                    <Mail
-                      className="absolute right-3 top-9 text-(--muted-fg)"
-                      size={16}
-                    />
-                  </div>
-                </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="relative">
+                        <Input
+                          label="Teléfono"
+                          value={formData.phone}
+                          onChange={(e) =>
+                            handleChange("phone", e.target.value)
+                          }
+                          placeholder="55-1234-5678"
+                        />
+                        <Smartphone
+                          className="absolute right-3 top-9 text-(--muted-fg)"
+                          size={16}
+                        />
+                      </div>
+                      <div className="relative">
+                        <Input
+                          label="Correo electrónico"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) =>
+                            handleChange("email", e.target.value)
+                          }
+                          placeholder="juan@ejemplo.com"
+                        />
+                        <Mail
+                          className="absolute right-3 top-9 text-(--muted-fg)"
+                          size={16}
+                        />
+                      </div>
+                    </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Input
-                    label="Fecha de Nacimiento"
-                    type="date"
-                    value={formData.birthDate}
-                    onChange={(e) => handleChange("birthDate", e.target.value)}
-                  />
-                  <Select
-                    label="Estado"
-                    value={formData.status}
-                    onChange={(v) => handleChange("status", v)}
-                    options={DRIVER_STATUS_OPTIONS}
-                  />
-                </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Input
+                        label="Fecha de Nacimiento"
+                        type="date"
+                        value={formData.birthDate}
+                        onChange={(e) =>
+                          handleChange("birthDate", e.target.value)
+                        }
+                      />
+                      <Select
+                        label="Estado"
+                        value={formData.status}
+                        onChange={(v) => handleChange("status", v)}
+                        options={DRIVER_STATUS_OPTIONS}
+                      />
+                    </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-(--fg)">
-                    Notas / Observaciones
-                  </label>
-                  <div className="relative">
-                    <textarea
-                      className="min-h-[100px] w-full rounded-lg border border-(--border) bg-(--card) p-3 text-sm focus:border-(--brand) focus:ring-1 focus:ring-(--brand) outline-none transition-all placeholder:text-(--muted-fg)"
-                      placeholder="Añade detalles adicionales aquí..."
-                      value={formData.notes}
-                      onChange={(e) => handleChange("notes", e.target.value)}
-                    />
-                    <StickyNote
-                      className="absolute right-3 bottom-3 text-(--muted-fg)"
-                      size={16}
-                    />
-                  </div>
-                </div>
-              </form>
-            </Card>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-(--fg)">
+                        Notas / Observaciones
+                      </label>
+                      <div className="relative">
+                        <textarea
+                          className="min-h-25 w-full rounded-lg border border-(--border) bg-(--card) p-3 text-sm focus:border-(--brand) focus:ring-1 focus:ring-(--brand) outline-none transition-all placeholder:text-(--muted-fg)"
+                          placeholder="Añade detalles adicionales aquí..."
+                          value={formData.notes}
+                          onChange={(e) =>
+                            handleChange("notes", e.target.value)
+                          }
+                        />
+                        <StickyNote
+                          className="absolute right-3 bottom-3 text-(--muted-fg)"
+                          size={16}
+                        />
+                      </div>
+                    </div>
+                  </form>
+                </Card>
+              </>
+            )}
 
-            {/* Licenses Section */}
-            <DriverLicenseManager driverId={id} groupId={activeGroupId} />
-
-            {/* Files Section */}
-            <Card className="p-6">
-              <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
-                <FileText size={20} className="text-(--brand)" />
-                Documentos y Archivos
-              </h3>
-              <DriverMediaManager
-                existingFiles={existingFiles}
-                stagedFiles={stagedFiles}
-                onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
-                onRemoveStaged={async (fid) => {
-                  setStagedFiles((prev) =>
-                    prev.filter((f) => f.fileId !== fid)
-                  );
-                  await deleteDriverFile(null, fid);
-                }}
-                onRemoveExisting={(docId, fileId) =>
-                  deleteExistingFileMutation.mutate({ docId, fileId })
-                }
-                isUploading={isUploading}
-                setIsUploading={setIsUploading}
+            {/* Vehicles Tab */}
+            {activeTab === "vehicles" && isEdit && (
+              <DriverVehicleAssignments
+                driverId={id}
+                driverName={`${driver?.firstName || ""} ${
+                  driver?.lastName || ""
+                }`.trim()}
               />
-            </Card>
+            )}
+
+            {/* Licenses Tab */}
+            {activeTab === "licenses" && (
+              <DriverLicenseManager driverId={id} groupId={activeGroupId} />
+            )}
+
+            {/* Files Tab */}
+            {activeTab === "files" && (
+              <Card className="p-6">
+                <h3 className="mb-5 flex items-center gap-2 text-lg font-semibold text-(--fg)">
+                  <FileText size={20} className="text-(--brand)" />
+                  Documentos y Archivos
+                </h3>
+                <DriverMediaManager
+                  existingFiles={existingFiles}
+                  stagedFiles={stagedFiles}
+                  onAddStaged={(f) => setStagedFiles((prev) => [...prev, f])}
+                  onRemoveStaged={async (fid) => {
+                    setStagedFiles((prev) =>
+                      prev.filter((f) => f.fileId !== fid)
+                    );
+                    await deleteDriverFile(null, fid);
+                  }}
+                  onRemoveExisting={(docId, fileId) =>
+                    deleteExistingFileMutation.mutate({ docId, fileId })
+                  }
+                  isUploading={isUploading}
+                  setIsUploading={setIsUploading}
+                />
+              </Card>
+            )}
           </div>
 
           {/* Right Col: Actions & Summary */}

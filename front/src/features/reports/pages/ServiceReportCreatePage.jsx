@@ -109,7 +109,7 @@ export function ServiceReportCreatePage() {
         // Check if any uploads failed
         const failedUploads = uploadResults.filter(r => r.status === 'rejected');
         if (failedUploads.length > 0) {
-          toast.warning(`Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+          toast(`Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
         }
       }
       
@@ -147,7 +147,7 @@ export function ServiceReportCreatePage() {
         // Check if any uploads failed
         const failedUploads = uploadResults.filter(r => r.status === 'rejected');
         if (failedUploads.length > 0) {
-          toast.warning(`Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+          toast(`Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
         }
       }
       

@@ -89,6 +89,23 @@ const translations = {
       subject: "Notificación - MyCAD",
       greeting: "Hola",
     },
+    groupInvitation: {
+      subject: "Invitación a grupo - MyCAD",
+      title: "Has sido invitado a un grupo",
+      greeting: "Hola",
+      invitedYou: "te ha invitado a unirte a un grupo en MyCAD.",
+      groupLabel: "Grupo",
+      roleLabel: "Rol asignado",
+      personalMessage: "Mensaje personal",
+      button: "Aceptar Invitación",
+      expiry: "Esta invitación expirará en 7 días.",
+      roles: {
+        OWNER: "Dueño",
+        ADMIN: "Administrador",
+        MEMBER: "Miembro",
+        VIEWER: "Visualizador",
+      },
+    },
     footer: {
       copyright: "Todos los derechos reservados.",
       automated:
@@ -124,6 +141,23 @@ const translations = {
     notification: {
       subject: "Notification - MyCAD",
       greeting: "Hi",
+    },
+    groupInvitation: {
+      subject: "Group Invitation - MyCAD",
+      title: "You have been invited to a group",
+      greeting: "Hi",
+      invitedYou: "has invited you to join a group on MyCAD.",
+      groupLabel: "Group",
+      roleLabel: "Assigned role",
+      personalMessage: "Personal message",
+      button: "Accept Invitation",
+      expiry: "This invitation will expire in 7 days.",
+      roles: {
+        OWNER: "Owner",
+        ADMIN: "Administrator",
+        MEMBER: "Member",
+        VIEWER: "Viewer",
+      },
     },
     footer: {
       copyright: "All rights reserved.",

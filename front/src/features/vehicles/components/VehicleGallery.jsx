@@ -76,20 +76,20 @@ export function VehicleGallery({ vehicleId }) {
                 className="group relative aspect-square overflow-hidden rounded-xl border border-(--border) bg-(--muted)/50"
               >
                 <img
-                  src={getFilePreview(file.fileId)}
+                  src={getFilePreview(file.storageFileId)}
                   alt={file.name}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
-                    onClick={() => handleOpenViewer(file.fileId)}
+                    onClick={() => handleOpenViewer(file.storageFileId)}
                     className="rounded-full bg-white/20 p-2 text-white hover:bg-white/40 backdrop-blur-sm"
                     title="Ver"
                   >
                     <Eye size={18} />
                   </button>
                   <a
-                    href={getFileDownload(file.fileId)}
+                    href={getFileDownload(file.storageFileId)}
                     className="rounded-full bg-white/20 p-2 text-white hover:bg-white/40 backdrop-blur-sm"
                     title="Descargar"
                   >

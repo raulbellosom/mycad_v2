@@ -36,6 +36,10 @@ import {
   REPAIR_STATUS,
   DAMAGE_TYPE_LABELS,
 } from "../../constants/report.constants";
+import {
+  getRepairFilePreviewUrl,
+  getRepairFileDownloadUrl,
+} from "../../services/repair-reports.service";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -375,7 +379,12 @@ export function RepairReportView({
           </Card.Header>
           <Card.Content>
             {files.length > 0 ? (
-              <ReportFilesSection files={files} readonly />
+              <ReportFilesSection
+                files={files}
+                getPreviewUrl={getRepairFilePreviewUrl}
+                getDownloadUrl={getRepairFileDownloadUrl}
+                disabled
+              />
             ) : (
               <EmptySection message="No hay archivos adjuntos" />
             )}

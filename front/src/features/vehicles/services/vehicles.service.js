@@ -6,6 +6,11 @@ import {
   getFileViewUrl,
   getFileDownloadUrl,
 } from "../../../shared/utils/storage";
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/services/audit.service";
 
 const COLLECTION_ID = env.collectionVehiclesId;
 const VEHICLE_FILES_COLLECTION_ID = env.collectionVehicleFilesId;
@@ -61,7 +66,7 @@ function cleanVehicleData(data) {
   return cleaned;
 }
 
-export async function createVehicle(data) {
+export async function createVehicle(data, auditInfo = {}) {
   const cleanedData = cleanVehicleData(data);
 
   const doc = await databases.createDocument(
@@ -80,10 +85,24 @@ export async function createVehicle(data) {
       model: data.modelId || null, // relación → vehicle_models
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && data.groupId) {
+    logAuditEvent({
+      groupId: data.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: ENTITY_TYPES.VEHICLE,
+      entityId: doc.$id,
+      entityName: data.plateNumber || data.vin || "Vehículo nuevo",
+      details: { plateNumber: data.plateNumber, vin: data.vin },
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
-export async function updateVehicle(id, data) {
+export async function updateVehicle(id, data, auditInfo = {}) {
   const cleanedData = cleanVehicleData(data);
 
   const doc = await databases.updateDocument(
@@ -92,10 +111,24 @@ export async function updateVehicle(id, data) {
     id,
     cleanedData
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.UPDATE,
+      entityType: ENTITY_TYPES.VEHICLE,
+      entityId: id,
+      entityName: data.plateNumber || auditInfo.vehicleName || "Vehículo",
+      details: { updatedFields: Object.keys(cleanedData) },
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
-export async function deleteVehicle(id) {
+export async function deleteVehicle(id, auditInfo = {}) {
   // Soft delete
   const doc = await databases.updateDocument(
     env.databaseId,
@@ -105,6 +138,19 @@ export async function deleteVehicle(id) {
       enabled: false,
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: ENTITY_TYPES.VEHICLE,
+      entityId: id,
+      entityName: auditInfo.vehicleName || "Vehículo",
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
@@ -191,7 +237,8 @@ export async function uploadVehicleFile(
   vehicleId,
   groupId,
   file,
-  ownerProfileId
+  ownerProfileId,
+  auditInfo = {}
 ) {
   const storageRes = await uploadFileToStorage(file);
   const result = await registerFileInDb(
@@ -203,6 +250,22 @@ export async function uploadVehicleFile(
     file.size,
     ownerProfileId
   );
+
+  // Auditoría
+  if (ownerProfileId && groupId) {
+    logAuditEvent({
+      groupId,
+      profileId: ownerProfileId,
+      action: AUDIT_ACTIONS.OTHER,
+      entityType: ENTITY_TYPES.FILE,
+      entityId: result.fileDoc.$id,
+      entityName: `Archivo: ${file.name} (Vehículo: ${
+        auditInfo.vehicleName || vehicleId
+      })`,
+      details: { fileName: file.name, fileType: file.type, vehicleId },
+    }).catch(console.error);
+  }
+
   return { storageRes, ...result };
 }
 
@@ -291,7 +354,8 @@ export async function getFileById(fileId) {
 export async function deleteVehicleFile(
   vehicleFileDocId,
   fileDocId,
-  storageFileId
+  storageFileId,
+  auditInfo = {}
 ) {
   // 1. Delete from vehicle_files (join table)
   if (vehicleFileDocId) {
@@ -322,6 +386,21 @@ export async function deleteVehicleFile(
     } catch (error) {
       console.error("Error deleting file from storage:", error);
     }
+  }
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: ENTITY_TYPES.FILE,
+      entityId: fileDocId || vehicleFileDocId,
+      entityName: `Archivo eliminado (Vehículo: ${
+        auditInfo.vehicleName || ""
+      })`,
+      details: { fileName: auditInfo.fileName },
+    }).catch(console.error);
   }
 }
 

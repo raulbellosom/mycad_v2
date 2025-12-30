@@ -17,6 +17,8 @@ export const env = {
   collectionGroupsId: import.meta.env.VITE_APPWRITE_COLLECTION_GROUPS_ID,
   collectionGroupMembersId: import.meta.env
     .VITE_APPWRITE_COLLECTION_GROUP_MEMBERS_ID,
+  collectionGroupInvitationsId: import.meta.env
+    .VITE_APPWRITE_COLLECTION_GROUP_INVITATIONS_ID,
   collectionPermissionsId: import.meta.env
     .VITE_APPWRITE_COLLECTION_PERMISSIONS_ID,
   collectionRolesId: import.meta.env.VITE_APPWRITE_COLLECTION_ROLES_ID,
@@ -57,6 +59,10 @@ export const env = {
     .VITE_APPWRITE_COLLECTION_DRIVER_LICENSES_ID,
   collectionDriverFilesId: import.meta.env
     .VITE_APPWRITE_COLLECTION_DRIVER_FILES_ID,
+  collectionVehicleDriverAssignmentsId: import.meta.env
+    .VITE_APPWRITE_COLLECTION_VEHICLE_DRIVER_ASSIGNMENTS_ID,
+  collectionVehicleDriverAssignmentFilesId: import.meta.env
+    .VITE_APPWRITE_COLLECTION_VEHICLE_DRIVER_ASSIGNMENT_FILES_ID,
   collectionAuditLogsId: import.meta.env.VITE_APPWRITE_COLLECTION_AUDIT_LOGS_ID,
 
   appName: import.meta.env.VITE_APP_NAME || "MyCAD Admin",

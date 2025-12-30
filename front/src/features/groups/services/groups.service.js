@@ -1,6 +1,11 @@
 import { ID, Query } from "appwrite";
 import { databases, storage } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/services/audit.service";
 
 const COLLECTION_ID = env.collectionGroupsId;
 const COLLECTION_MEMBERS_ID = env.collectionGroupMembersId;
@@ -123,13 +128,26 @@ export async function createGroup({
     }
   );
 
+  // Auditoría
+  if (ownerProfileId) {
+    logAuditEvent({
+      groupId: groupDoc.$id,
+      profileId: ownerProfileId,
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: ENTITY_TYPES.GROUP,
+      entityId: groupDoc.$id,
+      entityName: name,
+      details: { description },
+    }).catch(console.error);
+  }
+
   return groupDoc;
 }
 
 /**
  * Actualiza un grupo existente
  */
-export async function updateGroup(groupDocId, data) {
+export async function updateGroup(groupDocId, data, auditInfo = {}) {
   const { name, description, logoFileId } = data;
 
   const updateData = {};
@@ -137,12 +155,27 @@ export async function updateGroup(groupDocId, data) {
   if (description !== undefined) updateData.description = description;
   if (logoFileId !== undefined) updateData.logoFileId = logoFileId;
 
-  return databases.updateDocument(
+  const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
     groupDocId,
     updateData
   );
+
+  // Auditoría
+  if (auditInfo.profileId) {
+    logAuditEvent({
+      groupId: groupDocId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.UPDATE,
+      entityType: ENTITY_TYPES.GROUP,
+      entityId: groupDocId,
+      entityName: name || auditInfo.groupName || "Grupo",
+      details: { updatedFields: Object.keys(updateData) },
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
 /**
@@ -195,10 +228,29 @@ export async function removeGroupLogo(groupDocId) {
 /**
  * Elimina un grupo (soft delete)
  */
-export async function deleteGroup(groupDocId) {
-  return databases.updateDocument(env.databaseId, COLLECTION_ID, groupDocId, {
-    enabled: false,
-  });
+export async function deleteGroup(groupDocId, auditInfo = {}) {
+  const doc = await databases.updateDocument(
+    env.databaseId,
+    COLLECTION_ID,
+    groupDocId,
+    {
+      enabled: false,
+    }
+  );
+
+  // Auditoría
+  if (auditInfo.profileId) {
+    logAuditEvent({
+      groupId: groupDocId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: ENTITY_TYPES.GROUP,
+      entityId: groupDocId,
+      entityName: auditInfo.groupName || "Grupo",
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
 /**

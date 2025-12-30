@@ -48,6 +48,7 @@
 - `users_profile`
 - `groups`
 - `group_members`
+- `group_invitations`
 
 ### RBAC (roles / permisos)
 
@@ -655,7 +656,7 @@
 
 ## Q.3 Relationships
 
-- `vehicle`: Two-way ↔ `vehicles.serviceHistories` (Many-to-one) On delete Cascade
+- `vehicle`: One-way ↔ `vehicles.serviceHistories` (Many-to-one) On delete Cascade
 - `createdByProfile`: Two-way ↔ `users_profile.createdServiceHistories` (Many-to-one) On delete Restrict
 
 ---
@@ -748,7 +749,7 @@
 
 ## T.3 Relationships
 
-- `vehicle`: Two-way ↔ `vehicles.repairReports` (Many-to-one) On delete Cascade
+- `vehicle`: One-way ↔ `vehicles.repairReports` (Many-to-one) On delete Cascade
 - `createdByProfile`: Two-way ↔ `users_profile.createdRepairReports` (Many-to-one) On delete Restrict
 
 ---
@@ -998,9 +999,9 @@
 
 ## AC.3 Relationships
 
-- `vehicle`: Two-way ↔ `vehicles.driverAssignments` (Many-to-one) On delete Cascade
+- `vehicle`: One-way ↔ `vehicles.driverAssignments` (Many-to-one) On delete Cascade
 - `driver`: Two-way ↔ `drivers.vehicleAssignments` (Many-to-one) On delete Cascade
-- `createdBy`: Two-way ↔ `users_profile.vehicleDriverAssignmentsCreated` (Many-to-one) On delete Cascade
+- `createdBy`: One-way ↔ `users_profile.vehicleDriverAssignmentsCreated` (Many-to-one) On delete Cascade
 
 # AD) vehicle_driver_assignment_files
 
@@ -1052,17 +1053,66 @@
 
 ## AE.3 Relationships
 
-- `profile`: Two-way ↔ `users_profile.auditLogs` (Many-to-one) On delete Restrict
+- `profile`: One-way ↔ `users_profile.auditLogs` (Many-to-one) On delete Restrict
 
 ---
 
-# N-Y) Resto de colecciones (files, images, service_histories, etc.)
+# AF) group_invitations
 
-> Todas las tablas que tienen `groupId` ahora usan `groups.$id` en lugar de `teamId`.
-> La estructura de atributos se mantiene igual, solo cambia que:
+> Sistema de invitaciones por email para que usuarios existentes se unan a grupos.
 >
-> - `groupId` = `groups.$id` (el ID real del documento grupo)
-> - Se agregan relaciones `group` donde corresponda
+> ⚠️ **SIMPLIFICADO v2.1:** Se eliminaron las relaciones two-way con `users_profile` para evitar
+> sobrecarga de backrefs en esa colección. Solo se mantiene la relación con `groups`.
+> Los campos `invitedByProfileId` e `invitedProfileId` son **escalares indexables** para queries.
+
+## AF.1 Attributes
+
+| Field              | Type        | Required | Default | Notes                                               |
+| ------------------ | ----------- | -------: | ------- | --------------------------------------------------- |
+| groupId            | String(64)  |       ✅ |         | `groups.$id` (tenant) - scalar indexable            |
+| invitedEmail       | String(254) |       ✅ |         | Email del usuario invitado (normalizado lowercase)  |
+| invitedProfileId   | String(64)  |       ❌ |         | `users_profile.$id` si el email ya existe - scalar  |
+| invitedByProfileId | String(64)  |       ✅ |         | `users_profile.$id` de quien invita - scalar        |
+| role               | Enum        |       ❌ | MEMBER  | OWNER / MEMBER                                      |
+| status             | Enum        |       ❌ | PENDING | PENDING / ACCEPTED / REJECTED / EXPIRED / CANCELLED |
+| token              | String(64)  |       ✅ |         | UUID único para aceptar invitación                  |
+| message            | String(500) |       ❌ |         | Mensaje personalizado del invitador                 |
+| expiresAt          | Datetime    |       ✅ |         | Fecha de expiración (7 días por defecto)            |
+| respondedAt        | Datetime    |       ❌ |         | Fecha de respuesta (aceptar/rechazar)               |
+| enabled            | Boolean     |       ❌ | true    | soft delete                                         |
+
+## AF.2 Indexes
+
+> ⚠️ Nombres de índice máximo 43 caracteres. Usamos prefijo `idx_grp_inv_` para acortar.
+
+| Index Name                     | Type   | Fields                              | Chars |
+| ------------------------------ | ------ | ----------------------------------- | ----- |
+| `idx_grp_inv_groupId`          | key    | `groupId`                           | 21    |
+| `uq_grp_inv_token`             | unique | `token`                             | 18    |
+| `idx_grp_inv_grp_email_status` | key    | `groupId`, `invitedEmail`, `status` | 30    |
+| `idx_grp_inv_invitedProfileId` | key    | `invitedProfileId`                  | 30    |
+| `idx_grp_inv_invitedById`      | key    | `invitedByProfileId`                | 26    |
+| `idx_grp_inv_enabled`          | key    | `enabled`                           | 21    |
+
+## AF.3 Relationships
+
+> ⚠️ **Solo UNA relación** con `groups`. NO crear relaciones two-way con `users_profile`
+> para evitar sobrecarga de backrefs. Usar los campos escalares para queries.
+
+### AF.3.1 `group`
+
+- **Two-way**
+- Related: `groups`
+- Attribute key: `group`
+- Backref key: `invitations`
+- Cardinalidad: **Many-to-one**
+- On delete: **Cascade**
+
+## AF.4 Notas de implementación
+
+- **Para obtener invitaciones enviadas por un usuario:** Query por `invitedByProfileId`
+- **Para obtener invitaciones recibidas por un usuario:** Query por `invitedProfileId` o `invitedEmail`
+- **NO** crear relaciones two-way adicionales con `users_profile` - ya tiene demasiados backrefs
 
 ---
 

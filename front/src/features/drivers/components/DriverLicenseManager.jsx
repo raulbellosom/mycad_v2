@@ -27,10 +27,14 @@ import { cn } from "../../../shared/utils/cn";
 import { motion, AnimatePresence } from "framer-motion";
 
 const LICENSE_TYPE_OPTIONS = [
-  { value: "A", label: "Tipo A (Particular)" },
-  { value: "B", label: "Tipo B (Carga)" },
-  { value: "C", label: "Tipo C (Pasajeros)" },
-  { value: "FEDERAL", label: "Federal" },
+  { value: "A", label: "Tipo A - Motocicletas" },
+  { value: "A1", label: "Tipo A1 - Motocicletas hasta 125cc" },
+  { value: "A2", label: "Tipo A2 - Motocicletas hasta 400cc" },
+  { value: "B", label: "Tipo B - Automóviles particulares" },
+  { value: "C", label: "Tipo C - Camiones de carga" },
+  { value: "D", label: "Tipo D - Transporte de pasajeros" },
+  { value: "E", label: "Tipo E - Tractocamiones con remolque" },
+  { value: "E1", label: "Tipo E1 - Tractocamiones articulados" },
 ];
 
 export function DriverLicenseManager({ driverId, groupId }) {

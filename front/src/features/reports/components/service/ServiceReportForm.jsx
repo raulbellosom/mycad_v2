@@ -23,17 +23,26 @@ import { Card } from "../../../../shared/ui/Card";
 import { Input } from "../../../../shared/ui/Input";
 import { Button } from "../../../../shared/ui/Button";
 import { Select } from "../../../../shared/ui/Select";
+import { CurrencyInput } from "../../../../shared/ui/CurrencyInput";
+import { DatePicker } from "../../../../shared/ui/DatePicker";
 import { VehicleCombobox } from "../../../../shared/ui/VehicleCombobox";
 import { VehicleInfoCard } from "../common/VehicleInfoCard";
 import { PartsTableLocal } from "../common/PartsTable";
 import { ReportSummary } from "../common/ReportSummary";
-import { ReportFilesStagingSection } from "../common/ReportFilesSection";
+import {
+  ReportFilesStagingSection,
+  ReportFilesEditSection,
+} from "../common/ReportFilesSection";
 import { ReportStatusBadge } from "../common/ReportStatusBadge";
 import {
   SERVICE_TYPE,
   SERVICE_TYPE_OPTIONS,
   REPORT_STATUS,
 } from "../../constants/report.constants";
+import {
+  getServiceFilePreviewUrl,
+  getServiceFileDownloadUrl,
+} from "../../services/service-reports.service";
 
 // Validation schema
 const serviceReportSchema = z.object({
@@ -80,10 +89,20 @@ export function ServiceReportForm({
     costs: true,
     notes: false,
     nextService: false,
-    files: false,
+    files: isEditing && initialData.files?.length > 0, // Abrir si hay archivos existentes
   });
   const [parts, setParts] = useState(initialData.parts || []);
   const [stagedFiles, setStagedFiles] = useState([]);
+  const [existingFiles, setExistingFiles] = useState(initialData.files || []);
+  const [deletedFileIds, setDeletedFileIds] = useState([]);
+  const [odometerAutoFilled, setOdometerAutoFilled] = useState(false);
+
+  // Actualizar archivos existentes cuando cambien desde fuera
+  useEffect(() => {
+    if (initialData.files) {
+      setExistingFiles(initialData.files);
+    }
+  }, [initialData.files]);
 
   const {
     register,
@@ -124,21 +143,16 @@ export function ServiceReportForm({
     }, 0);
   }, [parts]);
 
-  // Auto-fill vehicle info when selected
+  // Auto-fill vehicle mileage when selected (only once)
   useEffect(() => {
-    if (selectedVehicleId && !isEditing) {
+    if (selectedVehicleId && !isEditing && !odometerAutoFilled) {
       const vehicle = vehicles.find((v) => v.$id === selectedVehicleId);
-      if (vehicle && vehicle.mileage && !watchedValues.odometer) {
+      if (vehicle && vehicle.mileage) {
         setValue("odometer", vehicle.mileage);
+        setOdometerAutoFilled(true);
       }
     }
-  }, [
-    selectedVehicleId,
-    vehicles,
-    setValue,
-    isEditing,
-    watchedValues.odometer,
-  ]);
+  }, [selectedVehicleId, vehicles, setValue, isEditing, odometerAutoFilled]);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -147,12 +161,26 @@ export function ServiceReportForm({
     }));
   };
 
+  const handleRemoveExistingFile = (fileDocId) => {
+    // Encontrar el archivo para guardar el storageFileId también
+    const fileToRemove = existingFiles.find((f) => f.$id === fileDocId);
+    if (fileToRemove) {
+      setExistingFiles((prev) => prev.filter((f) => f.$id !== fileDocId));
+      // Guardar tanto el docId como el storageFileId para poder eliminar
+      setDeletedFileIds((prev) => [
+        ...prev,
+        { docId: fileDocId, storageFileId: fileToRemove.fileId },
+      ]);
+    }
+  };
+
   const handleFormSubmit = (data) => {
     onSubmit?.({
       ...data,
       parts,
       partsCost,
-      stagedFiles, // Keep for parent component to handle file uploads
+      stagedFiles,
+      deletedFileIds,
     });
   };
 
@@ -162,7 +190,8 @@ export function ServiceReportForm({
         ...data,
         parts,
         partsCost,
-        stagedFiles, // Keep for parent component to handle file uploads
+        stagedFiles,
+        deletedFileIds,
       });
     })();
   };
@@ -208,7 +237,7 @@ export function ServiceReportForm({
                 types={types}
                 brands={brands}
                 models={models}
-                placeholder="Buscar por placa, N° económico, marca, modelo..."
+                placeholder="Buscar vehículo..."
                 emptyText="No se encontraron vehículos"
                 disabled={!canEdit}
               />
@@ -258,20 +287,39 @@ export function ServiceReportForm({
               />
             )}
           />
-          <Input
-            type="date"
-            label="Fecha del Servicio *"
-            {...register("serviceDate")}
-            error={errors.serviceDate?.message}
-            disabled={!canEdit}
+          <Controller
+            name="serviceDate"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                label="Fecha del Servicio *"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.serviceDate?.message}
+                disabled={!canEdit}
+              />
+            )}
           />
-          <Input
-            type="number"
-            label="Kilometraje"
-            placeholder="45000"
-            {...register("odometer")}
-            error={errors.odometer?.message}
-            disabled={!canEdit}
+          <Controller
+            name="odometer"
+            control={control}
+            render={({ field }) => (
+              <Input
+                type="number"
+                label="Kilometraje"
+                placeholder="0"
+                min="0"
+                value={field.value || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  field.onChange(
+                    val === "" ? "" : Math.max(0, parseInt(val) || 0)
+                  );
+                }}
+                error={errors.odometer?.message}
+                disabled={!canEdit}
+              />
+            )}
           />
         </div>
       </FormSection>
@@ -338,14 +386,17 @@ export function ServiceReportForm({
       >
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-4">
-            <Input
-              type="number"
-              label="Mano de Obra"
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              {...register("laborCost")}
-              disabled={!canEdit}
+            <Controller
+              name="laborCost"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  label="Mano de Obra"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={!canEdit}
+                />
+              )}
             />
             <div className="p-3 rounded-lg bg-(--muted)/50">
               <p className="text-sm text-(--muted-fg)">Costo de Refacciones</p>
@@ -394,18 +445,37 @@ export function ServiceReportForm({
         optional
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            type="date"
-            label="Fecha Sugerida"
-            {...register("nextServiceDate")}
-            disabled={!canEdit}
+          <Controller
+            name="nextServiceDate"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                label="Fecha Sugerida"
+                value={field.value}
+                onChange={field.onChange}
+                disabled={!canEdit}
+              />
+            )}
           />
-          <Input
-            type="number"
-            label="Kilometraje Sugerido"
-            placeholder="Ej: 50000"
-            {...register("nextServiceOdometer")}
-            disabled={!canEdit}
+          <Controller
+            name="nextServiceOdometer"
+            control={control}
+            render={({ field }) => (
+              <Input
+                type="number"
+                label="Kilometraje Sugerido"
+                placeholder="0"
+                min="0"
+                value={field.value || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  field.onChange(
+                    val === "" ? "" : Math.max(0, parseInt(val) || 0)
+                  );
+                }}
+                disabled={!canEdit}
+              />
+            )}
           />
         </div>
       </FormSection>
@@ -418,12 +488,16 @@ export function ServiceReportForm({
         onToggle={() => toggleSection("files")}
         optional
       >
-        <ReportFilesStagingSection
+        <ReportFilesEditSection
+          existingFiles={existingFiles}
           stagedFiles={stagedFiles}
-          onAdd={(file) => setStagedFiles([...stagedFiles, file])}
-          onRemove={(index) =>
-            setStagedFiles(stagedFiles.filter((_, i) => i !== index))
+          onAddStaged={(file) => setStagedFiles((prev) => [...prev, file])}
+          onRemoveStaged={(index) =>
+            setStagedFiles((prev) => prev.filter((_, i) => i !== index))
           }
+          onRemoveExisting={handleRemoveExistingFile}
+          getFilePreviewUrl={getServiceFilePreviewUrl}
+          getFileDownloadUrl={getServiceFileDownloadUrl}
           disabled={!canEdit}
         />
       </FormSection>

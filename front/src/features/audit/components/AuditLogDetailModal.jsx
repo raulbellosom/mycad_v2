@@ -14,6 +14,91 @@ import { AuditActionBadge, AuditEntityBadge } from "./AuditLogItem";
 import { cn } from "../../../shared/utils/cn";
 
 /**
+ * Formatea el nombre de una key para mostrar
+ */
+function formatDetailKey(key) {
+  const keyLabels = {
+    vehicleId: "ID del Vehículo",
+    vehicleName: "Vehículo",
+    driverId: "ID del Conductor",
+    driverName: "Conductor",
+    role: "Rol",
+    assignmentType: "Tipo de Asignación",
+    action: "Acción Específica",
+    updatedFields: "Campos Actualizados",
+    plateNumber: "Placa",
+    vin: "VIN",
+    catalogType: "Tipo de Catálogo",
+    economicGroup: "Grupo Económico",
+    brandId: "ID de Marca",
+    fileType: "Tipo de Archivo",
+    fileName: "Nombre de Archivo",
+    targetProfileId: "ID de Usuario Objetivo",
+    roleId: "ID de Rol",
+    endDate: "Fecha de Fin",
+    endMileage: "Kilometraje Final",
+    serviceType: "Tipo de Servicio",
+    priority: "Prioridad",
+  };
+  return keyLabels[key] || key;
+}
+
+/**
+ * Formatea el valor de un detalle para mostrar
+ */
+function formatDetailValue(key, value) {
+  // Si es un array, mostrarlo como lista
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  // Si es objeto, convertir a JSON
+  if (typeof value === "object" && value !== null) {
+    return JSON.stringify(value);
+  }
+
+  // Formatear acciones específicas
+  if (key === "action") {
+    const actionLabels = {
+      assignment_created: "Asignación Creada",
+      assignment_updated: "Asignación Actualizada",
+      assignment_ended: "Asignación Finalizada",
+      assignment_deleted: "Asignación Eliminada",
+      finalized: "Finalizado",
+      reopened: "Reabierto",
+    };
+    return actionLabels[value] || value;
+  }
+
+  // Formatear roles
+  if (key === "role") {
+    const roleLabels = {
+      PRIMARY: "Principal",
+      SECONDARY: "Secundario",
+      TEMP: "Temporal",
+      SUBSTITUTE: "Sustituto",
+      OWNER: "Propietario",
+      MEMBER: "Miembro",
+    };
+    return roleLabels[value] || value;
+  }
+
+  // Formatear tipos de asignación
+  if (key === "assignmentType") {
+    const typeLabels = {
+      OPERATION: "Operación",
+      RENTAL: "Renta",
+      MAINTENANCE: "Mantenimiento",
+      DELIVERY: "Entrega",
+      OTHER: "Otro",
+    };
+    return typeLabels[value] || value;
+  }
+
+  return String(value);
+}
+
+/**
  * Modal para ver detalles de un log de auditoría
  */
 export function AuditLogDetailModal({ log, isOpen, onClose }) {
@@ -165,19 +250,28 @@ export function AuditLogDetailModal({ log, isOpen, onClose }) {
                     <div className="rounded-xl bg-(--muted)/20 p-4">
                       {typeof details === "object" ? (
                         <div className="space-y-2">
-                          {Object.entries(details).map(([key, value]) => (
-                            <div
-                              key={key}
-                              className="flex justify-between text-sm"
-                            >
-                              <span className="text-(--muted-fg)">{key}:</span>
-                              <span className="font-medium text-(--fg)">
-                                {typeof value === "object"
-                                  ? JSON.stringify(value)
-                                  : String(value)}
-                              </span>
-                            </div>
-                          ))}
+                          {Object.entries(details).map(([key, value]) => {
+                            // Filtrar IDs que ya no son necesarios si tenemos nombres descriptivos
+                            const shouldSkipId =
+                              (key === "vehicleId" || key === "driverId") &&
+                              (details.vehicleName || details.driverName);
+
+                            if (shouldSkipId) return null;
+
+                            return (
+                              <div
+                                key={key}
+                                className="flex justify-between gap-4 text-sm"
+                              >
+                                <span className="text-(--muted-fg) shrink-0">
+                                  {formatDetailKey(key)}:
+                                </span>
+                                <span className="font-medium text-(--fg) text-right break-words">
+                                  {formatDetailValue(key, value)}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-sm whitespace-pre-wrap">{details}</p>

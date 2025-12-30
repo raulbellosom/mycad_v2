@@ -23,6 +23,7 @@ import {
   MapPin,
   Tag,
   User,
+  Users,
   Building2,
   Clock,
   CreditCard,
@@ -46,12 +47,12 @@ import { Badge } from "../../../shared/ui/Badge";
 import { Tabs } from "../../../shared/ui/Tabs";
 import { ConfirmModal } from "../../../shared/ui/ConfirmModal";
 import { ImageViewerModal } from "../../../shared/ui/ImageViewerModal";
+import { ResourceNotFound } from "../../../shared/ui/ResourceNotFound";
 import { cn } from "../../../shared/utils/cn";
 
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
 import { usePermissions } from "../../groups/hooks/usePermissions";
 import { SYSTEM_PERMISSIONS } from "../../groups/context/PermissionsProvider";
-import { formatServerDate } from "../../../shared/utils/dateUtils";
 import {
   getVehicleById,
   deleteVehicle,
@@ -64,6 +65,7 @@ import {
   listVehicleBrands,
   listVehicleModels,
 } from "../../catalogs/services/catalogs.service";
+import { VehicleDriverAssignments } from "../components/VehicleDriverAssignments";
 
 // ─────────────────────────────────────────────────────
 // Constants
@@ -114,6 +116,7 @@ const CURRENCY_SYMBOLS = {
 
 const TABS = [
   { id: "info", label: "Información" },
+  { id: "drivers", label: "Conductores" },
   { id: "files", label: "Archivos" },
   { id: "history", label: "Historial" },
 ];
@@ -131,7 +134,12 @@ function formatCurrency(value, currency = "MXN") {
 }
 
 function formatDate(dateStr) {
-  return formatServerDate(dateStr, { format: "medium" });
+  if (!dateStr) return "—";
+  try {
+    return format(new Date(dateStr), "dd 'de' MMMM, yyyy", { locale: es });
+  } catch {
+    return "—";
+  }
 }
 
 function formatMileage(mileage, unit = "KM") {
@@ -175,10 +183,8 @@ function DetailCard({ title, icon: Icon, children, className = "" }) {
 
 /** File Card - Individual file display */
 function FileCard({ file, onView, onDownload }) {
-  const isImage = file.isImage || file.mimeType?.startsWith("image/");
-  // Use storageFileId for preview (from enriched data)
-  const storageId = file.storageFileId || file.fileId;
-  const previewUrl = isImage && storageId ? getFilePreview(storageId) : null;
+  const isImage = file.isImage || file.type?.startsWith("image/");
+  const previewUrl = isImage ? getFilePreview(file.storageFileId) : null;
 
   return (
     <motion.div
@@ -232,11 +238,7 @@ function FileCard({ file, onView, onDownload }) {
           {file.name}
         </p>
         <p className="text-xs text-(--muted-fg)">
-          {file.sizeBytes
-            ? file.sizeBytes >= 1024 * 1024
-              ? `${(file.sizeBytes / (1024 * 1024)).toFixed(1)} MB`
-              : `${(file.sizeBytes / 1024).toFixed(1)} KB`
-            : "—"}
+          {file.sizeBytes ? `${(file.sizeBytes / 1024).toFixed(1)} KB` : "—"}
         </p>
       </div>
     </motion.div>
@@ -327,13 +329,12 @@ export function VehicleDetailPage() {
 
   // Separate images and documents
   const imageFiles = files.filter(
-    (f) => f.isImage || f.mimeType?.startsWith("image/")
+    (f) => f.isImage || f.type?.startsWith("image/")
   );
   const documentFiles = files.filter(
-    (f) => !f.isImage && !f.mimeType?.startsWith("image/")
+    (f) => !f.isImage && !f.type?.startsWith("image/")
   );
-  // Use storageFileId for image viewer
-  const imageIds = imageFiles.map((f) => f.storageFileId || f.fileId);
+  const imageIds = imageFiles.map((f) => f.storageFileId);
 
   // Build display title
   const vehicleTitle = useMemo(() => {
@@ -355,14 +356,12 @@ export function VehicleDetailPage() {
 
   // Handlers
   const handleViewImage = (file) => {
-    // Use storageFileId for the image viewer
-    setSelectedImageId(file.storageFileId || file.fileId);
+    setSelectedImageId(file.fileId);
     setViewerOpen(true);
   };
 
   const handleDownload = (file) => {
-    // Use storageFileId for download
-    const url = getFileDownload(file.storageFileId || file.fileId);
+    const url = getFileDownload(file.fileId);
     window.open(url, "_blank");
   };
 
@@ -374,17 +373,14 @@ export function VehicleDetailPage() {
   // Not found
   if (!vehicle) {
     return (
-      <PageLayout
-        title="Vehículo no encontrado"
-        subtitle="El vehículo solicitado no existe o fue eliminado."
-      >
-        <div className="flex flex-col items-center justify-center py-16">
-          <Car size={64} className="mb-4 text-(--muted-fg)" />
-          <Button onClick={() => navigate("/vehicles")}>
-            <ArrowLeft size={18} className="mr-2" />
-            Volver a vehículos
-          </Button>
-        </div>
+      <PageLayout title="Error">
+        <ResourceNotFound
+          resourceType="vehículo"
+          resourceId={id}
+          reason="not-found"
+          backPath="/vehicles"
+          backLabel="Volver a Vehículos"
+        />
       </PageLayout>
     );
   }
@@ -429,9 +425,7 @@ export function VehicleDetailPage() {
                 >
                   {imageFiles.length > 0 ? (
                     <img
-                      src={getFilePreview(
-                        imageFiles[0].storageFileId || imageFiles[0].fileId
-                      )}
+                      src={getFilePreview(imageFiles[0].storageFileId)}
                       alt={vehicleTitle}
                       className="h-full w-full rounded-2xl object-cover"
                     />
@@ -549,7 +543,7 @@ export function VehicleDetailPage() {
                 Tab: Información
             ───────────────────────────────────────────────────── */}
             {activeTab === "info" && (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="grid gap-6 lg:grid-cols-2">
                 {/* General Info */}
                 <DetailCard title="Identificación" icon={Info}>
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -623,6 +617,11 @@ export function VehicleDetailPage() {
                       )}
                     />
                     <InfoItem
+                      icon={Banknote}
+                      label="Precio de Compra"
+                      value={formatCurrency(vehicle.purchaseCost, "MXN")}
+                    />
+                    <InfoItem
                       icon={TrendingUp}
                       label="Valor en Libros"
                       value={formatCurrency(
@@ -686,6 +685,13 @@ export function VehicleDetailPage() {
                   </DetailCard>
                 )}
               </div>
+            )}
+
+            {/* ─────────────────────────────────────────────────────
+                Tab: Conductores
+            ───────────────────────────────────────────────────── */}
+            {activeTab === "drivers" && (
+              <VehicleDriverAssignments vehicleId={id} vehicle={vehicle} />
             )}
 
             {/* ─────────────────────────────────────────────────────

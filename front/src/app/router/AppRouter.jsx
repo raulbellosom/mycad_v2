@@ -7,6 +7,7 @@ import { SYSTEM_PERMISSIONS } from "../../features/groups/context/PermissionsPro
 import { LoginPage } from "../../features/auth/pages/LoginPage";
 import { RegisterPage } from "../../features/auth/pages/RegisterPage";
 import { ForgotPasswordPage } from "../../features/auth/pages/ForgotPasswordPage";
+import { AcceptInvitationPage } from "../../features/auth/pages/AcceptInvitationPage";
 import { DashboardPage } from "../../features/dashboard/pages/DashboardPage";
 import { VehiclesPage } from "../../features/vehicles/pages/VehiclesPage";
 import { VehicleFormPage } from "../../features/vehicles/pages/VehicleFormPage";
@@ -37,6 +38,7 @@ export function AppRouter() {
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/register" element={<RegisterPage />} />
       <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+      <Route path="/invitations/accept" element={<AcceptInvitationPage />} />
 
       <Route
         path="/"

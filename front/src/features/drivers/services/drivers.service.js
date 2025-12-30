@@ -5,6 +5,11 @@ import {
   getFilePreviewUrl,
   getFileDownloadUrl,
 } from "../../../shared/utils/storage";
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/services/audit.service";
 
 const DRIVERS_COLLECTION_ID = env.collectionDriversId;
 const LICENSES_COLLECTION_ID = env.collectionDriverLicensesId;
@@ -31,8 +36,8 @@ export async function getDriverById(id) {
   return await databases.getDocument(env.databaseId, DRIVERS_COLLECTION_ID, id);
 }
 
-export async function createDriver(data) {
-  return await databases.createDocument(
+export async function createDriver(data, auditInfo = {}) {
+  const doc = await databases.createDocument(
     env.databaseId,
     DRIVERS_COLLECTION_ID,
     ID.unique(),
@@ -44,25 +49,71 @@ export async function createDriver(data) {
       linkedProfile: data.linkedProfileId || null, // relación → users_profile
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && data.groupId) {
+    logAuditEvent({
+      groupId: data.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: ENTITY_TYPES.DRIVER,
+      entityId: doc.$id,
+      entityName:
+        `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+        "Conductor nuevo",
+      details: { licenseNumber: data.licenseNumber },
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
-export async function updateDriver(id, data) {
-  return await databases.updateDocument(
+export async function updateDriver(id, data, auditInfo = {}) {
+  const doc = await databases.updateDocument(
     env.databaseId,
     DRIVERS_COLLECTION_ID,
     id,
     data
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.UPDATE,
+      entityType: ENTITY_TYPES.DRIVER,
+      entityId: id,
+      entityName: auditInfo.driverName || "Conductor",
+      details: { updatedFields: Object.keys(data) },
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
-export async function deleteDriver(id) {
+export async function deleteDriver(id, auditInfo = {}) {
   // Soft delete
-  return await databases.updateDocument(
+  const doc = await databases.updateDocument(
     env.databaseId,
     DRIVERS_COLLECTION_ID,
     id,
     { enabled: false }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: ENTITY_TYPES.DRIVER,
+      entityId: id,
+      entityName: auditInfo.driverName || "Conductor",
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
 // --- License Management ---
@@ -77,8 +128,8 @@ export async function listDriverLicenses(driverId) {
   return res.documents;
 }
 
-export async function createDriverLicense(data) {
-  return await databases.createDocument(
+export async function createDriverLicense(data, auditInfo = {}) {
+  const doc = await databases.createDocument(
     env.databaseId,
     LICENSES_COLLECTION_ID,
     ID.unique(),
@@ -89,15 +140,49 @@ export async function createDriverLicense(data) {
       driver: data.driverId, // relación → drivers
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: ENTITY_TYPES.OTHER,
+      entityId: doc.$id,
+      entityName: `Licencia: ${data.licenseNumber || ""} (${
+        auditInfo.driverName || "Conductor"
+      })`,
+      details: { licenseNumber: data.licenseNumber, driverId: data.driverId },
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
-export async function updateDriverLicense(id, data) {
-  return await databases.updateDocument(
+export async function updateDriverLicense(id, data, auditInfo = {}) {
+  const doc = await databases.updateDocument(
     env.databaseId,
     LICENSES_COLLECTION_ID,
     id,
     data
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.UPDATE,
+      entityType: ENTITY_TYPES.OTHER,
+      entityId: id,
+      entityName: `Licencia actualizada (${
+        auditInfo.driverName || "Conductor"
+      })`,
+      details: { updatedFields: Object.keys(data) },
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
 // --- Driver File Management ---
@@ -111,9 +196,10 @@ export async function registerDriverFileInDb(
   groupId,
   storageFileId,
   kind,
-  label = ""
+  label = "",
+  auditInfo = {}
 ) {
-  return await databases.createDocument(
+  const doc = await databases.createDocument(
     env.databaseId,
     DRIVER_FILES_COLLECTION_ID,
     ID.unique(),
@@ -128,6 +214,23 @@ export async function registerDriverFileInDb(
       driver: driverId, // relación → drivers
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && groupId) {
+    logAuditEvent({
+      groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.OTHER,
+      entityType: ENTITY_TYPES.FILE,
+      entityId: doc.$id,
+      entityName: `Archivo: ${label || kind} (${
+        auditInfo.driverName || "Conductor"
+      })`,
+      details: { kind, label, driverId },
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
 export async function listDriverFiles(driverId) {
@@ -140,7 +243,7 @@ export async function listDriverFiles(driverId) {
   return res.documents;
 }
 
-export async function deleteDriverFile(docId, fileId) {
+export async function deleteDriverFile(docId, fileId, auditInfo = {}) {
   if (docId) {
     await databases.deleteDocument(
       env.databaseId,
@@ -155,6 +258,19 @@ export async function deleteDriverFile(docId, fileId) {
     } catch (error) {
       console.error("Error deleting driver file from storage:", error);
     }
+  }
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: ENTITY_TYPES.FILE,
+      entityId: docId || fileId,
+      entityName: `Archivo eliminado (${auditInfo.driverName || "Conductor"})`,
+      details: { fileLabel: auditInfo.fileLabel },
+    }).catch(console.error);
   }
 }
 

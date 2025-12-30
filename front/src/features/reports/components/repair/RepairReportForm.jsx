@@ -25,11 +25,16 @@ import { Card } from "../../../../shared/ui/Card";
 import { Input } from "../../../../shared/ui/Input";
 import { Button } from "../../../../shared/ui/Button";
 import { Select } from "../../../../shared/ui/Select";
+import { CurrencyInput } from "../../../../shared/ui/CurrencyInput";
+import { DatePicker } from "../../../../shared/ui/DatePicker";
 import { VehicleCombobox } from "../../../../shared/ui/VehicleCombobox";
 import { VehicleInfoCard } from "../common/VehicleInfoCard";
 import { PartsTableLocal } from "../common/PartsTable";
 import { ReportSummary } from "../common/ReportSummary";
-import { ReportFilesStagingSection } from "../common/ReportFilesSection";
+import {
+  ReportFilesStagingSection,
+  ReportFilesEditSection,
+} from "../common/ReportFilesSection";
 import {
   RepairStatusBadge,
   RepairPriorityBadge,
@@ -42,6 +47,10 @@ import {
   DAMAGE_TYPE,
   DAMAGE_TYPE_OPTIONS,
 } from "../../constants/report.constants";
+import {
+  getRepairFilePreviewUrl,
+  getRepairFileDownloadUrl,
+} from "../../services/repair-reports.service";
 
 // Validation schema
 const repairReportSchema = z.object({
@@ -92,10 +101,20 @@ export function RepairReportForm({
     costs: true,
     notes: false,
     warranty: false,
-    files: false,
+    files: isEditing && initialData.files?.length > 0,
   });
   const [parts, setParts] = useState(initialData.parts || []);
   const [stagedFiles, setStagedFiles] = useState([]);
+  const [existingFiles, setExistingFiles] = useState(initialData.files || []);
+  const [deletedFileIds, setDeletedFileIds] = useState([]);
+  const [odometerAutoFilled, setOdometerAutoFilled] = useState(false);
+
+  // Actualizar archivos existentes cuando cambien desde fuera
+  useEffect(() => {
+    if (initialData.files) {
+      setExistingFiles(initialData.files);
+    }
+  }, [initialData.files]);
 
   const {
     register,
@@ -141,21 +160,16 @@ export function RepairReportForm({
     }, 0);
   }, [parts]);
 
-  // Auto-fill vehicle info
+  // Auto-fill vehicle mileage when selected (only once)
   useEffect(() => {
-    if (selectedVehicleId && !isEditing) {
+    if (selectedVehicleId && !isEditing && !odometerAutoFilled) {
       const vehicle = vehicles.find((v) => v.$id === selectedVehicleId);
-      if (vehicle && vehicle.mileage && !watchedValues.odometer) {
+      if (vehicle && vehicle.mileage) {
         setValue("odometer", vehicle.mileage);
+        setOdometerAutoFilled(true);
       }
     }
-  }, [
-    selectedVehicleId,
-    vehicles,
-    setValue,
-    isEditing,
-    watchedValues.odometer,
-  ]);
+  }, [selectedVehicleId, vehicles, setValue, isEditing, odometerAutoFilled]);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -164,12 +178,26 @@ export function RepairReportForm({
     }));
   };
 
+  const handleRemoveExistingFile = (fileDocId) => {
+    // Encontrar el archivo para guardar el storageFileId también
+    const fileToRemove = existingFiles.find((f) => f.$id === fileDocId);
+    if (fileToRemove) {
+      setExistingFiles((prev) => prev.filter((f) => f.$id !== fileDocId));
+      // Guardar tanto el docId como el storageFileId para poder eliminar
+      setDeletedFileIds((prev) => [
+        ...prev,
+        { docId: fileDocId, storageFileId: fileToRemove.fileId },
+      ]);
+    }
+  };
+
   const handleFormSubmit = (data) => {
     onSubmit?.({
       ...data,
       parts,
       partsCost,
       stagedFiles,
+      deletedFileIds,
     });
   };
 
@@ -180,6 +208,7 @@ export function RepairReportForm({
         parts,
         partsCost,
         stagedFiles,
+        deletedFileIds,
       });
     })();
   };
@@ -231,7 +260,7 @@ export function RepairReportForm({
                 types={types}
                 brands={brands}
                 models={models}
-                placeholder="Buscar por placa, N° económico, marca, modelo..."
+                placeholder="Buscar vehículo..."
                 emptyText="No se encontraron vehículos"
                 disabled={!canEdit}
               />
@@ -271,19 +300,38 @@ export function RepairReportForm({
               disabled={!canEdit}
             />
           </div>
-          <Input
-            type="date"
-            label="Fecha del Reporte *"
-            {...register("reportDate")}
-            error={errors.reportDate?.message}
-            disabled={!canEdit}
+          <Controller
+            name="reportDate"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                label="Fecha del Reporte *"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.reportDate?.message}
+                disabled={!canEdit}
+              />
+            )}
           />
-          <Input
-            type="number"
-            label="Kilometraje"
-            placeholder="45000"
-            {...register("odometer")}
-            disabled={!canEdit}
+          <Controller
+            name="odometer"
+            control={control}
+            render={({ field }) => (
+              <Input
+                type="number"
+                label="Kilometraje"
+                placeholder="0"
+                min="0"
+                value={field.value || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  field.onChange(
+                    val === "" ? "" : Math.max(0, parseInt(val) || 0)
+                  );
+                }}
+                disabled={!canEdit}
+              />
+            )}
           />
           <Controller
             name="priority"
@@ -328,17 +376,29 @@ export function RepairReportForm({
 
         {/* Fechas de reparación */}
         <div className="grid gap-4 sm:grid-cols-2 mt-4 pt-4 border-t border-(--border)">
-          <Input
-            type="date"
-            label="Fecha Inicio Reparación"
-            {...register("startDate")}
-            disabled={!canEdit}
+          <Controller
+            name="startDate"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                label="Fecha Inicio Reparación"
+                value={field.value}
+                onChange={field.onChange}
+                disabled={!canEdit}
+              />
+            )}
           />
-          <Input
-            type="date"
-            label="Fecha Finalización"
-            {...register("completionDate")}
-            disabled={!canEdit}
+          <Controller
+            name="completionDate"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                label="Fecha Finalización"
+                value={field.value}
+                onChange={field.onChange}
+                disabled={!canEdit}
+              />
+            )}
           />
         </div>
       </FormSection>
@@ -399,23 +459,29 @@ export function RepairReportForm({
       >
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-4">
-            <Input
-              type="number"
-              label="Costo Estimado"
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              {...register("costEstimate")}
-              disabled={!canEdit}
+            <Controller
+              name="costEstimate"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  label="Costo Estimado"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={!canEdit}
+                />
+              )}
             />
-            <Input
-              type="number"
-              label="Mano de Obra"
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              {...register("laborCost")}
-              disabled={!canEdit}
+            <Controller
+              name="laborCost"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  label="Mano de Obra"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={!canEdit}
+                />
+              )}
             />
             <div className="p-3 rounded-lg bg-(--muted)/50">
               <p className="text-sm text-(--muted-fg)">Costo de Partes</p>
@@ -426,14 +492,17 @@ export function RepairReportForm({
                 })}
               </p>
             </div>
-            <Input
-              type="number"
-              label="Costo Final Total"
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              {...register("finalCost")}
-              disabled={!canEdit}
+            <Controller
+              name="finalCost"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  label="Costo Final Total"
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={!canEdit}
+                />
+              )}
             />
           </div>
           <ReportSummary laborCost={laborCost} partsCost={partsCost} />
@@ -473,7 +542,7 @@ export function RepairReportForm({
           <Input
             type="number"
             label="Días de Garantía"
-            placeholder="Ej: 30"
+            placeholder="Días"
             min="0"
             {...register("warrantyDays")}
             disabled={!canEdit}
@@ -500,12 +569,16 @@ export function RepairReportForm({
         onToggle={() => toggleSection("files")}
         optional
       >
-        <ReportFilesStagingSection
+        <ReportFilesEditSection
+          existingFiles={existingFiles}
           stagedFiles={stagedFiles}
-          onAdd={(file) => setStagedFiles([...stagedFiles, file])}
-          onRemove={(index) =>
-            setStagedFiles(stagedFiles.filter((_, i) => i !== index))
+          onAddStaged={(file) => setStagedFiles((prev) => [...prev, file])}
+          onRemoveStaged={(index) =>
+            setStagedFiles((prev) => prev.filter((_, i) => i !== index))
           }
+          onRemoveExisting={handleRemoveExistingFile}
+          getFilePreviewUrl={getRepairFilePreviewUrl}
+          getFileDownloadUrl={getRepairFileDownloadUrl}
           disabled={!canEdit}
         />
       </FormSection>

@@ -13,6 +13,7 @@ import {
   reportTemplate,
   notificationTemplate,
   simpleTemplate,
+  groupInvitationTemplate,
 } from "./templates.js";
 
 /**
@@ -43,6 +44,7 @@ export default async ({ req, res, log, error }) => {
           "send-report",
           "send-notification",
           "send-simple",
+          "send-group-invitation",
           "health",
         ],
       });
@@ -76,6 +78,9 @@ export default async ({ req, res, log, error }) => {
 
       case "send-simple":
         return await handleSimple(payload, transporter, res, log);
+
+      case "send-group-invitation":
+        return await handleGroupInvitation(payload, transporter, res, log);
 
       default:
         return json(res, 400, {
@@ -287,5 +292,56 @@ async function handleSimple(payload, transporter, res, log) {
     ok: true,
     messageId: info.messageId,
     action: "send-simple",
+  });
+}
+
+/**
+ * Handle group invitation email
+ */
+async function handleGroupInvitation(payload, transporter, res, log) {
+  const {
+    email,
+    name,
+    inviterName,
+    groupName,
+    role,
+    message,
+    acceptUrl,
+    lang = "es",
+  } = payload;
+
+  if (!email || !inviterName || !groupName || !acceptUrl) {
+    return json(res, 400, {
+      ok: false,
+      error:
+        "Missing required fields: email, inviterName, groupName, acceptUrl",
+    });
+  }
+
+  const t = getTranslations(lang);
+  const html = groupInvitationTemplate(
+    name,
+    inviterName,
+    groupName,
+    role || "MEMBER",
+    message,
+    acceptUrl,
+    t
+  );
+
+  const mailOptions = {
+    from: optional("SMTP_FROM", '"MyCAD" <no-reply@mycad.app>'),
+    to: email,
+    subject: t.groupInvitation.subject,
+    html,
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+  log?.(`Group invitation email sent to ${email}: ${info.messageId}`);
+
+  return json(res, 200, {
+    ok: true,
+    messageId: info.messageId,
+    action: "send-group-invitation",
   });
 }

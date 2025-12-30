@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "../../../../shared/ui/Button";
 import { Input } from "../../../../shared/ui/Input";
+import { CurrencyInput } from "../../../../shared/ui/CurrencyInput";
 import { Card } from "../../../../shared/ui/Card";
 
 /**
@@ -56,7 +57,7 @@ export function PartsTable({
     onAdd?.({
       name: newPart.name.trim(),
       quantity: parseInt(newPart.quantity) || 1,
-      unitCost: parseFloat(newPart.unitCost) || 0,
+      unitCost: newPart.unitCost || 0,
       notes: newPart.notes.trim(),
     });
 
@@ -154,17 +155,12 @@ export function PartsTable({
                     <label className="text-xs text-(--muted-fg) mb-1 block">
                       Precio Unitario
                     </label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="$0.00"
+                    <CurrencyInput
                       value={newPart.unitCost}
-                      onChange={(e) =>
-                        setNewPart({ ...newPart, unitCost: e.target.value })
+                      onChange={(val) =>
+                        setNewPart({ ...newPart, unitCost: val })
                       }
-                      onKeyDown={handleKeyDown}
-                      className="h-12 text-base text-right"
+                      className="h-12 text-base"
                     />
                   </div>
                 </div>
@@ -183,8 +179,8 @@ export function PartsTable({
                     <span className="font-semibold text-(--fg)">
                       $
                       {(
-                        (parseFloat(newPart.quantity) || 0) *
-                        (parseFloat(newPart.unitCost) || 0)
+                        (parseInt(newPart.quantity) || 0) *
+                        (newPart.unitCost || 0)
                       ).toFixed(2)}
                     </span>
                   </div>
@@ -268,13 +264,13 @@ export function PartsTable({
               <th className="px-4 py-3 text-xs font-medium text-(--muted-fg) uppercase tracking-wider">
                 Descripción
               </th>
-              <th className="px-4 py-3 text-xs font-medium text-(--muted-fg) uppercase tracking-wider text-center w-20">
+              <th className="px-4 py-3 text-xs font-medium text-(--muted-fg) uppercase tracking-wider text-center w-24">
                 Cant.
               </th>
-              <th className="px-4 py-3 text-xs font-medium text-(--muted-fg) uppercase tracking-wider text-right w-28">
+              <th className="px-4 py-3 text-xs font-medium text-(--muted-fg) uppercase tracking-wider text-right w-32">
                 P. Unit.
               </th>
-              <th className="px-4 py-3 text-xs font-medium text-(--muted-fg) uppercase tracking-wider text-right w-28">
+              <th className="px-4 py-3 text-xs font-medium text-(--muted-fg) uppercase tracking-wider text-right w-32">
                 Subtotal
               </th>
               {!disabled && (
@@ -289,77 +285,90 @@ export function PartsTable({
               {/* Fila para agregar nueva parte (desktop) */}
               {isAdding && (
                 <motion.tr
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
+                  key="add-part-row"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                   className="bg-(--brand)/5"
                 >
-                  <td className="px-4 py-3">
-                    <Input
-                      placeholder="Nombre de la pieza"
-                      value={newPart.name}
-                      onChange={(e) =>
-                        setNewPart({ ...newPart, name: e.target.value })
-                      }
-                      onKeyDown={handleKeyDown}
-                      className="h-9"
-                      autoFocus
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Input
-                      type="number"
-                      min="1"
-                      placeholder="1"
-                      value={newPart.quantity}
-                      onChange={(e) =>
-                        setNewPart({ ...newPart, quantity: e.target.value })
-                      }
-                      onKeyDown={handleKeyDown}
-                      className="h-9 text-center"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={newPart.unitCost}
-                      onChange={(e) =>
-                        setNewPart({ ...newPart, unitCost: e.target.value })
-                      }
-                      onKeyDown={handleKeyDown}
-                      className="h-9 text-right"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm font-medium text-(--fg)">
-                    $
-                    {(
-                      (parseFloat(newPart.quantity) || 0) *
-                      (parseFloat(newPart.unitCost) || 0)
-                    ).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleAddPart}
-                        className="h-8 w-8 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleCancelAdd}
-                        className="h-8 w-8 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                  <td className="px-4 py-3" colSpan={disabled ? 4 : 5}>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-12 gap-3">
+                        <div className="col-span-5">
+                          <Input
+                            placeholder="Nombre de la pieza"
+                            value={newPart.name}
+                            onChange={(e) =>
+                              setNewPart({ ...newPart, name: e.target.value })
+                            }
+                            onKeyDown={handleKeyDown}
+                            className="h-9"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Cant."
+                            value={newPart.quantity}
+                            onChange={(e) =>
+                              setNewPart({
+                                ...newPart,
+                                quantity: e.target.value,
+                              })
+                            }
+                            onKeyDown={handleKeyDown}
+                            className="h-9 text-center w-full"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <CurrencyInput
+                            value={newPart.unitCost}
+                            onChange={(val) =>
+                              setNewPart({ ...newPart, unitCost: val })
+                            }
+                            className="h-9 w-full"
+                          />
+                        </div>
+                        <div className="col-span-2 flex items-center justify-end text-sm font-medium text-(--fg)">
+                          $
+                          {(
+                            (parseInt(newPart.quantity) || 0) *
+                            (newPart.unitCost || 0)
+                          ).toFixed(2)}
+                        </div>
+                        <div className="col-span-1 flex items-center justify-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleAddPart}
+                            className="h-8 w-8 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleCancelAdd}
+                            className="h-8 w-8 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Notas inline */}
+                      <Input
+                        placeholder="Notas u observaciones (opcional)"
+                        value={newPart.notes}
+                        onChange={(e) =>
+                          setNewPart({ ...newPart, notes: e.target.value })
+                        }
+                        onKeyDown={handleKeyDown}
+                        className="h-8 text-sm bg-(--bg)"
+                      />
                     </div>
                   </td>
                 </motion.tr>
@@ -513,16 +522,10 @@ function MobilePartCard({
               <label className="text-xs text-(--muted-fg) mb-1 block">
                 Precio Unitario
               </label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
+              <CurrencyInput
                 value={editData.unitCost}
-                onChange={(e) =>
-                  setEditData({ ...editData, unitCost: e.target.value })
-                }
-                onKeyDown={handleKeyDown}
-                className="h-12 text-base text-right"
+                onChange={(val) => setEditData({ ...editData, unitCost: val })}
+                className="h-12 text-base"
               />
             </div>
           </div>
@@ -541,8 +544,7 @@ function MobilePartCard({
               <span className="font-semibold text-(--fg)">
                 $
                 {(
-                  (parseFloat(editData.quantity) || 0) *
-                  (parseFloat(editData.unitCost) || 0)
+                  (parseInt(editData.quantity) || 0) * (editData.unitCost || 0)
                 ).toFixed(2)}
               </span>
             </div>
@@ -565,7 +567,7 @@ function MobilePartCard({
                   onUpdate({
                     name: editData.name.trim(),
                     quantity: parseInt(editData.quantity) || 1,
-                    unitCost: parseFloat(editData.unitCost) || 0,
+                    unitCost: editData.unitCost || 0,
                     notes: editData.notes.trim(),
                   })
                 }
@@ -678,75 +680,92 @@ function DesktopPartsTableRow({
 
   if (isEditing) {
     return (
-      <motion.tr layout className="bg-(--brand)/5">
-        <td className="px-4 py-3">
-          <Input
-            value={editData.name}
-            onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-            onKeyDown={handleKeyDown}
-            className="h-9"
-            autoFocus
-          />
-        </td>
-        <td className="px-4 py-3">
-          <Input
-            type="number"
-            min="1"
-            value={editData.quantity}
-            onChange={(e) =>
-              setEditData({ ...editData, quantity: e.target.value })
-            }
-            onKeyDown={handleKeyDown}
-            className="h-9 text-center"
-          />
-        </td>
-        <td className="px-4 py-3">
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            value={editData.unitCost}
-            onChange={(e) =>
-              setEditData({ ...editData, unitCost: e.target.value })
-            }
-            onKeyDown={handleKeyDown}
-            className="h-9 text-right"
-          />
-        </td>
-        <td className="px-4 py-3 text-right text-sm font-medium text-(--fg)">
-          $
-          {(
-            (parseFloat(editData.quantity) || 0) *
-            (parseFloat(editData.unitCost) || 0)
-          ).toFixed(2)}
-        </td>
-        <td className="px-4 py-3">
-          <div className="flex items-center justify-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() =>
-                onUpdate({
-                  name: editData.name.trim(),
-                  quantity: parseInt(editData.quantity) || 1,
-                  unitCost: parseFloat(editData.unitCost) || 0,
-                  notes: editData.notes.trim(),
-                })
+      <motion.tr
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="bg-(--brand)/5"
+      >
+        <td className="px-4 py-3" colSpan={disabled ? 4 : 5}>
+          <div className="space-y-3">
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-5">
+                <Input
+                  value={editData.name}
+                  onChange={(e) =>
+                    setEditData({ ...editData, name: e.target.value })
+                  }
+                  onKeyDown={handleKeyDown}
+                  className="h-9"
+                  autoFocus
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  type="number"
+                  min="1"
+                  value={editData.quantity}
+                  onChange={(e) =>
+                    setEditData({ ...editData, quantity: e.target.value })
+                  }
+                  onKeyDown={handleKeyDown}
+                  className="h-9 text-center w-full"
+                />
+              </div>
+              <div className="col-span-2">
+                <CurrencyInput
+                  value={editData.unitCost}
+                  onChange={(val) =>
+                    setEditData({ ...editData, unitCost: val })
+                  }
+                  className="h-9 w-full"
+                />
+              </div>
+              <div className="col-span-2 flex items-center justify-end text-sm font-medium text-(--fg)">
+                $
+                {(
+                  (parseFloat(editData.quantity) || 0) *
+                  (parseFloat(editData.unitCost) || 0)
+                ).toFixed(2)}
+              </div>
+              <div className="col-span-1 flex items-center justify-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    onUpdate({
+                      name: editData.name.trim(),
+                      quantity: parseInt(editData.quantity) || 1,
+                      unitCost: parseFloat(editData.unitCost) || 0,
+                      notes: editData.notes.trim(),
+                    })
+                  }
+                  className="h-8 w-8 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={onCancelEdit}
+                  className="h-8 w-8 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            {/* Notas inline */}
+            <Input
+              placeholder="Notas u observaciones (opcional)"
+              value={editData.notes}
+              onChange={(e) =>
+                setEditData({ ...editData, notes: e.target.value })
               }
-              className="h-8 w-8 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20"
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onCancelEdit}
-              className="h-8 w-8 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+              onKeyDown={handleKeyDown}
+              className="h-8 text-sm bg-(--bg)"
+            />
           </div>
         </td>
       </motion.tr>
@@ -816,7 +835,9 @@ export function PartsTableLocal({
   title = "Refacciones / Partes",
 }) {
   const handleAdd = (part) => {
-    const newParts = [...parts, { ...part, id: Date.now().toString() }];
+    // Usar crypto.randomUUID para IDs únicos garantizados
+    const tempId = `temp_${crypto.randomUUID()}`;
+    const newParts = [...parts, { ...part, id: tempId }];
     onChange?.(newParts);
   };
 

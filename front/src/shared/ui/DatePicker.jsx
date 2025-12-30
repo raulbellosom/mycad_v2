@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   format,
   parse,
@@ -68,15 +69,70 @@ export function DatePicker({
     }
     return new Date();
   });
-  const containerRef = useRef(null);
+  const [dropdownStyle, setDropdownStyle] = useState({});
+  const buttonRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const parsedValue = value ? parse(value, "yyyy-MM-dd", new Date()) : null;
   const isValidValue = parsedValue && isValid(parsedValue);
 
+  // Calculate dropdown position
+  const updateDropdownPosition = () => {
+    if (!buttonRef.current) return;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const dropdownHeight = 380; // Approximate calendar height
+    const dropdownWidth = Math.min(320, viewportWidth - 32);
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Determine if dropdown should appear above or below
+    const showAbove = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
+    // Calculate left position, ensuring it doesn't overflow viewport
+    let left = rect.left;
+    if (left + dropdownWidth > viewportWidth - 16) {
+      left = viewportWidth - dropdownWidth - 16;
+    }
+    if (left < 16) left = 16;
+
+    setDropdownStyle({
+      position: "fixed",
+      top: showAbove ? "auto" : rect.bottom + 4,
+      bottom: showAbove ? viewportHeight - rect.top + 4 : "auto",
+      left,
+      width: dropdownWidth,
+      maxWidth: viewportWidth - 32,
+    });
+  };
+
+  // Update position when open changes or on scroll/resize
+  useLayoutEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition();
+
+      const handleUpdate = () => updateDropdownPosition();
+      window.addEventListener("scroll", handleUpdate, true);
+      window.addEventListener("resize", handleUpdate);
+
+      return () => {
+        window.removeEventListener("scroll", handleUpdate, true);
+        window.removeEventListener("resize", handleUpdate);
+      };
+    }
+  }, [isOpen]);
+
   // Close on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -160,7 +216,7 @@ export function DatePicker({
           {label}
         </label>
       )}
-      <div className="relative" ref={containerRef}>
+      <div className="relative" ref={buttonRef}>
         <button
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -200,131 +256,138 @@ export function DatePicker({
             </span>
           )}
         </button>
+      </div>
 
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="absolute z-50 mt-2 left-0 right-0 w-full max-w-full rounded-lg border border-(--border) bg-(--card) p-3 shadow-lg box-border"
-            >
-              {/* Header with Month/Year selectors */}
-              <div className="flex items-center justify-between mb-3 gap-1">
-                <button
-                  type="button"
-                  onClick={handlePrevMonth}
-                  className="rounded-md p-1.5 hover:bg-(--muted) transition-colors shrink-0"
-                >
-                  <ChevronLeft size={18} />
-                </button>
+      {/* Portal for calendar dropdown */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div
+                ref={dropdownRef}
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                style={dropdownStyle}
+                className="z-9999 rounded-lg border border-(--border) bg-(--card) p-3 shadow-lg"
+              >
+                {/* Header with Month/Year selectors */}
+                <div className="flex items-center justify-between mb-3 gap-1">
+                  <button
+                    type="button"
+                    onClick={handlePrevMonth}
+                    className="rounded-md p-1.5 hover:bg-(--muted) transition-colors shrink-0"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
 
-                <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-center">
-                  <select
-                    value={getMonth(viewDate)}
-                    onChange={handleMonthChange}
-                    className="rounded-md border border-(--border) bg-(--card) px-1 sm:px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0 max-w-[90px] sm:max-w-none"
+                  <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-center">
+                    <select
+                      value={getMonth(viewDate)}
+                      onChange={handleMonthChange}
+                      className="rounded-md border border-(--border) bg-(--card) px-1 sm:px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0 max-w-[90px] sm:max-w-none"
+                    >
+                      {MONTHS.map((month, index) => (
+                        <option key={month} value={index}>
+                          {month}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={getYear(viewDate)}
+                      onChange={handleYearChange}
+                      className="rounded-md border border-(--border) bg-(--card) px-1 sm:px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0 w-[70px]"
+                    >
+                      {generateYears().map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleNextMonth}
+                    className="rounded-md p-1.5 hover:bg-(--muted) transition-colors shrink-0"
                   >
-                    {MONTHS.map((month, index) => (
-                      <option key={month} value={index}>
-                        {month}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={getYear(viewDate)}
-                    onChange={handleYearChange}
-                    className="rounded-md border border-(--border) bg-(--card) px-1 sm:px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-(--brand) min-w-0 w-[70px]"
-                  >
-                    {generateYears().map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
+                    <ChevronRight size={18} />
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleNextMonth}
-                  className="rounded-md p-1.5 hover:bg-(--muted) transition-colors shrink-0"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-
-              {/* Weekday headers */}
-              <div className="grid grid-cols-7 mb-1">
-                {WEEKDAYS.map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-xs font-medium text-(--muted-fg) py-1"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-0.5">
-                {/* Empty cells for start offset */}
-                {Array.from({ length: startDay }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-8" />
-                ))}
-
-                {/* Day cells */}
-                {days.map((day) => {
-                  const dayDisabled = isDateDisabled(day);
-                  const selected = isSelected(day);
-                  const today = isToday(day);
-
-                  return (
-                    <button
-                      key={day.toISOString()}
-                      type="button"
-                      onClick={() => !dayDisabled && handleDateSelect(day)}
-                      disabled={dayDisabled}
-                      className={clsx(
-                        "h-8 w-full rounded-md text-sm transition-colors",
-                        dayDisabled && "opacity-30 cursor-not-allowed",
-                        selected && "bg-(--brand) text-white font-medium",
-                        !selected &&
-                          today &&
-                          "bg-(--brand)/10 text-(--brand) font-medium",
-                        !selected &&
-                          !today &&
-                          !dayDisabled &&
-                          "hover:bg-(--muted)"
-                      )}
+                {/* Weekday headers */}
+                <div className="grid grid-cols-7 mb-1">
+                  {WEEKDAYS.map((day) => (
+                    <div
+                      key={day}
+                      className="text-center text-xs font-medium text-(--muted-fg) py-1"
                     >
-                      {format(day, "d")}
-                    </button>
-                  );
-                })}
-              </div>
+                      {day}
+                    </div>
+                  ))}
+                </div>
 
-              {/* Footer */}
-              <div className="mt-3 pt-3 border-t border-(--border) flex justify-between">
-                <button
-                  type="button"
-                  onClick={handleToday}
-                  className="text-xs text-(--brand) hover:underline"
-                >
-                  Hoy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="text-xs text-(--muted-fg) hover:text-(--fg)"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                {/* Calendar grid */}
+                <div className="grid grid-cols-7 gap-0.5">
+                  {/* Empty cells for start offset */}
+                  {Array.from({ length: startDay }).map((_, i) => (
+                    <div key={`empty-${i}`} className="h-8" />
+                  ))}
+
+                  {/* Day cells */}
+                  {days.map((day) => {
+                    const dayDisabled = isDateDisabled(day);
+                    const selected = isSelected(day);
+                    const today = isToday(day);
+
+                    return (
+                      <button
+                        key={day.toISOString()}
+                        type="button"
+                        onClick={() => !dayDisabled && handleDateSelect(day)}
+                        disabled={dayDisabled}
+                        className={clsx(
+                          "h-8 w-full rounded-md text-sm transition-colors",
+                          dayDisabled && "opacity-30 cursor-not-allowed",
+                          selected && "bg-(--brand) text-white font-medium",
+                          !selected &&
+                            today &&
+                            "bg-(--brand)/10 text-(--brand) font-medium",
+                          !selected &&
+                            !today &&
+                            !dayDisabled &&
+                            "hover:bg-(--muted)"
+                        )}
+                      >
+                        {format(day, "d")}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Footer */}
+                <div className="mt-3 pt-3 border-t border-(--border) flex justify-between">
+                  <button
+                    type="button"
+                    onClick={handleToday}
+                    className="text-xs text-(--brand) hover:underline"
+                  >
+                    Hoy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="text-xs text-(--muted-fg) hover:text-(--fg)"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
   );

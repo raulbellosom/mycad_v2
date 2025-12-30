@@ -14,11 +14,12 @@ export const AUDIT_ACTIONS = {
   LOGIN: "LOGIN",
   LOGOUT: "LOGOUT",
   VIEW: "VIEW",
-  FINALIZE: "FINALIZE",
-  REOPEN: "REOPEN",
-  ASSIGN: "ASSIGN",
-  UNASSIGN: "UNASSIGN",
-  UPLOAD: "UPLOAD",
+  // Acciones extendidas que se mapean a OTHER en la DB
+  FINALIZE: "OTHER",
+  REOPEN: "OTHER",
+  ASSIGN: "OTHER",
+  UNASSIGN: "OTHER",
+  UPLOAD: "OTHER",
   OTHER: "OTHER",
 };
 

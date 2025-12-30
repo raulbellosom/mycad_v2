@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Button } from "../../../shared/ui/Button";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
-import { EmptyState } from "../../../shared/ui/EmptyState";
+import { ResourceNotFound } from "../../../shared/ui/ResourceNotFound";
 import { ServiceReportView } from "../components/service/ServiceReportView";
 import {
   useServiceReport,
@@ -39,8 +39,8 @@ export function ServiceReportViewPage() {
   // Mutations
   const reopenMutation = useReopenServiceReport();
 
-  const parts = partsData?.documents || [];
-  const files = filesData?.documents || [];
+  const parts = partsData || [];
+  const files = filesData || [];
 
   const handleEdit = () => {
     navigate(`/reports/service/${id}/edit`);
@@ -70,15 +70,16 @@ export function ServiceReportViewPage() {
   if (error || !report) {
     return (
       <PageLayout title="Error">
-        <EmptyState
-          title="Reporte no encontrado"
-          description="El reporte que buscas no existe o no tienes permisos para verlo."
-          action={
-            <Button onClick={() => navigate("/reports")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver a Reportes
-            </Button>
+        <ResourceNotFound
+          resourceType="reporte de servicio"
+          resourceId={id}
+          reason={
+            error?.message?.includes("permission")
+              ? "no-permission"
+              : "not-found"
           }
+          backPath="/reports"
+          backLabel="Volver a Reportes"
         />
       </PageLayout>
     );
@@ -107,6 +108,7 @@ export function ServiceReportViewPage() {
           vehicle={vehicle}
           parts={parts}
           files={files}
+          createdBy={report.createdByProfile}
           onEdit={handleEdit}
           onReopen={handleReopen}
           onDownloadPdf={handleDownloadPdf}

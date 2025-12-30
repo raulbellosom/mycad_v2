@@ -242,8 +242,8 @@ export function useUploadRepairReportFile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ repairReportId, groupId, file }) =>
-      uploadRepairReportFile(repairReportId, groupId, file),
+    mutationFn: ({ repairReportId, groupId, file, profileId }) =>
+      uploadRepairReportFile(repairReportId, groupId, file, profileId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["repair-report-files", variables.repairReportId],

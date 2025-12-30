@@ -108,7 +108,8 @@ export function useFinalizeServiceReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ reportId, profileId }) => finalizeServiceReport(reportId, profileId),
+    mutationFn: ({ reportId, profileId }) =>
+      finalizeServiceReport(reportId, profileId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
       queryClient.invalidateQueries({ queryKey: ["service-report", data.$id] });
@@ -231,8 +232,8 @@ export function useUploadServiceReportFile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ serviceHistoryId, groupId, file }) =>
-      uploadServiceReportFile(serviceHistoryId, groupId, file),
+    mutationFn: ({ serviceHistoryId, groupId, file, profileId }) =>
+      uploadServiceReportFile(serviceHistoryId, groupId, file, profileId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["service-report-files", variables.serviceHistoryId],

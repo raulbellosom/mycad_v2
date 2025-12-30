@@ -1,6 +1,11 @@
 import { ID, Query } from "appwrite";
 import { databases } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/services/audit.service";
 
 const CLIENTS_COLLECTION_ID = env.collectionClientsId;
 
@@ -68,8 +73,8 @@ export async function getClientById(id) {
 /**
  * Create a new client
  */
-export async function createClient(data) {
-  return await databases.createDocument(
+export async function createClient(data, auditInfo = {}) {
+  const doc = await databases.createDocument(
     env.databaseId,
     CLIENTS_COLLECTION_ID,
     ID.unique(),
@@ -78,30 +83,74 @@ export async function createClient(data) {
       enabled: true,
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && data.groupId) {
+    logAuditEvent({
+      groupId: data.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: ENTITY_TYPES.CLIENT,
+      entityId: doc.$id,
+      entityName: data.name || "Cliente nuevo",
+      details: { email: data.email, phone: data.phone },
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
 /**
  * Update an existing client
  */
-export async function updateClient(id, data) {
-  return await databases.updateDocument(
+export async function updateClient(id, data, auditInfo = {}) {
+  const doc = await databases.updateDocument(
     env.databaseId,
     CLIENTS_COLLECTION_ID,
     id,
     data
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.UPDATE,
+      entityType: ENTITY_TYPES.CLIENT,
+      entityId: id,
+      entityName: data.name || auditInfo.clientName || "Cliente",
+      details: { updatedFields: Object.keys(data) },
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
 /**
  * Soft delete a client
  */
-export async function deleteClient(id) {
-  return await databases.updateDocument(
+export async function deleteClient(id, auditInfo = {}) {
+  const doc = await databases.updateDocument(
     env.databaseId,
     CLIENTS_COLLECTION_ID,
     id,
     { enabled: false }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: ENTITY_TYPES.CLIENT,
+      entityId: id,
+      entityName: auditInfo.clientName || "Cliente",
+    }).catch(console.error);
+  }
+
+  return doc;
 }
 
 /**

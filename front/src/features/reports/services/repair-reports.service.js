@@ -5,10 +5,16 @@ import {
   getFilePreviewUrl,
   getFileDownloadUrl,
 } from "../../../shared/utils/storage";
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/services/audit.service";
 
 const COLLECTION_ID = env.collectionRepairReportsId;
 const PARTS_COLLECTION_ID = env.collectionRepairedPartsId;
 const FILES_COLLECTION_ID = env.collectionRepairFilesId;
+const FILES_TABLE_ID = env.collectionFilesId;
 const BUCKET_ID = env.bucketVehiclesId;
 
 /**
@@ -75,13 +81,19 @@ export async function getRepairReportById(id) {
 function cleanRepairReportData(data) {
   const cleanedData = {};
 
-  // Campos requeridos
+  // Campos requeridos (escalares para índices)
   if (data.groupId) cleanedData.groupId = data.groupId;
   if (data.vehicleId) cleanedData.vehicleId = data.vehicleId;
   if (data.createdByProfileId)
     cleanedData.createdByProfileId = data.createdByProfileId;
   if (data.reportDate) cleanedData.reportDate = data.reportDate;
   if (data.title) cleanedData.title = data.title;
+
+  // Relaciones two-way (SIEMPRE enviar para navegación correcta)
+  // NOTA: vehicle ahora es one-way, solo enviamos vehicleId escalar
+  // createdByProfile: Two-way ↔ users_profile.createdRepairReports
+  if (data.createdByProfileId)
+    cleanedData.createdByProfile = data.createdByProfileId;
 
   // Campos opcionales - solo incluir si tienen valor
   if (data.description) cleanedData.description = data.description;
@@ -145,7 +157,7 @@ function cleanRepairReportData(data) {
 /**
  * Crea un nuevo reporte de reparación
  */
-export async function createRepairReport(data) {
+export async function createRepairReport(data, auditInfo = {}) {
   const { parts, stagedFiles, ...reportData } = data;
 
   // Limpiar datos para Appwrite
@@ -164,20 +176,18 @@ export async function createRepairReport(data) {
       reportNumber,
       status: cleanedData.status || "OPEN",
       enabled: true,
-      // Relaciones two-way
-      vehicle: cleanedData.vehicleId, // relación → vehicles
-      createdByProfile: cleanedData.createdByProfileId, // relación → users_profile
     }
   );
 
-  // Crear las partes si existen
+  // Crear las partes si existen (secuencialmente para evitar colisiones de ID)
+  // Usamos 'unique()' string para que el SERVIDOR genere el ID, no el cliente
   if (parts && parts.length > 0) {
-    await Promise.all(
-      parts.map((part) =>
-        databases.createDocument(
+    for (const part of parts) {
+      try {
+        await databases.createDocument(
           env.databaseId,
           PARTS_COLLECTION_ID,
-          ID.unique(),
+          "unique()",
           {
             name: part.name,
             quantity: parseInt(part.quantity) || 1,
@@ -185,13 +195,39 @@ export async function createRepairReport(data) {
             notes: part.notes || null,
             groupId: cleanedData.groupId,
             repairReportId: doc.$id,
+            // Relación two-way con repair_reports
+            repairReport: doc.$id,
             enabled: true,
-            // Relaciones two-way
-            repairReport: doc.$id, // relación → repair_reports
           }
-        )
-      )
-    );
+        );
+      } catch (error) {
+        // Si es error 409 (ya existe), ignorar - probable retry de red
+        if (error?.code === 409 || error?.type === "document_already_exists") {
+          console.warn(
+            `[createRepairReport] Parte ya existe, ignorando (probable retry)`
+          );
+        } else {
+          console.error("[createRepairReport] Error al crear parte:", error);
+          throw error;
+        }
+      }
+    }
+  }
+
+  // Auditoría
+  if (auditInfo.profileId && cleanedData.groupId) {
+    logAuditEvent({
+      groupId: cleanedData.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: ENTITY_TYPES.REPAIR_REPORT,
+      entityId: doc.$id,
+      entityName: cleanedData.title || reportNumber,
+      details: {
+        vehicleId: cleanedData.vehicleId,
+        priority: cleanedData.priority,
+      },
+    }).catch(console.error);
   }
 
   return doc;
@@ -200,7 +236,7 @@ export async function createRepairReport(data) {
 /**
  * Actualiza un reporte de reparación existente
  */
-export async function updateRepairReport(id, data) {
+export async function updateRepairReport(id, data, auditInfo = {}) {
   const { parts, stagedFiles, ...reportData } = data;
 
   // Limpiar datos para Appwrite (sin campos requeridos para update)
@@ -254,13 +290,31 @@ export async function updateRepairReport(id, data) {
     cleanedData
   );
 
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.UPDATE,
+      entityType: ENTITY_TYPES.REPAIR_REPORT,
+      entityId: id,
+      entityName:
+        cleanedData.title || auditInfo.reportTitle || "Reporte de reparación",
+      details: { updatedFields: Object.keys(cleanedData) },
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
 /**
  * Finaliza un reporte de reparación (bloquea edición)
  */
-export async function finalizeRepairReport(id, finalizedByProfileId) {
+export async function finalizeRepairReport(
+  id,
+  finalizedByProfileId,
+  auditInfo = {}
+) {
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
@@ -271,13 +325,27 @@ export async function finalizeRepairReport(id, finalizedByProfileId) {
       finalizedByProfileId,
     }
   );
+
+  // Auditoría
+  if (finalizedByProfileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: finalizedByProfileId,
+      action: AUDIT_ACTIONS.OTHER,
+      entityType: ENTITY_TYPES.REPAIR_REPORT,
+      entityId: id,
+      entityName: auditInfo.reportTitle || "Reporte de reparación",
+      details: { action: "finalized" },
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
 /**
  * Reabre un reporte finalizado (solo admin)
  */
-export async function reopenRepairReport(id) {
+export async function reopenRepairReport(id, auditInfo = {}) {
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
@@ -288,13 +356,27 @@ export async function reopenRepairReport(id) {
       finalizedByProfileId: null,
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.OTHER,
+      entityType: ENTITY_TYPES.REPAIR_REPORT,
+      entityId: id,
+      entityName: auditInfo.reportTitle || "Reporte de reparación",
+      details: { action: "reopened" },
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
 /**
  * Elimina un reporte de reparación (soft delete)
  */
-export async function deleteRepairReport(id) {
+export async function deleteRepairReport(id, auditInfo = {}) {
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
@@ -303,6 +385,19 @@ export async function deleteRepairReport(id) {
       enabled: false,
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: ENTITY_TYPES.REPAIR_REPORT,
+      entityId: id,
+      entityName: auditInfo.reportTitle || "Reporte de reparación",
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
@@ -330,17 +425,20 @@ export async function getRepairReportParts(repairReportId) {
  * Agrega una parte a un reporte de reparación
  */
 export async function addRepairReportPart(repairReportId, groupId, partData) {
+  // Dejar que Appwrite genere el ID en el servidor
   const doc = await databases.createDocument(
     env.databaseId,
     PARTS_COLLECTION_ID,
     ID.unique(),
     {
-      ...partData,
+      name: partData.name,
+      quantity: partData.quantity,
+      unitCost: partData.unitCost || 0,
+      notes: partData.notes || null,
       groupId,
       repairReportId,
       enabled: true,
-      // Relaciones two-way
-      repairReport: repairReportId, // relación → repair_reports
+      repairReport: repairReportId,
     }
   );
   return doc;
@@ -394,26 +492,50 @@ export async function getRepairReportFiles(repairReportId) {
 /**
  * Sube un archivo y lo registra en el reporte
  */
-export async function uploadRepairReportFile(repairReportId, groupId, file) {
+export async function uploadRepairReportFile(
+  repairReportId,
+  groupId,
+  file,
+  profileId
+) {
   // Subir a storage
   const storageFile = await storage.createFile(BUCKET_ID, ID.unique(), file);
 
-  // Registrar en BD
-  const doc = await databases.createDocument(
+  // 1. Crear documento en tabla 'files'
+  const fileDoc = await databases.createDocument(
+    env.databaseId,
+    FILES_TABLE_ID,
+    ID.unique(),
+    {
+      groupId,
+      storageFileId: storageFile.$id,
+      ownerProfileId: profileId,
+      name: file.name,
+      mimeType: file.type || null,
+      sizeBytes: file.size,
+      enabled: true,
+      // Relación two-way
+      ownerProfile: profileId,
+    }
+  );
+
+  // 2. Crear documento en 'repair_files' apuntando al documento 'files'
+  const linkDoc = await databases.createDocument(
     env.databaseId,
     FILES_COLLECTION_ID,
     ID.unique(),
     {
       groupId,
       repairReportId,
-      fileId: storageFile.$id,
+      fileId: fileDoc.$id, // ID del documento en 'files', no del storage
       enabled: true,
       // Relaciones two-way
-      repairReport: repairReportId, // relación → repair_reports
+      repairReport: repairReportId,
+      file: fileDoc.$id,
     }
   );
 
-  return { storageFile, doc };
+  return { storageFile, fileDoc, linkDoc };
 }
 
 /**

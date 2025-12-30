@@ -5,10 +5,16 @@ import {
   getFilePreviewUrl,
   getFileDownloadUrl,
 } from "../../../shared/utils/storage";
+import {
+  logAuditEvent,
+  AUDIT_ACTIONS,
+  ENTITY_TYPES,
+} from "../../audit/services/audit.service";
 
 const COLLECTION_ID = env.collectionServiceHistoriesId;
 const PARTS_COLLECTION_ID = env.collectionReplacedPartsId;
 const FILES_COLLECTION_ID = env.collectionServiceFilesId;
+const FILES_TABLE_ID = env.collectionFilesId;
 const BUCKET_ID = env.bucketVehiclesId;
 
 /**
@@ -70,13 +76,19 @@ export async function getServiceReportById(id) {
 function cleanServiceReportData(data) {
   const cleanedData = {};
 
-  // Campos requeridos
+  // Campos requeridos (escalares para índices)
   if (data.groupId) cleanedData.groupId = data.groupId;
   if (data.vehicleId) cleanedData.vehicleId = data.vehicleId;
   if (data.createdByProfileId)
     cleanedData.createdByProfileId = data.createdByProfileId;
   if (data.serviceDate) cleanedData.serviceDate = data.serviceDate;
   if (data.title) cleanedData.title = data.title;
+
+  // Relaciones two-way (SIEMPRE enviar para navegación correcta)
+  // NOTA: vehicle ahora es one-way, solo enviamos vehicleId escalar
+  // createdByProfile: Two-way ↔ users_profile.createdServiceHistories
+  if (data.createdByProfileId)
+    cleanedData.createdByProfile = data.createdByProfileId;
 
   // Campos opcionales - solo incluir si tienen valor
   if (data.description) cleanedData.description = data.description;
@@ -127,7 +139,7 @@ function cleanServiceReportData(data) {
 /**
  * Crea un nuevo reporte de servicio
  */
-export async function createServiceReport(data) {
+export async function createServiceReport(data, auditInfo = {}) {
   const { parts, stagedFiles, ...reportData } = data;
 
   // Limpiar datos para Appwrite
@@ -142,20 +154,18 @@ export async function createServiceReport(data) {
       ...cleanedData,
       status: "DRAFT",
       enabled: true,
-      // Relaciones two-way
-      vehicle: cleanedData.vehicleId, // relación → vehicles
-      createdByProfile: cleanedData.createdByProfileId, // relación → users_profile
     }
   );
 
-  // Crear las partes si existen
+  // Crear las partes si existen (secuencialmente para evitar colisiones de ID)
+  // Usamos 'unique()' string para que el SERVIDOR genere el ID, no el cliente
   if (parts && parts.length > 0) {
-    await Promise.all(
-      parts.map((part) =>
-        databases.createDocument(
+    for (const part of parts) {
+      try {
+        await databases.createDocument(
           env.databaseId,
           PARTS_COLLECTION_ID,
-          ID.unique(),
+          "unique()",
           {
             name: part.name,
             quantity: parseInt(part.quantity) || 1,
@@ -163,13 +173,39 @@ export async function createServiceReport(data) {
             notes: part.notes || null,
             groupId: cleanedData.groupId,
             serviceHistoryId: doc.$id,
+            // Relación two-way con service_histories
+            serviceHistory: doc.$id,
             enabled: true,
-            // Relaciones two-way
-            serviceHistory: doc.$id, // relación → service_histories
           }
-        )
-      )
-    );
+        );
+      } catch (error) {
+        // Si es error 409 (ya existe), ignorar - probable retry de red
+        if (error?.code === 409 || error?.type === "document_already_exists") {
+          console.warn(
+            `[createServiceReport] Parte ya existe, ignorando (probable retry)`
+          );
+        } else {
+          console.error("[createServiceReport] Error al crear parte:", error);
+          throw error;
+        }
+      }
+    }
+  }
+
+  // Auditoría
+  if (auditInfo.profileId && cleanedData.groupId) {
+    logAuditEvent({
+      groupId: cleanedData.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: ENTITY_TYPES.SERVICE_REPORT,
+      entityId: doc.$id,
+      entityName: cleanedData.title || "Reporte de servicio",
+      details: {
+        vehicleId: cleanedData.vehicleId,
+        serviceType: cleanedData.serviceType,
+      },
+    }).catch(console.error);
   }
 
   return doc;
@@ -178,7 +214,7 @@ export async function createServiceReport(data) {
 /**
  * Actualiza un reporte de servicio existente
  */
-export async function updateServiceReport(id, data) {
+export async function updateServiceReport(id, data, auditInfo = {}) {
   const { parts, stagedFiles, ...reportData } = data;
 
   // Limpiar datos para Appwrite (sin campos requeridos para update)
@@ -227,13 +263,31 @@ export async function updateServiceReport(id, data) {
     cleanedData
   );
 
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.UPDATE,
+      entityType: ENTITY_TYPES.SERVICE_REPORT,
+      entityId: id,
+      entityName:
+        cleanedData.title || auditInfo.reportTitle || "Reporte de servicio",
+      details: { updatedFields: Object.keys(cleanedData) },
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
 /**
  * Finaliza un reporte de servicio (bloquea edición)
  */
-export async function finalizeServiceReport(id, finalizedByProfileId) {
+export async function finalizeServiceReport(
+  id,
+  finalizedByProfileId,
+  auditInfo = {}
+) {
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
@@ -244,13 +298,27 @@ export async function finalizeServiceReport(id, finalizedByProfileId) {
       finalizedByProfileId,
     }
   );
+
+  // Auditoría
+  if (finalizedByProfileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: finalizedByProfileId,
+      action: AUDIT_ACTIONS.OTHER,
+      entityType: ENTITY_TYPES.SERVICE_REPORT,
+      entityId: id,
+      entityName: auditInfo.reportTitle || "Reporte de servicio",
+      details: { action: "finalized" },
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
 /**
  * Reabre un reporte finalizado (solo admin)
  */
-export async function reopenServiceReport(id) {
+export async function reopenServiceReport(id, auditInfo = {}) {
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
@@ -261,13 +329,27 @@ export async function reopenServiceReport(id) {
       finalizedByProfileId: null,
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.OTHER,
+      entityType: ENTITY_TYPES.SERVICE_REPORT,
+      entityId: id,
+      entityName: auditInfo.reportTitle || "Reporte de servicio",
+      details: { action: "reopened" },
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
 /**
  * Elimina un reporte de servicio (soft delete)
  */
-export async function deleteServiceReport(id) {
+export async function deleteServiceReport(id, auditInfo = {}) {
   const doc = await databases.updateDocument(
     env.databaseId,
     COLLECTION_ID,
@@ -276,6 +358,19 @@ export async function deleteServiceReport(id) {
       enabled: false,
     }
   );
+
+  // Auditoría
+  if (auditInfo.profileId && auditInfo.groupId) {
+    logAuditEvent({
+      groupId: auditInfo.groupId,
+      profileId: auditInfo.profileId,
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: ENTITY_TYPES.SERVICE_REPORT,
+      entityId: id,
+      entityName: auditInfo.reportTitle || "Reporte de servicio",
+    }).catch(console.error);
+  }
+
   return doc;
 }
 
@@ -307,17 +402,20 @@ export async function addServiceReportPart(
   groupId,
   partData
 ) {
+  // Dejar que Appwrite genere el ID en el servidor
   const doc = await databases.createDocument(
     env.databaseId,
     PARTS_COLLECTION_ID,
     ID.unique(),
     {
-      ...partData,
+      name: partData.name,
+      quantity: partData.quantity,
+      unitCost: partData.unitCost || 0,
+      notes: partData.notes || null,
       groupId,
       serviceHistoryId,
       enabled: true,
-      // Relaciones two-way
-      serviceHistory: serviceHistoryId, // relación → service_histories
+      serviceHistory: serviceHistoryId,
     }
   );
   return doc;
@@ -371,26 +469,50 @@ export async function getServiceReportFiles(serviceHistoryId) {
 /**
  * Sube un archivo y lo registra en el reporte
  */
-export async function uploadServiceReportFile(serviceHistoryId, groupId, file) {
+export async function uploadServiceReportFile(
+  serviceHistoryId,
+  groupId,
+  file,
+  profileId
+) {
   // Subir a storage
   const storageFile = await storage.createFile(BUCKET_ID, ID.unique(), file);
 
-  // Registrar en BD
-  const doc = await databases.createDocument(
+  // 1. Crear documento en tabla 'files'
+  const fileDoc = await databases.createDocument(
+    env.databaseId,
+    FILES_TABLE_ID,
+    ID.unique(),
+    {
+      groupId,
+      storageFileId: storageFile.$id,
+      ownerProfileId: profileId,
+      name: file.name,
+      mimeType: file.type || null,
+      sizeBytes: file.size,
+      enabled: true,
+      // Relación two-way
+      ownerProfile: profileId,
+    }
+  );
+
+  // 2. Crear documento en 'service_files' apuntando al documento 'files'
+  const linkDoc = await databases.createDocument(
     env.databaseId,
     FILES_COLLECTION_ID,
     ID.unique(),
     {
       groupId,
       serviceHistoryId,
-      fileId: storageFile.$id,
+      fileId: fileDoc.$id, // ID del documento en 'files', no del storage
       enabled: true,
       // Relaciones two-way
-      serviceHistory: serviceHistoryId, // relación → service_histories
+      serviceHistory: serviceHistoryId,
+      file: fileDoc.$id,
     }
   );
 
-  return { storageFile, doc };
+  return { storageFile, fileDoc, linkDoc };
 }
 
 /**

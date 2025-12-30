@@ -4,8 +4,8 @@ import { Command } from "cmdk";
 import { Check, ChevronsUpDown, Search, Filter, X, Car } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
+import { storage } from "../appwrite/client";
 import { env } from "../appwrite/env";
-import { getFilePreviewUrl } from "../utils/storage";
 
 /**
  * VehicleCombobox - A specialized combobox for vehicle selection
@@ -237,10 +237,12 @@ export function VehicleCombobox({
     if (vehicle?.files && vehicle.files.length > 0) {
       const imageFile = vehicle.files.find((f) => f.isImage);
       if (imageFile) {
-        return getFilePreviewUrl(env.bucketVehiclesId, imageFile.fileId, {
-          width: size,
-          height: size,
-        });
+        return storage.getFilePreview(
+          env.bucketVehiclesId,
+          imageFile.fileId,
+          size,
+          size
+        );
       }
     }
     return null;
@@ -321,7 +323,7 @@ export function VehicleCombobox({
                       <Search size={16} className="text-(--muted-fg)" />
                       <input
                         type="text"
-                        placeholder="Buscar por placa, N° económico, marca, modelo..."
+                        placeholder="Buscar placa, N° eco, marca..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="flex-1 bg-transparent text-base md:text-sm outline-none placeholder:text-(--muted-fg) text-(--fg)"

@@ -442,7 +442,7 @@ export function VehicleFormPage() {
                     value={formData.modelId}
                     onChange={handleModelSelect}
                     options={modelOptions}
-                    placeholder="Buscar modelo, marca, tipo, grupo económico..."
+                    placeholder="Buscar modelo..."
                     emptyText="No se encontraron modelos"
                     onCreateNew={(search) => {
                       setModelSearchTerm(search);

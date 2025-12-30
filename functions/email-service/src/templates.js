@@ -280,3 +280,88 @@ ${headerSection(title)}
 
   return baseTemplate(content, footerSection(t));
 }
+
+/**
+ * Group invitation email template
+ */
+export function groupInvitationTemplate(
+  name,
+  inviterName,
+  groupName,
+  role,
+  message,
+  acceptUrl,
+  t
+) {
+  const roleLabel = t.groupInvitation.roles[role] || role;
+  const personalMessage = message
+    ? `
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+      <tr>
+        <td style="background-color: ${colors.background}; border: 1px solid ${colors.border}; border-radius: 8px; padding: 16px;">
+          <p style="margin: 0 0 8px 0; font-size: 12px; color: ${colors.textDark}; text-transform: uppercase; letter-spacing: 1px;">
+            ${t.groupInvitation.personalMessage}
+          </p>
+          <p style="margin: 0; font-size: 14px; color: ${colors.textMuted}; font-style: italic;">
+            "${message}"
+          </p>
+        </td>
+      </tr>
+    </table>
+    `
+    : "";
+
+  const content = `
+${headerSection(t.groupInvitation.title)}
+<!-- Content -->
+<tr>
+  <td style="padding: 0 40px 40px 40px;">
+    <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6; color: ${
+      colors.text
+    }; text-align: center;">
+      ${t.groupInvitation.greeting}${name ? " " + name : ""},
+    </p>
+    <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: ${
+      colors.textMuted
+    }; text-align: center;">
+      <strong style="color: ${colors.primary};">${inviterName}</strong> ${
+    t.groupInvitation.invitedYou
+  }
+    </p>
+    <!-- Group info box -->
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: ${colors.background}; border: 1px solid ${
+    colors.border
+  }; border-radius: 8px; padding: 20px; text-align: center;">
+          <p style="margin: 0 0 8px 0; font-size: 12px; color: ${
+            colors.textDark
+          }; text-transform: uppercase; letter-spacing: 1px;">
+            ${t.groupInvitation.groupLabel}
+          </p>
+          <p style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600; color: ${
+            colors.white
+          };">
+            ${groupName}
+          </p>
+          <p style="margin: 0; font-size: 14px; color: ${colors.textMuted};">
+            ${t.groupInvitation.roleLabel}: <strong style="color: ${
+    colors.primary
+  };">${roleLabel}</strong>
+          </p>
+        </td>
+      </tr>
+    </table>
+    ${personalMessage}
+    ${actionButton(acceptUrl, t.groupInvitation.button)}
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: ${
+      colors.textDark
+    }; text-align: center;">
+      ⏱️ ${t.groupInvitation.expiry}
+    </p>
+  </td>
+</tr>
+  `.trim();
+
+  return baseTemplate(content, footerSection(t));
+}
