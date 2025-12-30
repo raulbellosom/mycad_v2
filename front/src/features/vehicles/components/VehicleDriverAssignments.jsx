@@ -20,11 +20,15 @@ import {
   Fuel,
 } from "lucide-react";
 
+import { getAvatarPreviewUrl } from "../../auth/services/myProfile.service";
+
 import { Card } from "../../../shared/ui/Card";
 import { Button } from "../../../shared/ui/Button";
 import { Badge } from "../../../shared/ui/Badge";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { ConfirmModal } from "../../../shared/ui/ConfirmModal";
+import { ImageViewerModal } from "../../../shared/ui/ImageViewerModal";
+import { env } from "../../../shared/appwrite/env";
 import { cn } from "../../../shared/utils/cn";
 
 import { usePermissions } from "../../groups/hooks/usePermissions";
@@ -76,6 +80,7 @@ function AssignmentCard({
   onEnd,
   onDelete,
   canManage,
+  onViewProfile,
 }) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -84,6 +89,13 @@ function AssignmentCard({
   const typeLabel =
     ASSIGNMENT_TYPE_LABELS[assignment.assignmentType] ||
     assignment.assignmentType;
+
+  // Check if driver has linkedProfile with avatar
+  const linkedProfile = driver?.linkedProfile;
+  const hasAvatar = linkedProfile?.avatarFileId;
+  const avatarUrl = hasAvatar
+    ? getAvatarPreviewUrl(linkedProfile.avatarFileId, 200)
+    : null;
 
   return (
     <motion.div
@@ -100,22 +112,45 @@ function AssignmentCard({
             : "border-(--border) bg-(--card)"
         )}
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-2 sm:gap-4">
           {/* Driver Info */}
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div
-              className={cn(
-                "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
-                isActive
-                  ? "bg-green-500/10 text-green-600"
-                  : "bg-(--muted)/50 text-(--muted-fg)"
-              )}
-            >
-              <User size={24} />
-            </div>
-            <div className="min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            {/* Profile Picture or Icon */}
+            {avatarUrl ? (
+              <div
+                onClick={() => onViewProfile?.(linkedProfile.avatarFileId)}
+                className={cn(
+                  "h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-full overflow-hidden cursor-pointer transition-all hover:ring-2",
+                  isActive
+                    ? "ring-green-500/50 hover:ring-green-500"
+                    : "ring-(--border) hover:ring-(--brand)"
+                )}
+              >
+                <img
+                  src={avatarUrl}
+                  alt={
+                    driver
+                      ? `${driver.firstName} ${driver.lastName}`
+                      : "Conductor"
+                  }
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div
+                className={cn(
+                  "flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-full",
+                  isActive
+                    ? "bg-green-500/10 text-green-600"
+                    : "bg-(--muted)/50 text-(--muted-fg)"
+                )}
+              >
+                <User size={24} />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="font-semibold text-(--fg) truncate">
+                <h4 className="font-semibold text-(--fg) truncate text-sm sm:text-base">
                   {driver
                     ? `${driver.firstName} ${driver.lastName}`
                     : "Conductor no encontrado"}
@@ -127,7 +162,7 @@ function AssignmentCard({
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
                 <Badge
                   variant={isActive ? "outline" : "default"}
                   size="sm"
@@ -206,10 +241,10 @@ function AssignmentCard({
         </div>
 
         {/* Assignment Details */}
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
           <div className="flex items-center gap-2 text-(--muted-fg)">
-            <Calendar size={14} />
-            <span>
+            <Calendar size={14} className="shrink-0" />
+            <span className="truncate">
               Inicio:{" "}
               <strong className="text-(--fg)">
                 {formatDate(assignment.startDate)}
@@ -218,8 +253,8 @@ function AssignmentCard({
           </div>
           {assignment.endDate && (
             <div className="flex items-center gap-2 text-(--muted-fg)">
-              <Clock size={14} />
-              <span>
+              <Clock size={14} className="shrink-0" />
+              <span className="truncate">
                 Fin:{" "}
                 <strong className="text-(--fg)">
                   {formatDate(assignment.endDate)}
@@ -229,8 +264,8 @@ function AssignmentCard({
           )}
           {assignment.startMileage != null && (
             <div className="flex items-center gap-2 text-(--muted-fg)">
-              <Gauge size={14} />
-              <span>
+              <Gauge size={14} className="shrink-0" />
+              <span className="truncate">
                 Km inicio:{" "}
                 <strong className="text-(--fg)">
                   {assignment.startMileage.toLocaleString()}
@@ -240,8 +275,8 @@ function AssignmentCard({
           )}
           {assignment.endMileage != null && (
             <div className="flex items-center gap-2 text-(--muted-fg)">
-              <Gauge size={14} />
-              <span>
+              <Gauge size={14} className="shrink-0" />
+              <span className="truncate">
                 Km fin:{" "}
                 <strong className="text-(--fg)">
                   {assignment.endMileage.toLocaleString()}
@@ -251,8 +286,8 @@ function AssignmentCard({
           )}
           {assignment.startFuelLevel != null && (
             <div className="flex items-center gap-2 text-(--muted-fg)">
-              <Fuel size={14} />
-              <span>
+              <Fuel size={14} className="shrink-0" />
+              <span className="truncate">
                 Combustible inicio:{" "}
                 <strong className="text-(--fg)">
                   {assignment.startFuelLevel}%
@@ -262,8 +297,8 @@ function AssignmentCard({
           )}
           {assignment.endFuelLevel != null && (
             <div className="flex items-center gap-2 text-(--muted-fg)">
-              <Fuel size={14} />
-              <span>
+              <Fuel size={14} className="shrink-0" />
+              <span className="truncate">
                 Combustible fin:{" "}
                 <strong className="text-(--fg)">
                   {assignment.endFuelLevel}%
@@ -305,6 +340,8 @@ export function VehicleDriverAssignments({ vehicleId, vehicle }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [editingAssignment, setEditingAssignment] = useState(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(null);
 
   // Fetch assignments
   const { data: assignments = [], isLoading: assignmentsLoading } =
@@ -325,8 +362,19 @@ export function VehicleDriverAssignments({ vehicleId, vehicle }) {
   const driverMap = Object.fromEntries(drivers.map((d) => [d.$id, d]));
 
   // Separate active and historical assignments
-  const activeAssignments = assignments.filter((a) => a.isActive);
-  const historicalAssignments = assignments.filter((a) => !a.isActive);
+  // Considerar una asignación como activa si la fecha de fin es futura o no existe
+  const now = new Date();
+  const activeAssignments = assignments.filter((a) => {
+    if (!a.endDate) return true; // Sin fecha de fin = siempre activa
+    const endDate = new Date(a.endDate);
+    return endDate > now; // Activa si la fecha de fin es futura
+  });
+
+  const historicalAssignments = assignments.filter((a) => {
+    if (!a.endDate) return false; // Sin fecha de fin = no es histórica
+    const endDate = new Date(a.endDate);
+    return endDate <= now; // Histórica si la fecha de fin ya pasó
+  });
 
   // Handlers
   const handleAssign = () => {
@@ -358,6 +406,13 @@ export function VehicleDriverAssignments({ vehicleId, vehicle }) {
       setSelectedAssignment(null);
     } catch (error) {
       console.error("Error deleting assignment:", error);
+    }
+  };
+
+  const handleViewProfile = (avatarFileId) => {
+    if (avatarFileId) {
+      setSelectedAvatarId(avatarFileId);
+      setViewerOpen(true);
     }
   };
 
@@ -418,6 +473,7 @@ export function VehicleDriverAssignments({ vehicleId, vehicle }) {
                 onEdit={handleEdit}
                 onEnd={handleEnd}
                 onDelete={handleDeleteClick}
+                onViewProfile={handleViewProfile}
                 canManage={canManage}
               />
             ))}
@@ -440,6 +496,7 @@ export function VehicleDriverAssignments({ vehicleId, vehicle }) {
                 onEdit={handleEdit}
                 onEnd={handleEnd}
                 onDelete={handleDeleteClick}
+                onViewProfile={handleViewProfile}
                 canManage={canManage}
               />
             ))}
@@ -500,6 +557,18 @@ export function VehicleDriverAssignments({ vehicleId, vehicle }) {
         confirmText="Eliminar"
         variant="danger"
         loading={mutationLoading}
+      />
+
+      {/* Profile Image Viewer */}
+      <ImageViewerModal
+        isOpen={viewerOpen}
+        onClose={() => {
+          setViewerOpen(false);
+          setSelectedAvatarId(null);
+        }}
+        currentImageId={selectedAvatarId}
+        images={selectedAvatarId ? [selectedAvatarId] : []}
+        bucketId={env.bucketAvatarsId}
       />
     </div>
   );

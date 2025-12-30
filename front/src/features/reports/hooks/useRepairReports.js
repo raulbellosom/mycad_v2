@@ -14,6 +14,7 @@ import {
   getRepairReportFiles,
   uploadRepairReportFile,
   deleteRepairReportFile,
+  generateRepairReportPDF,
 } from "../services/repair-reports.service";
 import toast from "react-hot-toast";
 
@@ -77,7 +78,7 @@ export function useCreateRepairReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createRepairReport,
+    mutationFn: ({ data, auditInfo }) => createRepairReport(data, auditInfo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["repair-reports"] });
       toast.success("Reporte de reparación creado exitosamente");
@@ -96,7 +97,8 @@ export function useUpdateRepairReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }) => updateRepairReport(id, data),
+    mutationFn: ({ id, data, auditInfo }) =>
+      updateRepairReport(id, data, auditInfo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["repair-reports"] });
       queryClient.invalidateQueries({ queryKey: ["repair-report", data.$id] });
@@ -116,7 +118,8 @@ export function useFinalizeRepairReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, profileId }) => finalizeRepairReport(id, profileId),
+    mutationFn: ({ id, profileId, auditInfo }) =>
+      finalizeRepairReport(id, profileId, auditInfo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["repair-reports"] });
       queryClient.invalidateQueries({ queryKey: ["repair-report", data.$id] });
@@ -135,7 +138,8 @@ export function useReopenRepairReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: reopenRepairReport,
+    mutationFn: ({ reportId, auditInfo }) =>
+      reopenRepairReport(reportId, auditInfo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["repair-reports"] });
       queryClient.invalidateQueries({ queryKey: ["repair-report", data.$id] });
@@ -154,7 +158,8 @@ export function useDeleteRepairReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteRepairReport,
+    mutationFn: ({ reportId, auditInfo }) =>
+      deleteRepairReport(reportId, auditInfo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["repair-reports"] });
       toast.success("Reporte eliminado");
@@ -273,6 +278,27 @@ export function useDeleteRepairReportFile() {
     },
     onError: (error) => {
       toast.error(error?.message || "Error al eliminar archivo");
+    },
+  });
+}
+
+/**
+ * Hook para generar el PDF del reporte
+ */
+export function useGenerateRepairReportPDF() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ reportId, regenerate = false }) =>
+      generateRepairReportPDF(reportId, regenerate),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["repair-report", variables.reportId],
+      });
+      toast.success("PDF generado exitosamente");
+    },
+    onError: (error) => {
+      toast.error(error?.message || "Error al generar PDF");
     },
   });
 }

@@ -86,33 +86,43 @@ export function ServiceReportCreatePage() {
     try {
       // Separate stagedFiles from the report data
       const { stagedFiles, ...reportData } = formData;
-      
+
       // 1. Create the report without files
       const result = await createMutation.mutateAsync({
-        ...reportData,
-        groupId: activeGroupId,
-        createdByProfileId: profile?.$id,
+        data: {
+          ...reportData,
+          groupId: activeGroupId,
+          createdByProfileId: profile?.$id,
+        },
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+        },
       });
-      
+
       // 2. Upload files if they exist
       if (stagedFiles && stagedFiles.length > 0) {
         const uploadResults = await Promise.allSettled(
-          stagedFiles.map(file => 
+          stagedFiles.map((file) =>
             uploadFileMutation.mutateAsync({
               serviceHistoryId: result.$id,
               groupId: activeGroupId,
-              file
+              file,
             })
           )
         );
-        
+
         // Check if any uploads failed
-        const failedUploads = uploadResults.filter(r => r.status === 'rejected');
+        const failedUploads = uploadResults.filter(
+          (r) => r.status === "rejected"
+        );
         if (failedUploads.length > 0) {
-          toast(`Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+          toast(
+            `Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`
+          );
         }
       }
-      
+
       toast.success("Reporte de servicio creado exitosamente");
       navigate(`/reports/service/${result.$id}`);
     } catch (error) {
@@ -124,39 +134,54 @@ export function ServiceReportCreatePage() {
     try {
       // Separate stagedFiles from the report data
       const { stagedFiles, ...reportData } = formData;
-      
+
       // 1. Create the report without files
       const result = await createMutation.mutateAsync({
-        ...reportData,
-        groupId: activeGroupId,
-        createdByProfileId: profile?.$id,
+        data: {
+          ...reportData,
+          groupId: activeGroupId,
+          createdByProfileId: profile?.$id,
+        },
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+        },
       });
-      
+
       // 2. Upload files if they exist
       if (stagedFiles && stagedFiles.length > 0) {
         const uploadResults = await Promise.allSettled(
-          stagedFiles.map(file => 
+          stagedFiles.map((file) =>
             uploadFileMutation.mutateAsync({
               serviceHistoryId: result.$id,
               groupId: activeGroupId,
-              file
+              file,
             })
           )
         );
-        
+
         // Check if any uploads failed
-        const failedUploads = uploadResults.filter(r => r.status === 'rejected');
+        const failedUploads = uploadResults.filter(
+          (r) => r.status === "rejected"
+        );
         if (failedUploads.length > 0) {
-          toast(`Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`);
+          toast(
+            `Reporte creado. ${failedUploads.length} archivo(s) no se pudieron subir.`
+          );
         }
       }
-      
+
       // 3. Finalize the report
       await finalizeMutation.mutateAsync({
         reportId: result.$id,
         profileId: profile?.$id,
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+          reportTitle: reportData.title,
+        },
       });
-      
+
       toast.success("Reporte creado y finalizado exitosamente");
       navigate(`/reports/service/${result.$id}`);
     } catch (error) {
@@ -192,7 +217,11 @@ export function ServiceReportCreatePage() {
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           onFinalize={handleFinalize}
-          isLoading={createMutation.isPending || finalizeMutation.isPending || uploadFileMutation.isPending}
+          isLoading={
+            createMutation.isPending ||
+            finalizeMutation.isPending ||
+            uploadFileMutation.isPending
+          }
         />
       </div>
     </PageLayout>

@@ -217,7 +217,11 @@ export async function createAssignment(data, auditInfo = {}) {
     await deactivateDriverAssignmentByRole(driverId, role);
   }
 
-  const isActive = !endDate; // Si no tiene fecha de fin, está activa
+  // Una asignación está activa si:
+  // 1. No tiene fecha de fin (indefinida), O
+  // 2. Tiene fecha de fin pero es en el futuro
+  const now = new Date();
+  const isActive = !endDate || new Date(endDate) > now;
 
   const doc = await databases.createDocument(
     env.databaseId,
@@ -280,9 +284,10 @@ export async function createAssignment(data, auditInfo = {}) {
 export async function updateAssignment(id, data, auditInfo = {}) {
   const updateData = { ...data };
 
-  // Si se está estableciendo endDate, marcar como inactiva
-  if (data.endDate) {
-    updateData.isActive = false;
+  // Si se está estableciendo o modificando endDate, recalcular isActive
+  if (data.endDate !== undefined) {
+    const now = new Date();
+    updateData.isActive = !data.endDate || new Date(data.endDate) > now;
   }
 
   // Remover campos que no deben actualizarse directamente

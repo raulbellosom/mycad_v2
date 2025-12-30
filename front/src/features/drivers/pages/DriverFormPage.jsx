@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -15,6 +15,10 @@ import {
   Mail,
   StickyNote,
   Car,
+  Camera,
+  Upload,
+  Loader2,
+  MoreVertical,
 } from "lucide-react";
 
 import { SectionHeader } from "../../../shared/ui/SectionHeader";
@@ -24,7 +28,9 @@ import { Input } from "../../../shared/ui/Input";
 import { Button } from "../../../shared/ui/Button";
 import { Select } from "../../../shared/ui/Select";
 import { Tabs } from "../../../shared/ui/Tabs";
+import { DatePicker } from "../../../shared/ui/DatePicker";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
+import { useAuth } from "../../auth/hooks/useAuth";
 import {
   getDriverById,
   createDriver,
@@ -40,7 +46,17 @@ import { DriverLicenseManager } from "../components/DriverLicenseManager";
 import { DriverMediaManager } from "../components/DriverMediaManager";
 import { DriverVehicleAssignments } from "../components/DriverVehicleAssignments";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
+import { ImageViewerModal } from "../../../shared/ui/ImageViewerModal";
+import {
+  getAvatarPreviewUrl,
+  uploadAvatar,
+  updateAvatar,
+  deleteAvatar,
+} from "../../auth/services/myProfile.service";
+import { updateUserProfile } from "../../users/services/usersAdmin.service";
+import { env } from "../../../shared/appwrite/env";
 import { cn } from "../../../shared/utils/cn";
+import { motion, AnimatePresence } from "framer-motion";
 
 const DRIVER_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "Activo" },
@@ -61,6 +77,7 @@ export function DriverFormPage() {
   const nav = useNavigate();
   const queryClient = useQueryClient();
   const { activeGroupId } = useActiveGroup();
+  const { profile } = useAuth();
 
   const [activeTab, setActiveTab] = useState("info");
 
@@ -76,6 +93,12 @@ export function DriverFormPage() {
 
   const [stagedFiles, setStagedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showAvatarViewer, setShowAvatarViewer] = useState(false);
+  const [initialFormData, setInitialFormData] = useState(null);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef(null);
+  const menuRef = useRef(null);
 
   // Warning for unsaved uploads
   useEffect(() => {
@@ -88,6 +111,19 @@ export function DriverFormPage() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [stagedFiles]);
+
+  // Close avatar menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowAvatarMenu(false);
+      }
+    };
+    if (showAvatarMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAvatarMenu]);
 
   const handleCancel = async () => {
     if (stagedFiles.length > 0) {
@@ -120,7 +156,7 @@ export function DriverFormPage() {
 
   useEffect(() => {
     if (driver) {
-      setFormData({
+      const data = {
         firstName: driver.firstName || "",
         lastName: driver.lastName || "",
         phone: driver.phone || "",
@@ -130,28 +166,70 @@ export function DriverFormPage() {
           : "",
         notes: driver.notes || "",
         status: driver.status || "ACTIVE",
-      });
+      };
+      setFormData(data);
+      setInitialFormData(data);
     }
   }, [driver]);
 
+  // Detect if form has changes
+  const hasChanges = useMemo(() => {
+    if (!initialFormData) return false;
+    return JSON.stringify(formData) !== JSON.stringify(initialFormData);
+  }, [formData, initialFormData]);
+
   const deleteExistingFileMutation = useMutation({
-    mutationFn: ({ docId, fileId }) => deleteDriverFile(docId, fileId),
+    mutationFn: ({ docId, fileId }) =>
+      deleteDriverFile(docId, fileId, {
+        profileId: profile?.$id,
+        groupId: activeGroupId,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries(["driverFiles", id]);
       toast.success("Archivo eliminado");
     },
   });
 
+  // Avatar mutations
+  const deleteAvatarMutation = useMutation({
+    mutationFn: async () => {
+      if (!driver?.linkedProfile?.$id) {
+        throw new Error("No hay perfil vinculado");
+      }
+      const oldFileId = driver.linkedProfile.avatarFileId;
+      await updateUserProfile(driver.linkedProfile.$id, { avatarFileId: null });
+      if (oldFileId) {
+        await deleteAvatar(oldFileId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["driver", id]);
+      setShowAvatarMenu(false);
+      toast.success("Foto eliminada");
+    },
+    onError: (e) => {
+      toast.error(e.message || "Error al eliminar foto");
+    },
+  });
+
   const mutation = useMutation({
     mutationFn: async (data) => {
       let driverDoc;
+      const auditInfo = {
+        profileId: profile?.$id,
+        groupId: activeGroupId,
+      };
+
       if (isEdit) {
-        driverDoc = await updateDriver(id, data);
+        driverDoc = await updateDriver(id, data, auditInfo);
       } else {
-        driverDoc = await createDriver({
-          ...data,
-          groupId: activeGroupId,
-        });
+        driverDoc = await createDriver(
+          {
+            ...data,
+            groupId: activeGroupId,
+          },
+          auditInfo
+        );
       }
 
       // Register staged files
@@ -163,7 +241,8 @@ export function DriverFormPage() {
             activeGroupId,
             file.fileId,
             file.isImage ? "PHOTO" : "DOC",
-            file.name
+            file.name,
+            auditInfo
           );
         }
       }
@@ -193,6 +272,50 @@ export function DriverFormPage() {
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Solo se permiten imágenes");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no debe superar 5MB");
+      return;
+    }
+
+    if (!driver?.linkedProfile?.$id) {
+      toast.error("No hay perfil vinculado a este conductor");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setShowAvatarMenu(false);
+    const toastId = toast.loading("Subiendo foto...");
+
+    try {
+      const oldFileId = driver.linkedProfile.avatarFileId;
+      const uploaded = await uploadAvatar(file);
+      await updateUserProfile(driver.linkedProfile.$id, {
+        avatarFileId: uploaded.$id,
+      });
+      if (oldFileId) {
+        await deleteAvatar(oldFileId);
+      }
+      queryClient.invalidateQueries(["driver", id]);
+      toast.success("Foto actualizada", { id: toastId });
+    } catch (error) {
+      toast.error(error.message || "Error al subir foto", { id: toastId });
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
+      }
+    }
   };
 
   if (isEdit && isLoadingDriver)
@@ -284,13 +407,10 @@ export function DriverFormPage() {
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Input
+                      <DatePicker
                         label="Fecha de Nacimiento"
-                        type="date"
                         value={formData.birthDate}
-                        onChange={(e) =>
-                          handleChange("birthDate", e.target.value)
-                        }
+                        onChange={(value) => handleChange("birthDate", value)}
                       />
                       <Select
                         label="Estado"
@@ -368,12 +488,143 @@ export function DriverFormPage() {
 
           {/* Right Col: Actions & Summary */}
           <div className="space-y-6">
+            {/* Driver Avatar */}
+            {isEdit && driver?.linkedProfile && (
+              <Card className="p-6 overflow-visible">
+                <div className="flex flex-col items-center gap-3">
+                  {/* Avatar container with menu */}
+                  <div className="relative" ref={menuRef}>
+                    {/* Hidden file input */}
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+
+                    {/* Avatar image */}
+                    <div
+                      className={cn(
+                        "relative h-32 w-32 rounded-full overflow-hidden ring-4 ring-(--border)",
+                        isUploadingAvatar && "opacity-50",
+                        driver.linkedProfile.avatarFileId && "cursor-pointer"
+                      )}
+                      onClick={() => {
+                        if (
+                          driver.linkedProfile.avatarFileId &&
+                          !isUploadingAvatar
+                        ) {
+                          setShowAvatarViewer(true);
+                        }
+                      }}
+                    >
+                      {driver.linkedProfile.avatarFileId ? (
+                        <img
+                          src={getAvatarPreviewUrl(
+                            driver.linkedProfile.avatarFileId,
+                            200
+                          )}
+                          alt={`${driver.firstName} ${driver.lastName}`}
+                          className="h-full w-full object-cover transition-all group-hover:ring-(--brand)"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-(--brand)/10 text-(--brand)">
+                          <User size={48} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Loading overlay */}
+                    {isUploadingAvatar && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
+                        <Loader2 className="h-8 w-8 animate-spin text-white" />
+                      </div>
+                    )}
+
+                    {/* Camera/Menu button */}
+                    <button
+                      onClick={() => {
+                        if (driver.linkedProfile.avatarFileId) {
+                          setShowAvatarMenu(!showAvatarMenu);
+                        } else {
+                          avatarInputRef.current?.click();
+                        }
+                      }}
+                      disabled={isUploadingAvatar}
+                      className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-(--brand) text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform disabled:opacity-50"
+                    >
+                      {driver.linkedProfile.avatarFileId ? (
+                        <MoreVertical size={18} />
+                      ) : (
+                        <Camera size={18} />
+                      )}
+                    </button>
+
+                    {/* Avatar menu */}
+                    <AnimatePresence>
+                      {showAvatarMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                          className="absolute top-full left-0 mt-2 w-44 rounded-xl border border-(--border) bg-(--card) shadow-xl z-50 overflow-hidden"
+                        >
+                          <button
+                            onClick={() => {
+                              setShowAvatarMenu(false);
+                              setShowAvatarViewer(true);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-(--fg) hover:bg-(--muted)/50 transition-colors"
+                          >
+                            <User size={16} className="text-(--brand)" />
+                            Ver foto
+                          </button>
+                          <div className="h-px bg-(--border)" />
+                          <button
+                            onClick={() => {
+                              setShowAvatarMenu(false);
+                              avatarInputRef.current?.click();
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-(--fg) hover:bg-(--muted)/50 transition-colors"
+                          >
+                            <Upload size={16} className="text-(--brand)" />
+                            Cambiar foto
+                          </button>
+                          <div className="h-px bg-(--border)" />
+                          <button
+                            onClick={() => deleteAvatarMutation.mutate()}
+                            disabled={deleteAvatarMutation.isPending}
+                            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 size={16} />
+                            Eliminar foto
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Driver info */}
+                  <div className="text-center">
+                    <h3 className="font-semibold text-(--fg)">
+                      {driver.firstName} {driver.lastName}
+                    </h3>
+                    <p className="text-sm text-(--muted-fg)">
+                      {driver.email || "Sin correo"}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             <Card className="p-6 sticky top-24">
               <div className="space-y-4">
                 <Button
                   type="submit"
                   form="driver-form"
                   loading={mutation.isPending}
+                  disabled={!hasChanges && isEdit}
                   className="w-full justify-center py-6 text-lg"
                 >
                   <Save size={20} className="mr-2" />
@@ -421,6 +672,17 @@ export function DriverFormPage() {
           </div>
         </div>
       </div>
+
+      {/* Avatar Viewer Modal */}
+      {isEdit && driver?.linkedProfile?.avatarFileId && (
+        <ImageViewerModal
+          isOpen={showAvatarViewer}
+          onClose={() => setShowAvatarViewer(false)}
+          currentImageId={driver.linkedProfile.avatarFileId}
+          images={[driver.linkedProfile.avatarFileId]}
+          bucketId={env.bucketAvatarsId}
+        />
+      )}
     </PageLayout>
   );
 }

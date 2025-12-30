@@ -14,6 +14,7 @@ import {
   getServiceReportFiles,
   uploadServiceReportFile,
   deleteServiceReportFile,
+  generateServiceReportPDF,
 } from "../services/service-reports.service";
 import toast from "react-hot-toast";
 
@@ -77,7 +78,7 @@ export function useCreateServiceReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createServiceReport,
+    mutationFn: ({ data, auditInfo }) => createServiceReport(data, auditInfo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
       return data;
@@ -92,7 +93,8 @@ export function useUpdateServiceReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }) => updateServiceReport(id, data),
+    mutationFn: ({ id, data, auditInfo }) =>
+      updateServiceReport(id, data, auditInfo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
       queryClient.invalidateQueries({ queryKey: ["service-report", data.$id] });
@@ -108,8 +110,8 @@ export function useFinalizeServiceReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ reportId, profileId }) =>
-      finalizeServiceReport(reportId, profileId),
+    mutationFn: ({ reportId, profileId, auditInfo }) =>
+      finalizeServiceReport(reportId, profileId, auditInfo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
       queryClient.invalidateQueries({ queryKey: ["service-report", data.$id] });
@@ -124,7 +126,8 @@ export function useReopenServiceReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: reopenServiceReport,
+    mutationFn: ({ reportId, auditInfo }) =>
+      reopenServiceReport(reportId, auditInfo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
       queryClient.invalidateQueries({ queryKey: ["service-report", data.$id] });
@@ -143,7 +146,8 @@ export function useDeleteServiceReport() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteServiceReport,
+    mutationFn: ({ reportId, auditInfo }) =>
+      deleteServiceReport(reportId, auditInfo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service-reports"] });
       toast.success("Reporte eliminado");
@@ -259,6 +263,27 @@ export function useDeleteServiceReportFile() {
     },
     onError: (error) => {
       toast.error(error?.message || "Error al eliminar archivo");
+    },
+  });
+}
+
+/**
+ * Hook para generar el PDF del reporte
+ */
+export function useGenerateServiceReportPDF() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ reportId, regenerate = false }) =>
+      generateServiceReportPDF(reportId, regenerate),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["service-report", variables.reportId],
+      });
+      toast.success("PDF generado exitosamente");
+    },
+    onError: (error) => {
+      toast.error(error?.message || "Error al generar PDF");
     },
   });
 }

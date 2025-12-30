@@ -16,6 +16,9 @@ import { Button } from "../../../shared/ui/Button";
 import { Card } from "../../../shared/ui/Card";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
+import { ImageViewerModal } from "../../../shared/ui/ImageViewerModal";
+import { getAvatarPreviewUrl } from "../../auth/services/myProfile.service";
+import { env } from "../../../shared/appwrite/env";
 import { cn } from "../../../shared/utils/cn";
 import { listDrivers } from "../services/drivers.service";
 import { useActiveGroup } from "../../groups/hooks/useActiveGroup";
@@ -26,6 +29,8 @@ export function DriversPage() {
   const { activeGroupId } = useActiveGroup();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [showAvatarViewer, setShowAvatarViewer] = useState(false);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(null);
   const nav = useNavigate();
   const { can } = usePermissions();
 
@@ -123,13 +128,35 @@ export function DriversPage() {
           {filteredDrivers.map((driver) => (
             <Card
               key={driver.$id}
-              className="group relative overflow-hidden p-5 transition-all hover:border-(--brand)/40 hover:shadow-lg"
+              className="group relative overflow-visible p-5 transition-all hover:border-(--brand)/40 hover:shadow-lg"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-(--brand)/10 text-(--brand)">
-                    <User size={24} />
-                  </div>
+                  {/* Profile Image or Icon */}
+                  {driver.linkedProfile?.avatarFileId ? (
+                    <div
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedAvatarId(driver.linkedProfile.avatarFileId);
+                        setShowAvatarViewer(true);
+                      }}
+                      className="h-12 w-12 shrink-0 cursor-pointer rounded-full overflow-hidden ring-2 ring-(--border) hover:ring-(--brand) transition-all"
+                    >
+                      <img
+                        src={getAvatarPreviewUrl(
+                          driver.linkedProfile.avatarFileId,
+                          200
+                        )}
+                        alt={`${driver.firstName} ${driver.lastName}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-(--brand)/10 text-(--brand)">
+                      <User size={24} />
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold text-(--fg) group-hover:text-(--brand) transition-colors">
                       {driver.firstName} {driver.lastName}
@@ -188,6 +215,18 @@ export function DriversPage() {
           }
         />
       )}
+
+      {/* Avatar Viewer Modal */}
+      <ImageViewerModal
+        isOpen={showAvatarViewer}
+        onClose={() => {
+          setShowAvatarViewer(false);
+          setSelectedAvatarId(null);
+        }}
+        currentImageId={selectedAvatarId}
+        images={selectedAvatarId ? [selectedAvatarId] : []}
+        bucketId={env.bucketAvatarsId}
+      />
     </PageLayout>
   );
 }

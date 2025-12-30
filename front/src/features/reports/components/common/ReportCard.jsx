@@ -208,17 +208,19 @@ export function ReportCard({
                       Editar
                     </button>
                   )}
-                  <button
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--fg) hover:bg-(--muted) transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDownloadPDF?.(report.$id);
-                      setShowMenu(false);
-                    }}
-                  >
-                    <FileDown className="h-4 w-4" />
-                    Descargar PDF
-                  </button>
+                  {isFinalized && (
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--fg) hover:bg-(--muted) transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDownloadPDF?.(report.$id);
+                        setShowMenu(false);
+                      }}
+                    >
+                      <FileDown className="h-4 w-4" />
+                      Descargar PDF
+                    </button>
+                  )}
                   {canDelete && (
                     <button
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"

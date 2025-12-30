@@ -27,13 +27,19 @@ export async function listDrivers(groupId) {
       Query.equal("groupId", groupId),
       Query.equal("enabled", true),
       Query.orderDesc("$createdAt"),
+      Query.select(["*", "linkedProfile.*"]), // Expand linkedProfile relation
     ]
   );
   return res.documents;
 }
 
 export async function getDriverById(id) {
-  return await databases.getDocument(env.databaseId, DRIVERS_COLLECTION_ID, id);
+  return await databases.getDocument(
+    env.databaseId,
+    DRIVERS_COLLECTION_ID,
+    id,
+    [Query.select(["*", "linkedProfile.*"])] // Expand linkedProfile relation
+  );
 }
 
 export async function createDriver(data, auditInfo = {}) {
@@ -45,8 +51,8 @@ export async function createDriver(data, auditInfo = {}) {
       ...data,
       enabled: true,
       status: data.status || "ACTIVE",
-      // Relaciones two-way
-      linkedProfile: data.linkedProfileId || null, // relación → users_profile
+      // Relaciones two-way - Appwrite espera el ID directamente en el campo de relación
+      linkedProfile: data.linkedProfile || data.linkedProfileId || null,
     }
   );
 

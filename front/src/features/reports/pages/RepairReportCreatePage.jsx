@@ -83,9 +83,15 @@ export function RepairReportCreatePage() {
   const handleSubmit = async (data) => {
     try {
       const result = await createMutation.mutateAsync({
-        ...data,
-        groupId: activeGroupId,
-        createdByProfileId: profile?.$id,
+        data: {
+          ...data,
+          groupId: activeGroupId,
+          createdByProfileId: profile?.$id,
+        },
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+        },
       });
       toast.success("Reporte de reparación creado exitosamente");
       navigate(`/reports/repair/${result.$id}`);
@@ -97,14 +103,25 @@ export function RepairReportCreatePage() {
   const handleFinalize = async (data) => {
     try {
       const result = await createMutation.mutateAsync({
-        ...data,
-        groupId: activeGroupId,
-        status: REPAIR_STATUS.DONE,
-        createdByProfileId: profile?.$id,
+        data: {
+          ...data,
+          groupId: activeGroupId,
+          status: REPAIR_STATUS.DONE,
+          createdByProfileId: profile?.$id,
+        },
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+        },
       });
       await finalizeMutation.mutateAsync({
-        reportId: result.$id,
+        id: result.$id,
         profileId: profile?.$id,
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+          reportTitle: data.title,
+        },
       });
       toast.success("Reporte creado y finalizado exitosamente");
       navigate(`/reports/repair/${result.$id}`);

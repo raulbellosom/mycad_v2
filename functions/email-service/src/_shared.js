@@ -89,23 +89,6 @@ const translations = {
       subject: "Notificación - MyCAD",
       greeting: "Hola",
     },
-    groupInvitation: {
-      subject: "Invitación a grupo - MyCAD",
-      title: "Has sido invitado a un grupo",
-      greeting: "Hola",
-      invitedYou: "te ha invitado a unirte a un grupo en MyCAD.",
-      groupLabel: "Grupo",
-      roleLabel: "Rol asignado",
-      personalMessage: "Mensaje personal",
-      button: "Aceptar Invitación",
-      expiry: "Esta invitación expirará en 7 días.",
-      roles: {
-        OWNER: "Dueño",
-        ADMIN: "Administrador",
-        MEMBER: "Miembro",
-        VIEWER: "Visualizador",
-      },
-    },
     footer: {
       copyright: "Todos los derechos reservados.",
       automated:
@@ -142,23 +125,6 @@ const translations = {
       subject: "Notification - MyCAD",
       greeting: "Hi",
     },
-    groupInvitation: {
-      subject: "Group Invitation - MyCAD",
-      title: "You have been invited to a group",
-      greeting: "Hi",
-      invitedYou: "has invited you to join a group on MyCAD.",
-      groupLabel: "Group",
-      roleLabel: "Assigned role",
-      personalMessage: "Personal message",
-      button: "Accept Invitation",
-      expiry: "This invitation will expire in 7 days.",
-      roles: {
-        OWNER: "Owner",
-        ADMIN: "Administrator",
-        MEMBER: "Member",
-        VIEWER: "Viewer",
-      },
-    },
     footer: {
       copyright: "All rights reserved.",
       automated:
@@ -174,6 +140,33 @@ function getTranslations(lang = "es") {
   return translations[lang] || translations.es;
 }
 
+/**
+ * Build URL from base URL and path
+ * @param {string} path - Path to append (e.g., '/verify', '/reset-password')
+ * @param {Object} params - Query parameters as key-value pairs
+ * @returns {string} Complete URL
+ */
+function buildUrl(path, params = {}) {
+  const baseUrl = optional("APP_BASE_URL", "https://dev.mycad.mx").replace(
+    /\/$/,
+    ""
+  );
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Build query string
+  const queryString = Object.entries(params)
+    .filter(([_, value]) => value !== undefined && value !== null)
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+    )
+    .join("&");
+
+  return queryString
+    ? `${baseUrl}${cleanPath}?${queryString}`
+    : `${baseUrl}${cleanPath}`;
+}
+
 export {
   must,
   optional,
@@ -182,6 +175,7 @@ export {
   createTransporter,
   translations,
   getTranslations,
+  buildUrl,
   Client,
   Databases,
   Users,

@@ -47,9 +47,11 @@ export function ServiceReportView({
   onFinalize,
   onReopen,
   onDownloadPDF,
+  onRegeneratePDF,
   canEdit = true,
   canFinalize = true,
   canReopen = false,
+  isGeneratingPDF = false,
 }) {
   const isFinalized = report?.status === REPORT_STATUS.FINALIZED;
 
@@ -96,11 +98,29 @@ export function ServiceReportView({
         </div>
 
         <div className="flex items-center gap-2">
-          {onDownloadPDF && (
-            <Button variant="outline" size="sm" onClick={onDownloadPDF}>
-              <Download className="h-4 w-4 mr-2" />
-              PDF
-            </Button>
+          {isFinalized && onDownloadPDF && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDownloadPDF}
+                disabled={isGeneratingPDF}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {report.reportFileId ? "Descargar PDF" : "Generar PDF"}
+              </Button>
+              {report.reportFileId && onRegeneratePDF && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onRegeneratePDF}
+                  disabled={isGeneratingPDF}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Regenerar
+                </Button>
+              )}
+            </>
           )}
           {canEdit && !isFinalized && onEdit && (
             <Button variant="secondary" size="sm" onClick={onEdit}>

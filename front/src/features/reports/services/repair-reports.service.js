@@ -1,5 +1,5 @@
 import { ID, Query } from "appwrite";
-import { databases, storage } from "../../../shared/appwrite/client";
+import { databases, storage, functions } from "../../../shared/appwrite/client";
 import { env } from "../../../shared/appwrite/env";
 import {
   getFilePreviewUrl,
@@ -570,4 +570,53 @@ export function getRepairFilePreviewUrl(fileId) {
  */
 export function getRepairFileDownloadUrl(fileId) {
   return getFileDownloadUrl(BUCKET_ID, fileId);
+}
+
+/**
+ * Genera el PDF del reporte de reparación
+ * @param {string} reportId - ID del reporte
+ * @param {boolean} regenerate - Si es true, regenera el PDF aunque ya exista
+ * @returns {Promise<{success: boolean, fileId: string, fileName: string}>}
+ */
+export async function generateRepairReportPDF(reportId, regenerate = false) {
+  if (!env.fnGeneratePdfId) {
+    throw new Error("Function ID for PDF generation is not configured");
+  }
+
+  const execution = await functions.createExecution(
+    env.fnGeneratePdfId,
+    JSON.stringify({
+      reportType: "repair",
+      reportId,
+      regenerate,
+    })
+  );
+
+  // Esperar a que termine la ejecución
+  if (execution.status === "failed") {
+    throw new Error(execution.responseBody || "Failed to generate PDF");
+  }
+
+  const response = JSON.parse(execution.responseBody);
+  if (!response.success) {
+    throw new Error(response.error || "Failed to generate PDF");
+  }
+
+  return response;
+}
+
+/**
+ * Obtiene la URL de descarga del PDF del reporte
+ */
+export function getRepairReportPDFUrl(fileId) {
+  if (!fileId) return null;
+  return getFileDownloadUrl(env.bucketReportFilesId, fileId);
+}
+
+/**
+ * Obtiene la URL de preview del PDF del reporte
+ */
+export function getRepairReportPDFPreviewUrl(fileId) {
+  if (!fileId) return null;
+  return getFilePreviewUrl(env.bucketReportFilesId, fileId);
 }

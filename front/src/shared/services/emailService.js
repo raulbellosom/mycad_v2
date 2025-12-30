@@ -51,13 +51,19 @@ async function executeEmailFunction(payload) {
  * @param {Object} options
  * @param {string} options.email - Recipient email
  * @param {string} [options.name] - Recipient name
- * @param {string} options.verificationLink - Verification URL
+ * @param {string} [options.verificationLink] - Full verification URL (legacy)
+ * @param {string} [options.token] - Verification token (recommended - URL will be built by function)
+ * @param {string} [options.userId] - User ID (Appwrite verification)
+ * @param {string} [options.secret] - Secret (Appwrite verification)
  * @param {string} [options.lang='es'] - Language (es/en)
  */
 export async function sendVerificationEmail({
   email,
   name,
   verificationLink,
+  token,
+  userId,
+  secret,
   lang = "es",
 }) {
   return executeEmailFunction({
@@ -65,6 +71,9 @@ export async function sendVerificationEmail({
     email,
     name,
     verificationLink,
+    token,
+    userId,
+    secret,
     lang,
   });
 }
@@ -74,13 +83,19 @@ export async function sendVerificationEmail({
  * @param {Object} options
  * @param {string} options.email - Recipient email
  * @param {string} [options.name] - Recipient name
- * @param {string} options.resetLink - Password reset URL
+ * @param {string} [options.resetLink] - Full reset URL (legacy)
+ * @param {string} [options.token] - Reset token (recommended - URL will be built by function)
+ * @param {string} [options.userId] - User ID (Appwrite reset)
+ * @param {string} [options.secret] - Secret (Appwrite reset)
  * @param {string} [options.lang='es'] - Language (es/en)
  */
 export async function sendPasswordResetEmail({
   email,
   name,
   resetLink,
+  token,
+  userId,
+  secret,
   lang = "es",
 }) {
   return executeEmailFunction({
@@ -88,6 +103,9 @@ export async function sendPasswordResetEmail({
     email,
     name,
     resetLink,
+    token,
+    userId,
+    secret,
     lang,
   });
 }

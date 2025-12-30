@@ -17,6 +17,7 @@ import {
   Shield,
   Wrench,
   AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 import { Card } from "../../../../shared/ui/Card";
 import { Button } from "../../../../shared/ui/Button";
@@ -55,12 +56,16 @@ export function RepairReportView({
   vehicle,
   parts = [],
   files = [],
+  createdBy,
+  finalizedBy,
   onEdit,
   onReopen,
   onDownloadPdf,
+  onRegeneratePdf,
   canEdit = false,
   canReopen = false,
   isLoading = false,
+  isGeneratingPDF = false,
 }) {
   const isFinalized =
     report?.status === REPAIR_STATUS.DONE || report?.finalizedAt;
@@ -136,22 +141,36 @@ export function RepairReportView({
                   Reabrir
                 </Button>
               )}
-              <Button
-                variant="secondary"
-                onClick={onDownloadPdf}
-                disabled={isLoading}
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                Descargar PDF
-              </Button>
+              {isFinalized && (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={onDownloadPdf}
+                    disabled={isLoading || isGeneratingPDF}
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    {report.reportFileId ? "Descargar PDF" : "Generar PDF"}
+                  </Button>
+                  {report.reportFileId && onRegeneratePdf && (
+                    <Button
+                      variant="ghost"
+                      onClick={onRegeneratePdf}
+                      disabled={isLoading || isGeneratingPDF}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Regenerar PDF
+                    </Button>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
           {/* Indicador de finalizado */}
-          {isFinalized && (
+          {isFinalized && finalizedBy && (
             <ReportFinalizedIndicator
               finalizedAt={report.finalizedAt}
-              finalizedBy={report.finalizedByProfile?.name}
+              finalizedBy={`${finalizedBy.firstName} ${finalizedBy.lastName}`}
             />
           )}
         </Card>

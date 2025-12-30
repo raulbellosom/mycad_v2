@@ -647,6 +647,7 @@
 | `nextServiceOdometer`  | Integer                    |       ❌ |             | Kilometraje para próximo servicio |
 | `finalizedAt`          | Datetime                   |       ❌ |             | Fecha de finalización             |
 | `finalizedByProfileId` | String(64)                 |       ❌ |             | Quien finalizó                    |
+| `reportFileId`         | String(64)                 |       ❌ |             | Archivo de reporte                |
 
 ## Q.2 Indexes
 
@@ -740,6 +741,7 @@
 | `finalizedByProfileId` | String(64)                 |       ❌ |            | Quien finalizó                            |
 | `warrantyDays`         | Integer                    |       ❌ |            | Días de garantía                          |
 | `warrantyNotes`        | String(500)                |       ❌ |            | Notas de garantía                         |
+| `reportFileId`         | String(64)                 |       ❌ |            | Archivo de reporte                        |
 
 ## T.2 Indexes
 

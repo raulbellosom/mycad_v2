@@ -1,0 +1,2 @@
+# Ignore email templates to prevent style attribute breaking
+src/templates.js

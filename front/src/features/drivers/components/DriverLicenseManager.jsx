@@ -22,9 +22,11 @@ import {
 import { Button } from "../../../shared/ui/Button";
 import { Input } from "../../../shared/ui/Input";
 import { Select } from "../../../shared/ui/Select";
+import { DatePicker } from "../../../shared/ui/DatePicker";
 import { Card } from "../../../shared/ui/Card";
 import { cn } from "../../../shared/utils/cn";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 const LICENSE_TYPE_OPTIONS = [
   { value: "A", label: "Tipo A - Motocicletas" },
@@ -39,6 +41,7 @@ const LICENSE_TYPE_OPTIONS = [
 
 export function DriverLicenseManager({ driverId, groupId }) {
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
@@ -49,7 +52,11 @@ export function DriverLicenseManager({ driverId, groupId }) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => createDriverLicense({ ...data, driverId, groupId }),
+    mutationFn: (data) =>
+      createDriverLicense(
+        { ...data, driverId, groupId },
+        { profileId: profile?.$id, groupId }
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries(["driverLicenses", driverId]);
       setIsAdding(false);
@@ -197,20 +204,18 @@ function LicenseForm({ onCancel, onSubmit, isPending, initialData = {} }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 mt-4">
-        <Input
+        <DatePicker
           label="Fecha de Emisión"
-          type="date"
           value={data.issuedAt}
-          onChange={(e) =>
-            setData((prev) => ({ ...prev, issuedAt: e.target.value }))
+          onChange={(value) =>
+            setData((prev) => ({ ...prev, issuedAt: value }))
           }
         />
-        <Input
+        <DatePicker
           label="Fecha de Vencimiento"
-          type="date"
           value={data.expiresAt}
-          onChange={(e) =>
-            setData((prev) => ({ ...prev, expiresAt: e.target.value }))
+          onChange={(value) =>
+            setData((prev) => ({ ...prev, expiresAt: value }))
           }
         />
       </div>

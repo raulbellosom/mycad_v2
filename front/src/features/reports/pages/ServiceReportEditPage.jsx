@@ -5,6 +5,7 @@ import { PageLayout } from "../../../shared/ui/PageLayout";
 import { Button } from "../../../shared/ui/Button";
 import { LoadingScreen } from "../../../shared/ui/LoadingScreen";
 import { ResourceNotFound } from "../../../shared/ui/ResourceNotFound";
+import { EmptyState } from "../../../shared/ui/EmptyState";
 import { ServiceReportForm } from "../components/service/ServiceReportForm";
 import {
   useServiceReport,
@@ -17,6 +18,7 @@ import {
   useUpdateServiceReportPart,
   useDeleteServiceReportPart,
   useDeleteServiceReportFile,
+  useGenerateServiceReportPDF,
 } from "../hooks/useServiceReports";
 import { listVehicles } from "../../vehicles/services/vehicles.service";
 import {
@@ -79,6 +81,7 @@ export function ServiceReportEditPage() {
   const updatePartMutation = useUpdateServiceReportPart();
   const deletePartMutation = useDeleteServiceReportPart();
   const deleteFileMutation = useDeleteServiceReportFile();
+  const generatePdfMutation = useGenerateServiceReportPDF();
 
   const vehiclesList = vehicles || [];
   const parts = partsData || [];
@@ -199,6 +202,11 @@ export function ServiceReportEditPage() {
         data: {
           ...reportData,
         },
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+          reportTitle: reportData.title || report.title,
+        },
       });
 
       // 2. Process parts (create new, update existing, delete removed)
@@ -265,6 +273,11 @@ export function ServiceReportEditPage() {
         data: {
           ...reportData,
         },
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+          reportTitle: reportData.title || report.title,
+        },
       });
 
       // 2. Process parts (create new, update existing, delete removed)
@@ -305,7 +318,24 @@ export function ServiceReportEditPage() {
       await finalizeMutation.mutateAsync({
         reportId: id,
         profileId: profile?.$id,
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+          reportTitle: reportData.title || report.title,
+        },
       });
+
+      // Generar PDF automáticamente al finalizar
+      try {
+        await generatePdfMutation.mutateAsync({
+          reportId: id,
+          regenerate: false,
+        });
+      } catch (pdfError) {
+        // No fallar si el PDF no se pudo generar
+        console.error("Error generando PDF:", pdfError);
+        toast("Reporte finalizado, pero el PDF no se pudo generar");
+      }
 
       toast.success("Reporte finalizado exitosamente");
       navigate(`/reports/service/${id}`);
@@ -322,7 +352,10 @@ export function ServiceReportEditPage() {
     return <LoadingScreen message="Cargando reporte..." />;
   }
 
-  if (error || !report) {
+  // Verificar si el reporte está finalizado
+  const isFinalized = report?.status === REPORT_STATUS.FINALIZED;
+
+  if (error || !report || isFinalized) {
     return (
       <PageLayout title="Error">
         <ResourceNotFound
@@ -335,26 +368,6 @@ export function ServiceReportEditPage() {
           }
           backPath="/reports"
           backLabel="Volver a Reportes"
-        />
-      </PageLayout>
-    );
-  }
-
-  // Verificar si el reporte está finalizado
-  const isFinalized = report.status === REPORT_STATUS.FINALIZED;
-
-  if (isFinalized) {
-    return (
-      <PageLayout title="Reporte Finalizado">
-        <EmptyState
-          title="Reporte finalizado"
-          description="Este reporte ha sido finalizado y no puede ser editado."
-          action={
-            <Button onClick={() => navigate(`/reports/service/${id}`)}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Ver Reporte
-            </Button>
-          }
         />
       </PageLayout>
     );

@@ -10,9 +10,11 @@ import {
   useReopenRepairReport,
   useRepairReportParts,
   useRepairReportFiles,
+  useGenerateRepairReportPDF,
 } from "../hooks/useRepairReports";
 import { useVehicle } from "../../vehicles/hooks/useVehicle";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { getRepairReportPDFUrl } from "../services/repair-reports.service";
 import toast from "react-hot-toast";
 import { REPAIR_STATUS } from "../constants/report.constants";
 
@@ -38,6 +40,7 @@ export function RepairReportViewPage() {
 
   // Mutations
   const reopenMutation = useReopenRepairReport();
+  const generatePdfMutation = useGenerateRepairReportPDF();
 
   const parts = partsData || [];
   const files = filesData || [];
@@ -58,32 +61,42 @@ export function RepairReportViewPage() {
     }
   };
 
-  const handleDownloadPdf = () => {
-    // TODO: Implementar descarga de PDF
-    toast.info("Función de PDF en desarrollo");
+  const handleDownloadPdf = async () => {
+    // Si ya tiene PDF, descargarlo
+    if (report.reportFileId) {
+      const url = getRepairReportPDFUrl(report.reportFileId);
+      window.open(url, "_blank");
+      return;
+    }
+
+    // Si no tiene PDF, generarlo
+    try {
+      const result = await generatePdfMutation.mutateAsync({
+        reportId: id,
+        regenerate: false,
+      });
+
+      // Descargar el PDF recién generado
+      const url = getRepairReportPDFUrl(result.fileId);
+      window.open(url, "_blank");
+    } catch (error) {
+      toast.error("Error al generar el PDF: " + error.message);
+    }
   };
 
-  if (isLoadingReport) {
-    return <LoadingScreen message="Cargando reporte..." />;
-  }
+  const handleRegeneratePdf = async () => {
+    try {
+      const result = await generatePdfMutation.mutateAsync({
+        reportId: id,
+        regenerate: true,
+      });
 
-  if (error || !report) {
-    return (
-      <PageLayout title="Error">
-        <ResourceNotFound
-          resourceType="reporte de reparación"
-          resourceId={id}
-          reason={
-            error?.message?.includes("permission")
-              ? "no-permission"
-              : "not-found"
-          }
-          backPath="/reports"
-          backLabel="Volver a Reportes"
-        />
-      </PageLayout>
-    );
-  }
+      const url = getRepairReportPDFUrl(result.fileId);
+      window.open(url, "_blank");
+    } catch (error) {
+      toast.error("Error al regenerar el PDF: " + error.message);
+    }
+  };
 
   const isFinalized =
     report.status === REPAIR_STATUS.DONE && report.finalizedAt;
@@ -110,12 +123,15 @@ export function RepairReportViewPage() {
           parts={parts}
           files={files}
           createdBy={report.createdByProfile}
+          finalizedBy={report.finalizedByProfile}
           onEdit={handleEdit}
           onReopen={handleReopen}
           onDownloadPdf={handleDownloadPdf}
+          onRegeneratePdf={handleRegeneratePdf}
           canEdit={canEdit}
           canReopen={canReopen}
           isLoading={reopenMutation.isPending}
+          isGeneratingPDF={generatePdfMutation.isPending}
         />
       </div>
     </PageLayout>

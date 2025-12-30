@@ -18,6 +18,7 @@ import {
   useUpdateRepairReportPart,
   useDeleteRepairReportPart,
   useDeleteRepairReportFile,
+  useGenerateRepairReportPDF,
 } from "../hooks/useRepairReports";
 import { listVehicles } from "../../vehicles/services/vehicles.service";
 import {
@@ -80,6 +81,7 @@ export function RepairReportEditPage() {
   const updatePartMutation = useUpdateRepairReportPart();
   const deletePartMutation = useDeleteRepairReportPart();
   const deleteFileMutation = useDeleteRepairReportFile();
+  const generatePdfMutation = useGenerateRepairReportPDF();
 
   const vehiclesList = vehicles || [];
   const parts = partsData || [];
@@ -196,9 +198,14 @@ export function RepairReportEditPage() {
 
       // 1. Update the report
       await updateMutation.mutateAsync({
-        reportId: id,
+        id: id,
         data: {
           ...reportData,
+        },
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+          reportTitle: reportData.title || report.title,
         },
       });
 
@@ -206,9 +213,7 @@ export function RepairReportEditPage() {
       if (formParts) {
         const partErrors = await processParts(formParts);
         if (partErrors.length > 0) {
-          toast(
-            `Algunas partes tuvieron errores: ${partErrors.length}`
-          );
+          toast(`Algunas partes tuvieron errores: ${partErrors.length}`);
         }
       }
 
@@ -264,9 +269,14 @@ export function RepairReportEditPage() {
 
       // 1. Update the report
       await updateMutation.mutateAsync({
-        reportId: id,
+        id: id,
         data: {
           ...reportData,
+        },
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+          reportTitle: reportData.title || report.title,
         },
       });
 
@@ -274,9 +284,7 @@ export function RepairReportEditPage() {
       if (formParts) {
         const partErrors = await processParts(formParts);
         if (partErrors.length > 0) {
-          toast(
-            `Algunas partes tuvieron errores: ${partErrors.length}`
-          );
+          toast(`Algunas partes tuvieron errores: ${partErrors.length}`);
         }
       }
 
@@ -302,17 +310,32 @@ export function RepairReportEditPage() {
           (r) => r.status === "rejected"
         );
         if (failedUploads.length > 0) {
-          toast(
-            `${failedUploads.length} archivo(s) no se pudieron subir.`
-          );
+          toast(`${failedUploads.length} archivo(s) no se pudieron subir.`);
         }
       }
 
       // 5. Finalize the report
       await finalizeMutation.mutateAsync({
-        reportId: id,
+        id: id,
         profileId: profile?.$id,
+        auditInfo: {
+          profileId: profile?.$id,
+          groupId: activeGroupId,
+          reportTitle: reportData.title || report.title,
+        },
       });
+
+      // Generar PDF automáticamente al finalizar
+      try {
+        await generatePdfMutation.mutateAsync({
+          reportId: id,
+          regenerate: false,
+        });
+      } catch (pdfError) {
+        // No fallar si el PDF no se pudo generar
+        console.error("Error generando PDF:", pdfError);
+        toast("Reporte finalizado, pero el PDF no se pudo generar");
+      }
 
       toast.success("Reporte finalizado exitosamente");
       navigate(`/reports/repair/${id}`);
@@ -329,7 +352,11 @@ export function RepairReportEditPage() {
     return <LoadingScreen message="Cargando reporte..." />;
   }
 
-  if (error || !report) {
+  // Verificar si el reporte está finalizado
+  const isFinalized =
+    report?.status === REPAIR_STATUS.DONE && report?.finalizedAt;
+
+  if (error || !report || isFinalized) {
     return (
       <PageLayout title="Error">
         <ResourceNotFound
@@ -342,27 +369,6 @@ export function RepairReportEditPage() {
           }
           backPath="/reports"
           backLabel="Volver a Reportes"
-        />
-      </PageLayout>
-    );
-  }
-
-  // Verificar si el reporte está finalizado
-  const isFinalized =
-    report.status === REPAIR_STATUS.DONE && report.finalizedAt;
-
-  if (isFinalized) {
-    return (
-      <PageLayout title="Reporte Finalizado">
-        <EmptyState
-          title="Reporte finalizado"
-          description="Este reporte ha sido finalizado y no puede ser editado."
-          action={
-            <Button onClick={() => navigate(`/reports/repair/${id}`)}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Ver Reporte
-            </Button>
-          }
         />
       </PageLayout>
     );

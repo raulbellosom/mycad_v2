@@ -4,12 +4,15 @@ export const env = {
   databaseId: import.meta.env.VITE_APPWRITE_DATABASE_ID,
   bucketVehiclesId: import.meta.env.VITE_APPWRITE_BUCKET_VEHICLES_ID,
   bucketAvatarsId: import.meta.env.VITE_APPWRITE_BUCKET_AVATARS_ID || "",
+  bucketReportFilesId:
+    import.meta.env.VITE_APPWRITE_BUCKET_REPORT_FILES_ID || "",
   platformAdminsTeamId:
     import.meta.env.VITE_APPWRITE_PLATFORM_ADMINS_TEAM_ID || "",
   fnEnsureProfileId: import.meta.env.VITE_APPWRITE_FN_ENSURE_PROFILE_ID || "",
   fnCreateUserWithProfileId:
     import.meta.env.VITE_APPWRITE_FN_CREATE_USER_WITH_PROFILE_ID || "",
   fnEmailServiceId: import.meta.env.VITE_APPWRITE_FN_EMAIL_SERVICE_ID || "",
+  fnGeneratePdfId: import.meta.env.VITE_APPWRITE_FN_GENERATE_PDF || "",
 
   //Collections
   collectionUsersProfileId: import.meta.env
@@ -17,8 +20,6 @@ export const env = {
   collectionGroupsId: import.meta.env.VITE_APPWRITE_COLLECTION_GROUPS_ID,
   collectionGroupMembersId: import.meta.env
     .VITE_APPWRITE_COLLECTION_GROUP_MEMBERS_ID,
-  collectionGroupInvitationsId: import.meta.env
-    .VITE_APPWRITE_COLLECTION_GROUP_INVITATIONS_ID,
   collectionPermissionsId: import.meta.env
     .VITE_APPWRITE_COLLECTION_PERMISSIONS_ID,
   collectionRolesId: import.meta.env.VITE_APPWRITE_COLLECTION_ROLES_ID,
@@ -59,10 +60,6 @@ export const env = {
     .VITE_APPWRITE_COLLECTION_DRIVER_LICENSES_ID,
   collectionDriverFilesId: import.meta.env
     .VITE_APPWRITE_COLLECTION_DRIVER_FILES_ID,
-  collectionVehicleDriverAssignmentsId: import.meta.env
-    .VITE_APPWRITE_COLLECTION_VEHICLE_DRIVER_ASSIGNMENTS_ID,
-  collectionVehicleDriverAssignmentFilesId: import.meta.env
-    .VITE_APPWRITE_COLLECTION_VEHICLE_DRIVER_ASSIGNMENT_FILES_ID,
   collectionAuditLogsId: import.meta.env.VITE_APPWRITE_COLLECTION_AUDIT_LOGS_ID,
 
   appName: import.meta.env.VITE_APP_NAME || "MyCAD Admin",

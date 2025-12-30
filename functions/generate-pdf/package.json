@@ -1,0 +1,17 @@
+{
+  "name": "generate-pdf",
+  "version": "1.0.0",
+  "description": "Generates professional PDF reports for service and repair reports",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "node-appwrite": "^18.0.0",
+    "pdfkit": "^0.17.2",
+    "axios": "^1.13.2",
+    "form-data": "^4.0.0"
+  },
+  "devDependencies": {}
+}

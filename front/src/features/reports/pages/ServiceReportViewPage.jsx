@@ -10,9 +10,11 @@ import {
   useReopenServiceReport,
   useServiceReportParts,
   useServiceReportFiles,
+  useGenerateServiceReportPDF,
 } from "../hooks/useServiceReports";
 import { useVehicle } from "../../vehicles/hooks/useVehicle";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { getServiceReportPDFUrl } from "../services/service-reports.service";
 import toast from "react-hot-toast";
 import { REPORT_STATUS } from "../constants/report.constants";
 
@@ -38,6 +40,7 @@ export function ServiceReportViewPage() {
 
   // Mutations
   const reopenMutation = useReopenServiceReport();
+  const generatePdfMutation = useGenerateServiceReportPDF();
 
   const parts = partsData || [];
   const files = filesData || [];
@@ -58,9 +61,41 @@ export function ServiceReportViewPage() {
     }
   };
 
-  const handleDownloadPdf = () => {
-    // TODO: Implementar descarga de PDF
-    toast.info("Función de PDF en desarrollo");
+  const handleDownloadPdf = async () => {
+    // Si ya tiene PDF, descargarlo
+    if (report.reportFileId) {
+      const url = getServiceReportPDFUrl(report.reportFileId);
+      window.open(url, "_blank");
+      return;
+    }
+
+    // Si no tiene PDF, generarlo
+    try {
+      const result = await generatePdfMutation.mutateAsync({
+        reportId: id,
+        regenerate: false,
+      });
+
+      // Descargar el PDF recién generado
+      const url = getServiceReportPDFUrl(result.fileId);
+      window.open(url, "_blank");
+    } catch (error) {
+      toast.error("Error al generar el PDF: " + error.message);
+    }
+  };
+
+  const handleRegeneratePdf = async () => {
+    try {
+      const result = await generatePdfMutation.mutateAsync({
+        reportId: id,
+        regenerate: true,
+      });
+
+      const url = getServiceReportPDFUrl(result.fileId);
+      window.open(url, "_blank");
+    } catch (error) {
+      toast.error("Error al regenerar el PDF: " + error.message);
+    }
   };
 
   if (isLoadingReport) {
@@ -109,12 +144,15 @@ export function ServiceReportViewPage() {
           parts={parts}
           files={files}
           createdBy={report.createdByProfile}
+          finalizedBy={report.finalizedByProfile}
           onEdit={handleEdit}
           onReopen={handleReopen}
-          onDownloadPdf={handleDownloadPdf}
+          onDownloadPDF={handleDownloadPdf}
+          onRegeneratePDF={handleRegeneratePdf}
           canEdit={canEdit}
           canReopen={canReopen}
           isLoading={reopenMutation.isPending}
+          isGeneratingPDF={generatePdfMutation.isPending}
         />
       </div>
     </PageLayout>
